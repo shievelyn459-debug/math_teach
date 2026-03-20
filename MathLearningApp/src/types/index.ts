@@ -1,0 +1,96 @@
+// 用户类型
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 题目类型
+export interface Question {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  type: QuestionType;
+  difficulty: Difficulty;
+  grade: number;
+  knowledgePoint: string;
+  explanation: string;
+  answer: string;
+  options?: string[];
+  createdAt: Date;
+  userId: string;
+}
+
+// 题目类型枚举
+export enum QuestionType {
+  ADDITION = 'addition',      // 加法
+  SUBTRACTION = 'subtraction', // 减法
+  WORD_PROBLEM = 'word_problem', // 应用题
+}
+
+// 难度等级
+export enum Difficulty {
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard',
+}
+
+// 识别结果
+export interface RecognitionResult {
+  questionType: QuestionType;
+  difficulty: Difficulty;
+  confidence: number; // 识别置信度 0-1
+  knowledgePoint: string;
+  extractedText: string; // 从图片中提取的文本
+  correctedQuestionType?: QuestionType; // 手动纠正后的题目类型
+  isCorrected?: boolean; // 是否已被手动纠正
+}
+
+// 手动纠正记录
+export interface ManualCorrection {
+  id: string;
+  originalType: QuestionType;
+  correctedType: QuestionType;
+  imageUri: string;
+  timestamp: Date;
+  userId?: string;
+}
+
+// 生成请求
+export interface GenerateRequest {
+  originalQuestionId: string;
+  count: number; // 生成题目数量
+  difficulty?: Difficulty;
+}
+
+// 生成结果
+export interface GenerateResult {
+  questions: Question[];
+  totalTime: number;
+}
+
+// 学习记录
+export interface StudyRecord {
+  id: string;
+  userId: string;
+  questionId: string;
+  action: 'upload' | 'practice' | 'review';
+  timestamp: Date;
+  duration?: number; // 学习时长（秒）
+  correct?: boolean; // 是否答对
+}
+
+// API响应格式
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
