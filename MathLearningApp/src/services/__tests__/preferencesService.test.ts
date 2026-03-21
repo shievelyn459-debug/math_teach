@@ -50,7 +50,7 @@ describe('PreferencesService - 难度偏好', () => {
       );
 
       expect(difficulty).toBe(Difficulty.EASY);
-      expect(mockAsyncStorage.getItem).toHaveBeenCalledWith(
+      expect(AsyncStorage.getItem).toHaveBeenCalledWith(
         '@math_learning_difficulty_preferences'
       );
     });

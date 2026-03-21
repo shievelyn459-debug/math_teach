@@ -118,10 +118,15 @@ describe('ExplanationContent Component', () => {
       />
     );
 
-    expect(getByText('💡 概念说明')).toBeTruthy();
-    expect(getByText('📝 解题方法')).toBeTruthy();
-    expect(getByText('✏️ 常见例题')).toBeTruthy();
-    expect(getByText('⭐ 辅导技巧')).toBeTruthy();
+    // Icon和title是分开渲染的，所以需要分别查找
+    expect(getByText('💡')).toBeTruthy();
+    expect(getByText('概念说明')).toBeTruthy();
+    expect(getByText('📝')).toBeTruthy();
+    expect(getByText('解题方法')).toBeTruthy();
+    expect(getByText('✏️')).toBeTruthy();
+    expect(getByText('常见例题')).toBeTruthy();
+    expect(getByText('⭐')).toBeTruthy();
+    expect(getByText('辅导技巧')).toBeTruthy();
   });
 
   it('should expand definition section by default', () => {
@@ -147,7 +152,7 @@ describe('ExplanationContent Component', () => {
     expect(queryByText('第一步：数手指法')).toBeNull();
 
     // Press the methods section header
-    const methodsHeader = getByText('📝 解题方法');
+    const methodsHeader = getByText('解题方法');
     fireEvent.press(methodsHeader);
 
     // Now it should be visible
@@ -172,7 +177,7 @@ describe('ExplanationContent Component', () => {
       />
     );
 
-    const methodsHeader = getByText('📝 解题方法');
+    const methodsHeader = getByText('解题方法');
     fireEvent.press(methodsHeader);
 
     await waitFor(() => {
@@ -189,7 +194,7 @@ describe('ExplanationContent Component', () => {
     );
 
     // Expand examples section first
-    const examplesHeader = getByText('✏️ 常见例题');
+    const examplesHeader = getByText('常见例题');
     fireEvent.press(examplesHeader);
 
     expect(getByText('Q1: 3 + 2 = ?')).toBeTruthy();
@@ -209,7 +214,7 @@ describe('ExplanationContent Component', () => {
       />
     );
 
-    const examplesHeader = getByText('✏️ 常见例题');
+    const examplesHeader = getByText('常见例题');
     fireEvent.press(examplesHeader);
 
     expect(getByText('难度: 简单')).toBeTruthy();
@@ -262,7 +267,7 @@ describe('ExplanationContent Component', () => {
       />
     );
 
-    const methodsHeader = getByText('📝 解题方法');
+    const methodsHeader = getByText('解题方法');
     fireEvent.press(methodsHeader);
 
     expect(onSectionPress).toHaveBeenCalledWith(ExplanationSectionType.METHODS);

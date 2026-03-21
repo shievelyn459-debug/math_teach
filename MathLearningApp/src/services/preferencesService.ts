@@ -425,6 +425,7 @@ class PreferencesService {
       });
     } catch (error) {
       console.error('Failed to set format preference:', error);
+      throw error;
     }
   }
 
