@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+MathLearningApp/node_modules/
+
+# Build outputs
+dist/
+build/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Claude settings (local only)
+.claude/settings.local.json
+
+# Package manager lock files (optional - uncomment if needed)
+# package-lock.json
+# yarn.lock

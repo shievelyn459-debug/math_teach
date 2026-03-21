@@ -23,6 +23,27 @@ export enum ExplanationSectionType {
 }
 
 /**
+ * 讲解格式枚举
+ * Story 3-4: multiple-explanation-formats
+ */
+export enum ExplanationFormat {
+  TEXT = 'text',                    // 文字讲解 (已实现 - Story 3-2)
+  ANIMATION = 'animation',          // 动画演示 (占位符 - 未来实现)
+  VIDEO = 'video',                  // 视频讲解 (占位符 - 未来实现)
+}
+
+/**
+ * 格式元数据接口
+ */
+export interface FormatMetadata {
+  textContent?: string;             // 文字内容 (当前已实现)
+  animationUrl?: string;            // 动画资源URL (未来)
+  videoUrl?: string;                // 视频流URL (未来)
+  thumbnailUrl?: string;            // 格式缩略图
+  duration?: number;                // 动画/视频时长(秒)
+}
+
+/**
  * 例题数据结构
  */
 export interface ExplanationExample {
@@ -71,6 +92,10 @@ export interface Explanation {
   childAppropriate: boolean;          // 是否适合儿童
   language: string;                   // 语言（默认"zh-CN"）
   estimatedReadTime: number;          // 预计阅读时间（分钟）
+  // Story 3-4: 多格式支持字段
+  availableFormats: ExplanationFormat[];  // 可用的格式列表
+  currentFormat: ExplanationFormat;       // 当前选中的格式
+  formatMetadata?: FormatMetadata;        // 格式相关的元数据
   createdAt: Date;                    // 创建时间
   updatedAt: Date;                    // 更新时间
 }

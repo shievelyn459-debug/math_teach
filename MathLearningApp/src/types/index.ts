@@ -114,6 +114,8 @@ export {
 export {
   ExplanationSource,
   ExplanationSectionType,
+  ExplanationFormat,
+  FormatMetadata,
   Explanation,
   ExplanationSection,
   TeachingTip,

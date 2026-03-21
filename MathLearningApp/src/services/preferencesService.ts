@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QuestionType, Difficulty } from '../types';
+import { ExplanationFormat } from '../types/explanation';
 
 const PREFERENCES_KEY = '@math_learning_preferences';
 const CORRECTION_HISTORY_KEY = '@math_learning_correction_history';
 const DIFFICULTY_PREFERENCES_KEY = '@math_learning_difficulty_preferences';
+const FORMAT_PREFERENCE_KEY = '@math_learning_format_preference'; // Story 3-4: 格式偏好
 
 // 用于序列化的内部类型（Date存储为ISO字符串）
 interface UserPreferencesSerialized {
@@ -389,6 +391,54 @@ class PreferencesService {
     } catch (error) {
       console.error('Failed to get most selected difficulty:', error);
       return null;
+    }
+  }
+
+  // Story 3-4: 讲解格式偏好管理
+
+  /**
+   * 获取保存的格式偏好
+   * @returns 格式偏好，默认为TEXT
+   */
+  async getFormatPreference(): Promise<ExplanationFormat> {
+    try {
+      const formatString = await AsyncStorage.getItem(FORMAT_PREFERENCE_KEY);
+      if (formatString && Object.values(ExplanationFormat).includes(formatString as ExplanationFormat)) {
+        return formatString as ExplanationFormat;
+      }
+      return ExplanationFormat.TEXT;
+    } catch (error) {
+      console.error('Failed to get format preference:', error);
+      return ExplanationFormat.TEXT;
+    }
+  }
+
+  /**
+   * 保存格式偏好
+   * @param format 选中的格式
+   */
+  async setFormatPreference(format: ExplanationFormat): Promise<void> {
+    try {
+      await this.operationQueue.enqueue(async () => {
+        await AsyncStorage.setItem(FORMAT_PREFERENCE_KEY, format);
+        console.log('[PreferencesService] Format preference saved:', format);
+      });
+    } catch (error) {
+      console.error('Failed to set format preference:', error);
+    }
+  }
+
+  /**
+   * 清除格式偏好（恢复默认TEXT）
+   */
+  async clearFormatPreference(): Promise<void> {
+    try {
+      await this.operationQueue.enqueue(async () => {
+        await AsyncStorage.removeItem(FORMAT_PREFERENCE_KEY);
+        console.log('[PreferencesService] Format preference cleared');
+      });
+    } catch (error) {
+      console.error('Failed to clear format preference:', error);
     }
   }
 }

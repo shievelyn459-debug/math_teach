@@ -3,16 +3,19 @@ import {View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Moda
 import {RNCamera} from 'react-native-camera';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {Button, Card, Title} from 'react-native-paper';
+import {useNavigation} from '@react-navigation/native';
 import {recognitionApi} from '../services/api';
 import {RecognitionResult, QuestionType, ManualCorrection, Difficulty, PerformanceMetrics, ProcessingStage} from '../types';
 import QuestionTypeSelector from '../components/QuestionTypeSelector';
 import DifficultySelector from '../components/DifficultySelector';
 import ProcessingProgress from '../components/ProcessingProgress';
+import KnowledgePointTag from '../components/KnowledgePointTag';
 import {preferencesService} from '../services/preferencesService';
 import {performanceTracker, WARNING_THRESHOLD} from '../services/performanceTracker';
 import {imageOptimizer} from '../utils/imageOptimizer';
 
 const CameraScreen = () => {
+  const navigation = useNavigation();
   const cameraRef = useRef<RNCamera>(null);
   const [isTakingPicture, setIsTakingPicture] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);
@@ -335,6 +338,15 @@ const CameraScreen = () => {
     return labels[difficulty] || '未知难度';
   };
 
+  // Story 3-3: 处理知识点标签点击 - 导航到讲解屏幕
+  const handleKnowledgePointPress = (knowledgePointId: string, knowledgePointName: string) => {
+    (navigation as any).navigate('ExplanationScreen', {
+      knowledgePointId,
+      knowledgePointName,
+      grade: '一年级',
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>拍摄数学题目</Text>
@@ -378,9 +390,27 @@ const CameraScreen = () => {
             <Text style={styles.resultText}>
               置信度: {(recognitionResult.confidence * 100).toFixed(1)}%
             </Text>
-            <Text style={styles.resultText}>
-              知识点: {recognitionResult.knowledgePoint}
-            </Text>
+
+            {/* Story 3-3: 知识点标签 - 支持点击导航到详细讲解 */}
+            {recognitionResult.knowledgePoints ? (
+              <View style={styles.knowledgePointContainer}>
+                <Text style={styles.resultText}>知识点:</Text>
+                <KnowledgePointTag
+                  matchResult={recognitionResult.knowledgePoints.primaryKnowledgePoint}
+                  onPress={(matchResult) =>
+                    handleKnowledgePointPress(
+                      matchResult.knowledgePoint.id,
+                      matchResult.knowledgePoint.name
+                    )
+                  }
+                />
+              </View>
+            ) : (
+              <Text style={styles.resultText}>
+                知识点: {recognitionResult.knowledgePoint}
+              </Text>
+            )}
+
             {selectedDifficulty && (
               <Text style={styles.resultText}>
                 选择难度: {getDifficultyLabel(selectedDifficulty)}
@@ -595,6 +625,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginVertical: 3,
     color: '#333',
+  },
+  knowledgePointContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginVertical: 8,
   },
   correctionButton: {
     marginTop: 10,

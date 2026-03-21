@@ -1,4 +1,30 @@
-import '@react-native-async-storage/async-storage/jest/async-storage-mock';
+// Mock @react-native-async-storage/async-storage
+jest.mock('@react-native-async-storage/async-storage', () => {
+  const AsyncStorage = {
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    multiRemove: jest.fn(),
+    removeItem: jest.fn(),
+    getAllKeys: jest.fn(),
+    multiSet: jest.fn(),
+    multiGet: jest.fn(),
+    clear: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    default: AsyncStorage,
+  };
+});
+
+// Mock react-native for other modules
+jest.mock('react-native', () => {
+  const RN = jest.requireActual('react-native');
+  RN.AccessibilityInfo = {
+    announceForSync: jest.fn(),
+    announceForAsync: jest.fn(),
+  };
+  return RN;
+});
 
 // Mock react-native-camera
 jest.mock('react-native-camera', () => ({
