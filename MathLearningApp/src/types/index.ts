@@ -40,14 +40,18 @@ export enum Difficulty {
 }
 
 // 识别结果
+import {KnowledgePointRecognitionResult} from './knowledgePoint';
+
 export interface RecognitionResult {
   questionType: QuestionType;
   difficulty: Difficulty;
   confidence: number; // 识别置信度 0-1
   knowledgePoint: string;
+  knowledgePoints?: KnowledgePointRecognitionResult; // 详细的知识点识别结果 (AC: 1, 6)
   extractedText: string; // 从图片中提取的文本
   correctedQuestionType?: QuestionType; // 手动纠正后的题目类型
   isCorrected?: boolean; // 是否已被手动纠正
+  selectedDifficulty?: Difficulty; // 用户选择的难度级别
 }
 
 // 手动纠正记录
@@ -94,3 +98,29 @@ export interface ApiResponse<T> {
     message: string;
   };
 }
+
+// 导出性能跟踪类型
+export {ProcessingStage, PerformanceMetrics, StageTimestamp} from '../services/performanceTracker';
+
+// 导出知识点相关类型
+export {
+  KnowledgePoint,
+  KnowledgePointCategory,
+  KnowledgePointMatchResult,
+  KnowledgePointRecognitionResult,
+} from './knowledgePoint';
+
+// 导出讲解内容相关类型
+export {
+  ExplanationSource,
+  ExplanationSectionType,
+  Explanation,
+  ExplanationSection,
+  TeachingTip,
+  ExplanationExample,
+  ExplanationGenerationRequest,
+  ExplanationGenerationResult,
+  ExplanationFeedback,
+  PARENT_FRIENDLY_LANGUAGE_GUIDELINES,
+  CONTENT_STYLE_GUIDE,
+} from './explanation';

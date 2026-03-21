@@ -1,17 +1,18 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { QuestionType } from '../types';
 
 interface QuestionTypeSelectorProps {
   visible: boolean;
-  currentType?: string;
-  onSelect: (type: any) => void;
+  currentType?: QuestionType;
+  onSelect: (type: QuestionType) => void;
   onCancel: () => void;
 }
 
 const QUESTION_TYPES = [
-  { type: 'addition', label: '加法', description: '数字相加的运算' },
-  { type: 'subtraction', label: '减法', description: '数字相减的运算' },
-  { type: 'word_problem', label: '应用题', description: '文字描述的数学问题' },
+  { type: QuestionType.ADDITION, label: '加法', description: '数字相加的运算' },
+  { type: QuestionType.SUBTRACTION, label: '减法', description: '数字相减的运算' },
+  { type: QuestionType.WORD_PROBLEM, label: '应用题', description: '文字描述的数学问题' },
 ];
 
 const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({
@@ -22,7 +23,7 @@ const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({
 }) => {
   if (!visible) return null;
 
-  const getTypeLabel = (type: string): string => {
+  const getTypeLabel = (type: QuestionType): string => {
     const typeObj = QUESTION_TYPES.find(t => t.type === type);
     return typeObj ? typeObj.label : type;
   };
