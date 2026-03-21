@@ -14,23 +14,18 @@ import {
   ExplanationFormat,
 } from '../../types/explanation';
 
-// Mock AccessibilityInfo at module level
-jest.mock('react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo', () => ({
-  announceForSync: jest.fn(),
-  announceForAsync: jest.fn(),
-}), {virtual: true});
-
-// Also mock it on the main react-native export
+// Mock AccessibilityInfo
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
-  return {
-    ...RN,
-    AccessibilityInfo: {
-      announceForSync: jest.fn(),
-      announceForAsync: jest.fn(),
-    },
+  RN.AccessibilityInfo = {
+    announceForSync: jest.fn(),
+    announceForAsync: jest.fn(),
   };
+  return RN;
 });
+
+// Spy on console.log to avoid spamming test output
+jest.spyOn(console, 'log').mockImplementation(() => {});
 
 describe('ExplanationContent Component', () => {
   const mockExplanation: Explanation = {

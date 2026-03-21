@@ -16,15 +16,14 @@ jest.mock('@react-native-async-storage/async-storage', () => {
   };
 });
 
-// Mock react-native's AccessibilityInfo
-jest.mock('react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo', () => ({
-  announceForSync: jest.fn(),
-  announceForAsync: jest.fn(),
-}), {virtual: true});
-
 // Mock react-native for other modules
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
+  // Add AccessibilityInfo mock
+  RN.AccessibilityInfo = {
+    announceForSync: jest.fn(),
+    announceForAsync: jest.fn(),
+  };
   return RN;
 });
 
