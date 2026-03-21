@@ -1,5 +1,44 @@
-import {Question, RecognitionResult, GenerateRequest, GenerateResult, ApiResponse, User, ManualCorrection, QuestionType, Difficulty} from '../types';
+import {
+  Question,
+  RecognitionResult,
+  GenerateRequest,
+  GenerateResult,
+  ApiResponse,
+  User,
+  ManualCorrection,
+  QuestionType,
+  Difficulty,
+} from '../types';
 import {KnowledgePointService} from './knowledgePointService';
+import {getExplanationService} from './explanationService';
+import {ExplanationSource} from '../types/explanation';
+
+/**
+ * 类型守卫：检查API响应是否成功
+ * 用于确保data字段存在
+ */
+export function isApiSuccess<T>(response: ApiResponse<T>): response is ApiResponse<T> & {data: T} {
+  return response.success === true && response.data !== undefined;
+}
+
+/**
+ * 类型守卫：检查API响应是否失败
+ * 用于确保error字段存在
+ */
+export function isApiError<T>(response: ApiResponse<T>): response is ApiResponse<T> & {error: NonNullable<ApiResponse<T>['error']>} {
+  return response.success === false && response.error !== undefined;
+}
+
+/**
+ * 从成功响应中获取数据
+ * 如果响应不成功，抛出错误
+ */
+export function getApiDataOrThrow<T>(response: ApiResponse<T>): T {
+  if (isApiSuccess(response)) {
+    return response.data;
+  }
+  throw new Error(response.error?.message || 'API request failed');
+}
 
 // API基础配置
 const API_BASE_URL = 'https://api.math-learning.com/v1';
@@ -10,6 +49,7 @@ export const STAGE_TIMEOUTS = {
   UPLOAD: 5000, // 5秒
   RECOGNITION: 8000, // 8秒 (包含OCR)
   KNOWLEDGE_POINT: 5000, // 5秒 (知识点识别 - Story 3-1 AC5)
+  EXPLANATION: 3000, // 3秒 (讲解生成 - Story 3-2 AC5)
   GENERATION: 12000, // 12秒
 };
 
@@ -146,6 +186,77 @@ const requestWithTimeout = async <T>(
 };
 
 /**
+ * 敏感字段名称列表（用于日志过滤）
+ */
+const SENSITIVE_FIELDS = [
+  'password',
+  'passwd',
+  'pwd',
+  'token',
+  'secret',
+  'apiKey',
+  'accessToken',
+  'refreshToken',
+  'authToken',
+  'authorization',
+];
+
+/**
+ * 递归过滤对象中的敏感字段
+ * 返回一个新对象，敏感字段值被替换为 [REDACTED]
+ */
+function redactSensitiveData(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  if (typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(item => redactSensitiveData(item));
+  }
+
+  const redacted: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const lowerKey = key.toLowerCase();
+    const isSensitive = SENSITIVE_FIELDS.some(field => lowerKey.includes(field));
+
+    if (isSensitive) {
+      redacted[key] = '[REDACTED]';
+    } else if (typeof value === 'object') {
+      redacted[key] = redactSensitiveData(value);
+    } else {
+      redacted[key] = value;
+    }
+  }
+
+  return redacted;
+}
+
+/**
+ * 安全的错误日志
+ * 自动过滤敏感信息后再记录
+ */
+function safeLogError(context: string, error: unknown): void {
+  let logData: any;
+
+  if (error instanceof Error) {
+    logData = {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+    };
+  } else {
+    logData = error;
+  }
+
+  const redacted = redactSensitiveData(logData);
+  console.error(`[${context}]`, redacted);
+}
+
+/**
  * 判断错误是否可重试
  */
 const isRetriableError = (error: unknown): boolean => {
@@ -178,17 +289,147 @@ const isRetriableError = (error: unknown): boolean => {
 
 // 用户相关API
 export const userApi = {
-  // 用户注册
-  register: (userData: {name: string; email: string; password: string}) =>
-    request<User>('/users/register', {method: 'POST', body: JSON.stringify(userData)}),
+  /**
+   * 用户注册
+   * 创建新用户账户
+   * @param userData 用户注册信息（姓名、邮箱、密码）
+   * @returns 注册结果，包含用户信息
+   */
+  register: async (userData: {
+    name: string;
+    email: string;
+    password: string;
+  }): Promise<ApiResponse<User>> => {
+    try {
+      return await requestWithRetry<User>(
+        '/users/register',
+        {
+          method: 'POST',
+          body: JSON.stringify(userData),
+        },
+        5000, // 5秒超时（AC6: 注册过程在5秒内完成）
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 5000,
+          backoffMultiplier: 2,
+        }
+      );
+    } catch (error) {
+      safeLogError('userApi', error);
+      const errorMessage = error instanceof Error ? error.message : '注册失败，请稍后重试';
 
-  // 用户登录
-  login: (credentials: {email: string; password: string}) =>
-    request<User>('/users/login', {method: 'POST', body: JSON.stringify(credentials)}),
+      // 安全注意：不区分"邮箱已注册"和其他错误，防止邮箱枚举攻击
+      // 具体的错误类型只在日志中记录，不对用户暴露
+      if (errorMessage.includes('已注册') || errorMessage.includes('already exists')) {
+        // 在日志中记录具体类型（用于调试）
+        console.warn('[userApi] Email already exists (not shown to user for security)');
+      }
 
-  // 获取用户信息
-  getProfile: () =>
-    request<User>('/users/profile'),
+      // 返回通用错误消息，不泄露邮箱是否存在
+      return {
+        success: false,
+        error: {
+          code: 'REGISTRATION_ERROR',
+          message: '注册失败，请检查输入信息后重试',
+        },
+      };
+    }
+  },
+
+  /**
+   * 用户登录
+   * 使用邮箱和密码登录
+   * @param credentials 登录凭证（邮箱、密码）
+   * @returns 登录结果，包含用户信息
+   */
+  login: async (credentials: {
+    email: string;
+    password: string;
+  }): Promise<ApiResponse<User>> => {
+    try {
+      return await requestWithRetry<User>(
+        '/users/login',
+        {
+          method: 'POST',
+          body: JSON.stringify(credentials),
+        },
+        5000,
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 5000,
+          backoffMultiplier: 2,
+        }
+      );
+    } catch (error) {
+      safeLogError('userApi', error);
+      const errorMessage = error instanceof Error ? error.message : '登录失败，请稍后重试';
+
+      // 安全注意：不区分"用户不存在"和"密码错误"，防止用户枚举攻击
+      // 具体错误类型只在日志中记录
+      if (errorMessage.includes('密码') || errorMessage.includes('password')) {
+        console.warn('[userApi] Invalid password (not shown to user for security)');
+      } else if (errorMessage.includes('不存在') || errorMessage.includes('not found')) {
+        console.warn('[userApi] User not found (not shown to user for security)');
+      }
+
+      // 返回通用错误消息
+      return {
+        success: false,
+        error: {
+          code: 'LOGIN_ERROR',
+          message: '邮箱或密码错误，请检查后重试',
+        },
+      };
+    }
+  },
+
+  /**
+   * 获取用户信息
+   * 获取当前登录用户的详细资料
+   * @returns 用户信息
+   */
+  getProfile: async (): Promise<ApiResponse<User>> => {
+    try {
+      return await request<User>('/users/profile');
+    } catch (error) {
+      safeLogError('userApi', error);
+      return {
+        success: false,
+        error: {
+          code: 'GET_PROFILE_ERROR',
+          message: '获取用户信息失败',
+        },
+      };
+    }
+  },
+
+  /**
+   * 更新用户资料
+   * @param updates 要更新的用户信息
+   * @returns 更新后的用户信息
+   */
+  updateProfile: async (updates: Partial<{
+    name: string;
+    avatar: string;
+  }>): Promise<ApiResponse<User>> => {
+    try {
+      return await request<User>('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+    } catch (error) {
+      safeLogError('userApi', error);
+      return {
+        success: false,
+        error: {
+          code: 'UPDATE_PROFILE_ERROR',
+          message: '更新资料失败',
+        },
+      };
+    }
+  },
 };
 
 // 题目识别API
@@ -523,6 +764,141 @@ export const exportApi = {
   },
 };
 
+// 知识点讲解API (Story 3-2)
+export const explanationApi = {
+  /**
+   * 生成知识点讲解
+   * @param knowledgePointId 知识点ID
+   * @param knowledgePointName 知识点名称
+   * @param grade 年级
+   * @param onProgress 进度回调
+   */
+  generateExplanation: async (
+    knowledgePointId: string,
+    knowledgePointName: string,
+    grade: string = '一年级',
+    onProgress?: ProgressCallback
+  ) => {
+    try {
+      onProgress?.('generating', 0);
+
+      const explanationService = getExplanationService();
+
+      // 添加超时保护（AC5: 3秒内完成）
+      const explanationPromise = explanationService.generateExplanation({
+        knowledgePointId,
+        knowledgePointName,
+        grade,
+      });
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error('讲解生成超时')),
+          STAGE_TIMEOUTS.EXPLANATION
+        );
+      });
+
+      const result = await Promise.race([explanationPromise, timeoutPromise]) as any;
+
+      onProgress?.('generating', 100);
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.error('[API] Explanation generation failed:', error);
+      return {
+        success: false,
+        error: {
+          code: 'EXPLANATION_GENERATION_FAILED',
+          message: error instanceof Error ? error.message : 'Failed to generate explanation',
+        },
+      };
+    }
+  },
+
+  /**
+   * 提交讲解反馈
+   * @param feedback 反馈数据
+   */
+  submitFeedback: async (feedback: {
+    explanationId: string;
+    rating: number;
+    helpful: boolean;
+    easyToUnderstand: boolean;
+    appropriateForChild: boolean;
+    comments?: string;
+  }) => {
+    try {
+      const explanationService = getExplanationService();
+      const result = await explanationService.submitFeedback({
+        ...feedback,
+        timestamp: new Date(),
+      });
+
+      if (result.success) {
+        return {
+          success: true,
+          data: {message: '反馈已提交'},
+        };
+      } else {
+        return {
+          success: false,
+          error: {
+            code: 'FEEDBACK_SUBMISSION_FAILED',
+            message: result.message || 'Failed to submit feedback',
+          },
+        };
+      }
+    } catch (error) {
+      console.error('[API] Feedback submission failed:', error);
+      return {
+        success: false,
+        error: {
+          code: 'FEEDBACK_SUBMISSION_FAILED',
+          message: error instanceof Error ? error.message : 'Failed to submit feedback',
+        },
+      };
+    }
+  },
+
+  /**
+   * 获取讲解的反馈统计
+   * @param explanationId 讲解ID
+   */
+  getFeedbackStats: async (explanationId: string) => {
+    try {
+      const explanationService = getExplanationService();
+      const stats = explanationService.getFeedbackStats(explanationId);
+
+      if (stats) {
+        return {
+          success: true,
+          data: stats,
+        };
+      } else {
+        return {
+          success: false,
+          error: {
+            code: 'STATS_NOT_FOUND',
+            message: 'Feedback stats not found',
+          },
+        };
+      }
+    } catch (error) {
+      console.error('[API] Get feedback stats failed:', error);
+      return {
+        success: false,
+        error: {
+          code: 'STATS_FETCH_FAILED',
+          message: error instanceof Error ? error.message : 'Failed to fetch feedback stats',
+        },
+      };
+    }
+  },
+};
+
 export default {
   user: userApi,
   recognition: recognitionApi,
@@ -530,4 +906,5 @@ export default {
   question: questionApi,
   study: studyApi,
   export: exportApi,
+  explanation: explanationApi,
 };

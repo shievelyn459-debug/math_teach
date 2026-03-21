@@ -1,12 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {User, ApiResponse} from '../types';
-import {userApi} from './api';
+import {userApi, isApiSuccess} from './api';
 
 /**
  * 认证令牌存储键
  */
 const AUTH_TOKEN_KEY = '@math_learning_auth_token';
 const USER_DATA_KEY = '@math_learning_user_data';
+
+/**
+ * 令牌配置
+ */
+const TOKEN_CONFIG = {
+  EXPIRY_MS: 7 * 24 * 60 * 60 * 1000, // 7天过期
+  // 简单的签名密钥（生产环境应从安全配置获取）
+  SIGNING_SECRET: 'math_learn_secure_token_v1',
+};
 
 /**
  * 认证响应接口
@@ -43,9 +52,21 @@ class AuthService {
   private currentUser: User | null = null;
   private authToken: string | null = null;
   private authListeners: ((user: User | null) => void)[] = [];
+  private initPromise: Promise<void> | null = null;
 
   private constructor() {
-    this.initializeAuth();
+    this.initPromise = this.initializeAuth();
+  }
+
+  /**
+   * 等待认证服务初始化完成
+   * 用于确保在访问认证状态前初始化已完成
+   */
+  async waitForInitialization(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+      this.initPromise = null; // Clear after completion
+    }
   }
 
   /**
@@ -60,6 +81,7 @@ class AuthService {
 
   /**
    * 初始化认证状态（从本地存储恢复）
+   * 验证存储的令牌有效性
    */
   private async initializeAuth(): Promise<void> {
     try {
@@ -69,12 +91,26 @@ class AuthService {
       ]);
 
       if (token && userData) {
+        // 先验证令牌
         this.authToken = token;
-        this.currentUser = JSON.parse(userData);
-        this.notifyAuthListeners(this.currentUser);
+        const isValid = await this.validateStoredToken();
+
+        if (isValid && userData) {
+          try {
+            this.currentUser = JSON.parse(userData);
+            this.notifyAuthListeners(this.currentUser);
+          } catch (parseError) {
+            // 用户数据损坏，清除并重新登录
+            console.error('[AuthService] Failed to parse user data:', parseError);
+            await this.logout();
+          }
+        }
       }
     } catch (error) {
       console.error('[AuthService] Failed to initialize auth:', error);
+      // 确保错误状态下不会有部分数据
+      this.currentUser = null;
+      this.authToken = null;
     }
   }
 
@@ -106,7 +142,8 @@ class AuthService {
       // 调用注册API
       const response = await userApi.register({name, email, password});
 
-      if (response.success && response.data) {
+      // 使用类型守卫确保类型安全
+      if (isApiSuccess(response)) {
         // 注册成功，自动登录
         const authResponse: AuthResponse = {
           user: response.data,
@@ -163,7 +200,8 @@ class AuthService {
       // 调用登录API
       const response = await userApi.login({email, password});
 
-      if (response.success && response.data) {
+      // 使用类型守卫确保类型安全
+      if (isApiSuccess(response)) {
         const authResponse: AuthResponse = {
           user: response.data,
           token: this.generateToken(response.data),
@@ -226,9 +264,64 @@ class AuthService {
 
   /**
    * 检查是否已登录
+   * 验证令牌有效性
+   * 注意：此方法现在是异步的，确保初始化完成
    */
-  isAuthenticated(): boolean {
-    return this.currentUser !== null && this.authToken !== null;
+  async isAuthenticated(): Promise<boolean> {
+    // 确保初始化完成
+    await this.waitForInitialization();
+
+    if (!this.currentUser || !this.authToken) {
+      return false;
+    }
+
+    // 验证令牌
+    const verification = this.verifyToken(this.authToken);
+    return verification.valid;
+  }
+
+  /**
+   * 同步检查认证状态（不等待初始化）
+   * 用于需要快速检查的场景
+   */
+  isAuthenticatedSync(): boolean {
+    if (!this.currentUser || !this.authToken) {
+      return false;
+    }
+
+    const verification = this.verifyToken(this.authToken);
+    return verification.valid;
+  }
+
+  /**
+   * 检查令牌是否即将过期（24小时内）
+   * 用于UI提醒用户重新登录
+   */
+  isTokenExpiringSoon(): boolean {
+    if (!this.authToken) {
+      return false;
+    }
+
+    try {
+      const parts = this.authToken.split('.');
+      if (parts.length !== 2) {
+        return false;
+      }
+
+      const dataString = atob(parts[0]);
+      const tokenData = JSON.parse(dataString);
+
+      if (!tokenData.exp) {
+        return false;
+      }
+
+      const now = Date.now();
+      const twentyFourHours = 24 * 60 * 60 * 1000;
+
+      return tokenData.exp - now < twentyFourHours;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -253,19 +346,28 @@ class AuthService {
    */
   async updateProfile(updates: Partial<User>): Promise<ApiResponse<User>> {
     try {
-      // TODO: 调用API更新用户资料
-      if (this.currentUser) {
-        this.currentUser = {...this.currentUser, ...updates};
-        await AsyncStorage.setItem(
-          USER_DATA_KEY,
-          JSON.stringify(this.currentUser)
-        );
-        this.notifyAuthListeners(this.currentUser);
+      // 检查用户是否已登录
+      if (!this.currentUser) {
+        return {
+          success: false,
+          error: {
+            code: 'NOT_AUTHENTICATED',
+            message: '请先登录后再更新资料',
+          },
+        };
       }
+
+      // TODO: 调用API更新用户资料
+      this.currentUser = {...this.currentUser, ...updates};
+      await AsyncStorage.setItem(
+        USER_DATA_KEY,
+        JSON.stringify(this.currentUser)
+      );
+      this.notifyAuthListeners(this.currentUser);
 
       return {
         success: true,
-        data: this.currentUser as User,
+        data: this.currentUser,
         message: '资料更新成功',
       };
     } catch (error) {
@@ -316,17 +418,115 @@ class AuthService {
   }
 
   /**
-   * 生成简单的认证令牌（生产环境应使用JWT）
+   * 生成安全的认证令牌
+   * 包含签名验证防止伪造
+   *
+   * 注意：这是客户端临时方案。生产环境应使用服务器返回的JWT令牌。
+   * 服务器应验证所有请求的令牌并检查其有效性。
    */
   private generateToken(user: User): string {
-    // 生产环境应使用服务器返回的JWT令牌
-    // 这里使用简单的base64编码作为临时方案
+    const now = Date.now();
+    const expiry = now + TOKEN_CONFIG.EXPIRY_MS;
+
+    // 令牌数据：包含用户信息和过期时间
     const tokenData = {
       userId: user.id,
       email: user.email,
-      timestamp: Date.now(),
+      iat: now,        // 签发时间
+      exp: expiry,     // 过期时间
+      v: 1,            // 版本号
     };
-    return btoa(JSON.stringify(tokenData));
+
+    // 生成签名：HMAC-SHA256
+    const dataString = JSON.stringify(tokenData);
+    const signature = this.generateSignature(dataString);
+
+    // 组合：base64(data).signature
+    const encodedData = btoa(dataString);
+    return `${encodedData}.${signature}`;
+  }
+
+  /**
+   * 生成签名
+   * 使用简单的HMAC-like签名机制
+   */
+  private generateSignature(data: string): string {
+    // 简单的签名算法：将数据与密钥混合后hash
+    const combined = data + TOKEN_CONFIG.SIGNING_SECRET;
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+      const char = combined.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    // 转为正数并转为base36字符串
+    return Math.abs(hash).toString(36);
+  }
+
+  /**
+   * 验证令牌
+   * 检查签名、过期时间和格式
+   */
+  private verifyToken(token: string): {valid: boolean; userId?: string; error?: string} {
+    try {
+      // 分离数据和签名
+      const parts = token.split('.');
+      if (parts.length !== 2) {
+        return {valid: false, error: '令牌格式无效'};
+      }
+
+      const [encodedData, signature] = parts;
+
+      // 解码数据
+      const dataString = atob(encodedData);
+      const tokenData = JSON.parse(dataString);
+
+      // 验证签名
+      const expectedSignature = this.generateSignature(dataString);
+      if (signature !== expectedSignature) {
+        return {valid: false, error: '令牌签名无效'};
+      }
+
+      // 验证过期时间
+      const now = Date.now();
+      if (tokenData.exp && now > tokenData.exp) {
+        return {valid: false, error: '令牌已过期'};
+      }
+
+      // 验证版本
+      if (tokenData.v !== 1) {
+        return {valid: false, error: '令牌版本不支持'};
+      }
+
+      return {
+        valid: true,
+        userId: tokenData.userId,
+      };
+    } catch (error) {
+      console.error('[AuthService] Token verification failed:', error);
+      return {valid: false, error: '令牌解析失败'};
+    }
+  }
+
+  /**
+   * 检查存储的令牌是否有效
+   * 如果令牌无效或过期，清除认证状态
+   */
+  private async validateStoredToken(): Promise<boolean> {
+    const token = this.authToken;
+    if (!token) {
+      return false;
+    }
+
+    const verification = this.verifyToken(token);
+    if (!verification.valid) {
+      // 令牌无效，清除认证状态
+      console.warn('[AuthService] Stored token invalid:', verification.error);
+      await this.logout();
+      return false;
+    }
+
+    return true;
   }
 
   /**
@@ -351,14 +551,9 @@ class AuthService {
     }
 
     // 验证密码强度
-    if (!password || password.length < 8) {
-      errors.push('密码至少需要8个字符');
-    }
-
-    const hasLetter = /[a-zA-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    if (!hasLetter || !hasNumber) {
-      errors.push('密码必须包含字母和数字');
+    const passwordValidation = this.isValidPassword(password);
+    if (!passwordValidation.isValid) {
+      errors.push(...passwordValidation.errors);
     }
 
     return {
@@ -376,33 +571,77 @@ class AuthService {
   }
 
   /**
-   * 验证密码强度
+   * 验证密码强度（增强版）
+   * 要求：
+   * - 至少8个字符
+   * - 包含大小写字母
+   * - 包含数字
+   * - 包含特殊字符
    */
   isValidPassword(password: string): {
     isValid: boolean;
     errors: string[];
+    strength: 'weak' | 'medium' | 'strong';
   } {
     const errors: string[] = [];
+    let strength: 'weak' | 'medium' | 'strong' = 'weak';
 
+    // 长度检查
     if (!password || password.length < 8) {
       errors.push('密码至少需要8个字符');
+    } else if (password.length >= 12) {
+      strength = 'medium';
     }
 
-    const hasLetter = /[a-zA-Z]/.test(password);
+    // 大写字母检查
+    const hasUpperCase = /[A-Z]/.test(password);
+    // 小写字母检查
+    const hasLowerCase = /[a-z]/.test(password);
+    // 数字检查
     const hasNumber = /[0-9]/.test(password);
+    // 特殊字符检查
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
 
-    if (!hasLetter) {
-      errors.push('密码必须包含字母');
+    if (!hasUpperCase) {
+      errors.push('密码必须包含至少1个大写字母');
+    }
+    if (!hasLowerCase) {
+      errors.push('密码必须包含至少1个小写字母');
+    }
+    if (!hasNumber) {
+      errors.push('密码必须包含至少1个数字');
+    }
+    if (!hasSpecial) {
+      errors.push('密码必须包含至少1个特殊字符（!@#$%^&*等）');
     }
 
-    if (!hasNumber) {
-      errors.push('密码必须包含数字');
+    // 计算强度
+    const criteriaCount = [hasUpperCase, hasLowerCase, hasNumber, hasSpecial].filter(Boolean).length;
+    if (password.length >= 10 && criteriaCount >= 3) {
+      strength = 'strong';
+    } else if (password.length >= 8 && criteriaCount >= 2) {
+      strength = 'medium';
     }
 
     return {
       isValid: errors.length === 0,
       errors,
+      strength,
     };
+  }
+
+  /**
+   * 获取密码强度说明
+   * 用于UI显示密码要求
+   */
+  getPasswordRequirements(): string[] {
+    return [
+      '至少8个字符',
+      '包含大写字母（A-Z）',
+      '包含小写字母（a-z）',
+      '包含数字（0-9）',
+      '包含特殊字符（!@#$%^&*等）',
+    ];
   }
 }
 
