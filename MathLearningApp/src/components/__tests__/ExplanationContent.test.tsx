@@ -6,7 +6,6 @@
 
 import React from 'react';
 import {render, fireEvent, waitFor} from '@testing-library/react-native';
-import {AccessibilityInfo} from 'react-native';
 import {ExplanationContent} from '../ExplanationContent';
 import {
   Explanation,
@@ -15,14 +14,22 @@ import {
   ExplanationFormat,
 } from '../../types/explanation';
 
-// Mock AccessibilityInfo
+// Mock AccessibilityInfo at module level
+jest.mock('react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo', () => ({
+  announceForSync: jest.fn(),
+  announceForAsync: jest.fn(),
+}), {virtual: true});
+
+// Also mock it on the main react-native export
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
-  RN.AccessibilityInfo = {
-    announceForSync: jest.fn(),
-    announceForAsync: jest.fn(),
+  return {
+    ...RN,
+    AccessibilityInfo: {
+      announceForSync: jest.fn(),
+      announceForAsync: jest.fn(),
+    },
   };
-  return RN;
 });
 
 describe('ExplanationContent Component', () => {
