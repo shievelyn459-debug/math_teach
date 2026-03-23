@@ -1,12 +1,14 @@
 /**
  * Story 5-3: 30秒倒计时组件
+ * Story 5-4: 使用焦虑减少的颜色系统
  * 显示剩余处理时间，颜色随时间变化
  */
 
 import React, {useEffect, useState, useRef} from 'react';
 import {View, StyleSheet, Animated} from 'react-native';
-import {Text, useTheme} from 'react-native-paper';
+import {Text} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {emotionalColors} from '../styles/calmingColors';
 
 interface CountdownTimerProps {
   totalTime: number;          // 总时间（秒）
@@ -30,13 +32,14 @@ const COUNTDOWN_MESSAGES = {
 };
 
 /**
- * 倒计时颜色
+ * Story 5-4: 倒计时颜色 - 使用平静颜色系统
+ * 从柔和青色渐变到桃色，避免刺眼的红色
  */
-const getCountdownColor = (remaining: number, theme: any): string => {
-  if (remaining > 20) return '#4caf50';  // 绿色
-  if (remaining > 10) return '#ff9800';  // 橙色
-  if (remaining > 5) return '#ff5722';   // 深橙色
-  return '#f44336';                       // 红色
+const getCountdownColor = (remaining: number): string => {
+  if (remaining > 20) return emotionalColors.encouraging;  // 薄荷绿 - 充足时间
+  if (remaining > 10) return emotionalColors.calm;         // 柔和青色 - 还有时间
+  if (remaining > 5) return emotionalColors.softAccent;    // 暖棕 - 快好了
+  return emotionalColors.gentleError;                       // 桃色 - 马上完成（不用红色！）
 };
 
 /**
@@ -49,10 +52,10 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
   size = 80,
   strokeWidth = 6,
 }) => {
-  const theme = useTheme();
   // PATCH-C1: Guard against division by zero and NaN
   const progress = totalTime > 0 ? Math.max(0, Math.min(1, remainingTime / totalTime)) : 0;
-  const color = getCountdownColor(remainingTime, theme);
+  // Story 5-4: 使用平静颜色
+  const color = getCountdownColor(remainingTime);
 
   const [message, setMessage] = useState('');
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -123,7 +126,8 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 6,
-    backgroundColor: '#f5f5f5',
+    // Story 5-4: 使用温暖背景色
+    backgroundColor: '#F7F3E8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -133,12 +137,15 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '600',
     lineHeight: 32,
+    // Story 5-4: 使用柔和文本色
+    color: '#2C3E50',
   },
   unitText: {
     fontSize: 12,
-    color: '#757575',
+    // Story 5-4: 使用柔和文本色
+    color: '#5A6C7D',
   },
   messageContainer: {
     flexDirection: 'row',

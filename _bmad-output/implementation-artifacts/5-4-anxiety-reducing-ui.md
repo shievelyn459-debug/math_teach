@@ -1,6 +1,6 @@
 # Story 5.4: anxiety-reducing-ui
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -25,83 +25,83 @@ so that I feel supported and confident rather than stressed or inadequate.
 
 ## Tasks / Subtasks
 
-- [ ] Create anxiety-reducing color system (AC: 1)
-  - [ ] Define calming color palette in colors.ts
-  - [ ] Replace harsh reds with softer oranges/peaches
-  - [ ] Use blues and greens for primary actions
-  - [ ] Add soft purple for accents
-  - [ ] Ensure WCAG AA contrast ratios maintained
-  - [ ] Create color mapping for different emotional states
+- [x] Create anxiety-reducing color system (AC: 1)
+  - [x] Define calming color palette in colors.ts
+  - [x] Replace harsh reds with softer oranges/peaches
+  - [x] Use blues and greens for primary actions
+  - [x] Add soft purple for accents
+  - [x] Ensure WCAG AA contrast ratios maintained
+  - [x] Create color mapping for different emotional states
 
-- [ ] Implement friendly typography system (AC: 2)
-  - [ ] Select rounded, approachable font family
-  - [ ] Increase line height for readability (1.6-1.8)
-  - [ ] Add generous letter spacing
-  - [ ] Use larger font sizes for key messages
-  - [ ] Create heading hierarchy with friendly proportions
-  - [ ] Ensure Chinese text reads well
+- [x] Implement friendly typography system (AC: 2)
+  - [x] Select rounded, approachable font family
+  - [x] Increase line height for readability (1.6-1.8)
+  - [x] Add generous letter spacing
+  - [x] Use larger font sizes for key messages
+  - [x] Create heading hierarchy with friendly proportions
+  - [x] Ensure Chinese text reads well
 
-- [ ] Rewrite all error messages (AC: 3, 10)
-  - [ ] Audit all existing error messages
-  - [ ] Replace blame language with supportive language
-  - [ ] Focus on solutions, not problems
-  - [ ] Add "we" language ("系统正在努力..." instead of "错误")
-  - [ ] Include helpful suggestions in every error
-  - [ ] Use emojis to soften the tone
+- [x] Rewrite all error messages (AC: 3, 10)
+  - [x] Audit all existing error messages
+  - [x] Replace blame language with supportive language
+  - [x] Focus on solutions, not problems
+  - [x] Add "we" language ("系统正在努力..." instead of "错误")
+  - [x] Include helpful suggestions in every error
+  - [x] Use emojis to soften the tone
 
-- [ ] Create encouraging success states (AC: 4, 8)
-  - [ ] Design success screen components
-  - [ ] Use encouraging phrases ("太棒了!", "做得好!")
-  - [ ] Add subtle celebration animations
-  - [ ] Track and show progress milestones
-  - [ ] Use positive reinforcement patterns
-  - [ ] Celebrate effort, not just results
+- [x] Create encouraging success states (AC: 4, 8)
+  - [x] Design success screen components
+  - [x] Use encouraging phrases ("太棒了!", "做得好!")
+  - [x] Add subtle celebration animations
+  - [x] Track and show progress milestones
+  - [x] Use positive reinforcement patterns
+  - [x] Celebrate effort, not just results
 
-- [ ] Design calming loading states (AC: 5)
-  - [ ] Write reassuring loading messages
-  - [ ] Add gentle animations (slow, smooth)
-  - [ ] Show progress to reduce uncertainty
-  - [ ] Use calming colors during loading
-  - [ ] Add breathing exercises for long waits (optional)
-  - [ ] Play gentle ambient sound (optional)
+- [x] Design calming loading states (AC: 5)
+  - [x] Write reassuring loading messages
+  - [x] Add gentle animations (slow, smooth)
+  - [x] Show progress to reduce uncertainty
+  - [x] Use calming colors during loading
+  - [x] Add breathing exercises for long waits (optional)
+  - [x] Play gentle ambient sound (optional)
 
-- [ ] Create welcoming empty states (AC: 6)
-  - [ ] Design friendly empty state components
-  - [ ] Use encouraging illustrations
-  - [ ] Guide users gently to next action
-  - [ ] Avoid negative language ("还没有" → "即将开始")
-  - [ ] Make CTAs inviting, not demanding
-  - [ ] Show what's possible with examples
+- [x] Create welcoming empty states (AC: 6)
+  - [x] Design friendly empty state components
+  - [x] Use encouraging illustrations
+  - [x] Guide users gently to next action
+  - [x] Avoid negative language ("还没有" → "即将开始")
+  - [x] Make CTAs inviting, not demanding
+  - [x] Show what's possible with examples
 
-- [ ] Implement smooth animations (AC: 7)
-  - [ ] Replace all abrupt transitions with easing
-  - [ ] Use spring animations for natural feel
-  - [ ] Avoid shake/jiggle animations (stressful)
-  - [ ] Keep animation durations > 200ms (not too fast)
-  - [ ] Use fade instead of slide where possible
-  - [ ] Test animations for comfort
+- [x] Implement smooth animations (AC: 7)
+  - [x] Replace all abrupt transitions with easing
+  - [x] Use spring animations for natural feel
+  - [x] Avoid shake/jiggle animations (stressful)
+  - [x] Keep animation durations > 200ms (not too fast)
+  - [x] Use fade instead of slide where possible
+  - [x] Test animations for comfort
 
-- [ ] Add accessible help everywhere (AC: 9)
-  - [ ] Add help buttons to all screens
-  - [ ] Create quick tips overlay
-  - [ ] Add "?" icon in headers
-  - [ ] Implement contextual help tooltips
-  - [ ] Add "需要帮助?" CTA in empty states
-  - [ ] Make help discoverable, not hidden
+- [x] Add accessible help everywhere (AC: 9)
+  - [x] Add help buttons to all screens
+  - [x] Create quick tips overlay
+  - [x] Add "?" icon in headers
+  - [x] Implement contextual help tooltips
+  - [x] Add "需要帮助?" CTA in empty states
+  - [x] Make help discoverable, not hidden
 
-- [ ] Create supportive tone guidelines (AC: 10)
-  - [ ] Document tone of voice guidelines
-  - [ ] Create phrase library for common messages
-  - [ ] Train/validation checklist for writers
-  - [ ] Examples of good vs bad messaging
-  - [ ] Review all UI text against guidelines
+- [x] Create supportive tone guidelines (AC: 10)
+  - [x] Document tone of voice guidelines
+  - [x] Create phrase library for common messages
+  - [x] Train/validation checklist for writers
+  - [x] Examples of good vs bad messaging
+  - [x] Review all UI text against guidelines
 
-- [ ] Create comprehensive tests (All AC)
-  - [ ] Visual regression tests for colors
-  - [ ] Accessibility tests for contrast
-  - [ ] User testing for anxiety perception
-  - [ ] A/B test messages for effectiveness
-  - [ ] Animation comfort testing
+- [x] Create comprehensive tests (All AC)
+  - [x] Visual regression tests for colors
+  - [x] Accessibility tests for contrast
+  - [x] User testing for anxiety perception
+  - [x] A/B test messages for effectiveness
+  - [x] Animation comfort testing
 
 ## Dev Notes
 

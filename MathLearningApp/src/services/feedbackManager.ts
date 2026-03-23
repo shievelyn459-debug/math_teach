@@ -366,6 +366,7 @@ class FeedbackManager {
 
   /**
    * 格式化友好错误消息
+   * Story 5-4: 使用焦虑减少的语气指南
    * @param error 错误对象
    * @param context 上下文信息
    * @returns 友好的错误消息
@@ -373,51 +374,50 @@ class FeedbackManager {
   formatErrorMessage(error: any, context: string = ''): string {
     // 网络错误
     if (error?.isNetworkError || error?.message?.includes('network')) {
-      return '网络连接失败，请检查网络设置后重试';
+      return '💫 网络休息中，稍等片刻就好';
     }
 
-    // 超时错误 - 先检查，避免被状态码检查覆盖
+    // 超时错误
     if (error?.message?.includes('timeout') || error?.code === 'ETIMEDOUT') {
-      return '请求超时，请稍后重试或检查网络连接';
+      return '⏰ 等待有点久了，要再试一次吗';
     }
 
-    // 服务器错误 - 添加类型检查
+    // 服务器错误
     if (typeof error?.status === 'number' && error.status >= 500) {
-      return '系统繁忙，请稍后再试。如果问题持续，请联系客服';
+      return '🌱 系统正在休息，请稍后再试试看';
     }
 
-    // 认证错误 - 提供解决方案
-    if (typeof error?.status === 'number' && error.status === 401) {
-      return '登录已过期，请重新登录以继续操作';
+    // 认证错误
+    if (typeof error?.status === 'number' && error.status === 401 || error?.code === 'AUTH_ERROR') {
+      return '🔓 需要你的允许才能继续哦';
     }
 
-    if (error?.code === 'AUTH_ERROR') {
-      return '登录已过期，请重新登录以继续操作';
-    }
-
-    // 权限错误 - 说明原因
+    // 权限错误
     if (typeof error?.status === 'number' && error.status === 403) {
-      return '您没有权限执行此操作，请联系管理员获取权限';
+      return '🌿 这个功能需要额外的权限';
     }
 
-    // 资源未找到 - 提供建议
+    // 资源未找到
     if (typeof error?.status === 'number' && error.status === 404) {
-      return '请求的资源不存在或已被删除，请返回上一页重试';
+      return '🍃 这个内容找不到了，让我们重新开始';
     }
 
-    // 默认错误消息
-    const baseMessage = context ? `${context}失败` : '操作失败';
-    const errorMessage = error?.message || '';
+    // 默认错误消息 - 使用支持性语气
+    const contextMap: Record<string, string> = {
+      '拍照': '📷',
+      '识别': '🤔',
+      '生成': '✨',
+      '上传': '📤',
+      '保存': '💾',
+    };
 
-    if (errorMessage && errorMessage.length < 50) {
-      return `${baseMessage}：${errorMessage}`;
-    }
-
-    return baseMessage + '，请稍后重试';
+    const emoji = contextMap[context] || '🍃';
+    return `${emoji} ${context || '操作'}遇到小问题，让我们再试一次吧`;
   }
 
   /**
    * 显示友好错误
+   * Story 5-4: 使用焦虑减少的语气和按钮文案
    * @param error 错误对象
    * @param context 上下文
    * @param onRetry 重试回调
@@ -428,10 +428,12 @@ class FeedbackManager {
     if (error?.isNetworkError || error?.message?.includes('network')) {
       this.showNetworkError(onRetry);
     } else {
-      this.showErrorDialog('出错了', message, onRetry ? [
-        {text: '取消', style: 'cancel'},
-        {text: '重试', onPress: onRetry},
-      ] : [{text: '确定', style: 'default'}]);
+      // 使用支持性的标题
+      const title = '没关系';
+      this.showErrorDialog(title, message, onRetry ? [
+        {text: '稍后再说', style: 'cancel'},
+        {text: '好的，重试', onPress: onRetry},
+      ] : [{text: '我知道了', style: 'default'}]);
     }
   }
 }
