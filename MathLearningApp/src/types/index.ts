@@ -3,9 +3,26 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string; // Story 1-4: 可选电话号码
   avatar?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Story 1-4: 用户资料更新请求
+export interface ProfileUpdateRequest {
+  name?: string;
+  email?: string;
+  phone?: string;
+  avatar?: string;
+}
+
+// Story 1-4: 用户资料信息（用于显示）
+export interface UserProfile {
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
 }
 
 // 题目类型
@@ -177,4 +194,28 @@ export interface PermissionStatus {
   storage: boolean;
   write: boolean;
   allGranted: boolean;
+}
+
+// === Story 4-4: Tablet UI Optimization Types ===
+
+// 屏幕尺寸分类
+export enum ScreenSize {
+  SMALL_TABLET = 'SMALL_TABLET',
+  MEDIUM_TABLET = 'MEDIUM_TABLET',
+  LARGE_TABLET = 'LARGE_TABLET',
+}
+
+// 屏幕方向
+export enum Orientation {
+  PORTRAIT = 'portrait',
+  LANDSCAPE = 'landscape',
+}
+
+// 平板配置
+export interface TabletConfig {
+  screenWidth: number;
+  screenHeight: number;
+  screenSize: ScreenSize;
+  orientation: Orientation;
+  isTablet: boolean;
 }

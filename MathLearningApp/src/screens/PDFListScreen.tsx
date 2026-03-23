@@ -9,10 +9,12 @@ import {
   Alert,
   RefreshControl,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/native-stack';
 import {PDFFileInfo} from '../types';
 import {pdfService} from '../services/pdfService';
+import {getFontSize, getScaledSpacing, getNumColumns} from '../styles/tablet';
 
 type NavigationProp = StackNavigationProp<any, 'PDFList'>;
 
@@ -21,6 +23,26 @@ interface Props {
 }
 
 const PDFListScreen: React.FC<Props> = ({navigation}) => {
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const isLargeTablet = width >= 900;
+  const numColumns = isLandscape && isLargeTablet ? 2 : 1;
+
+  // Responsive font sizes
+  const headerTitleFontSize = getFontSize(24, width);
+  const headerInfoFontSize = getFontSize(14, width);
+  const itemNameFontSize = getFontSize(16, width);
+  const itemMetaFontSize = getFontSize(12, width);
+  const emptyTitleFontSize = getFontSize(20, width);
+  const emptyMessageFontSize = getFontSize(14, width);
+  const buttonFontSize = getFontSize(16, width);
+
+  // Responsive spacing
+  const headerPadding = getScaledSpacing(16, width);
+  const listPadding = getScaledSpacing(16, width);
+  const itemMargin = getScaledSpacing(12, width);
+  const itemPadding = getScaledSpacing(12, width);
+
   const [pdfs, setPdfs] = useState<PDFFileInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,7 +133,7 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
   };
 
   // 渲染列表项
-  const renderItem = ({item}: {item: PDFFileInfo}) => {
+  const renderItem = ({item, index}: {item: PDFFileInfo; index: number}) => {
     const formatDate = (date: Date) => {
       return date.toLocaleDateString('zh-CN', {
         year: 'numeric',
@@ -122,19 +144,32 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
       });
     };
 
+    // 计算两列布局时的右边距
+    const itemStyle = [
+      styles.itemContainer,
+      {
+        marginBottom: itemMargin,
+        padding: itemPadding,
+      },
+      numColumns > 1 && index % 2 === 1
+        ? { marginLeft: getScaledSpacing(8, width) }
+        : {},
+      numColumns > 1 ? { flex: 1 } : {},
+    ];
+
     return (
-      <View style={styles.itemContainer}>
+      <View style={itemStyle}>
         <TouchableOpacity
           style={styles.itemContent}
           onPress={() => handleOpen(item.path)}>
-          <View style={styles.itemIconContainer}>
-            <Text style={styles.itemIcon}>📄</Text>
+          <View style={[styles.itemIconContainer, { minHeight: 48 }]}>
+            <Text style={[styles.itemIcon, { fontSize: getFontSize(24, width) }]}>📄</Text>
           </View>
           <View style={styles.itemInfo}>
-            <Text style={styles.itemName} numberOfLines={1}>
+            <Text style={[styles.itemName, { fontSize: itemNameFontSize }]} numberOfLines={1}>
               {item.name}
             </Text>
-            <Text style={styles.itemMeta}>
+            <Text style={[styles.itemMeta, { fontSize: itemMetaFontSize }]}>
               {formatDate(item.modifiedAt)} · {pdfService.getFormattedFileSize(item.size)}
             </Text>
           </View>
@@ -142,19 +177,19 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
 
         <View style={styles.itemActions}>
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, { minHeight: 48, minWidth: 48 }]}
             onPress={() => handleShare(item.path)}>
-            <Text style={styles.actionIcon}>↗</Text>
+            <Text style={[styles.actionIcon, { fontSize: getFontSize(16, width) }]}>↗</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, { minHeight: 48, minWidth: 48 }]}
             onPress={() => handlePrint(item.path)}>
-            <Text style={styles.actionIcon}>🖨</Text>
+            <Text style={[styles.actionIcon, { fontSize: getFontSize(16, width) }]}>🖨</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, { minHeight: 48, minWidth: 48 }]}
             onPress={() => handleDelete(item)}>
-            <Text style={[styles.actionIcon, styles.deleteIcon]}>🗑</Text>
+            <Text style={[styles.actionIcon, styles.deleteIcon, { fontSize: getFontSize(16, width) }]}>🗑</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -164,9 +199,9 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
   // 空状态
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyIcon}>📁</Text>
-      <Text style={styles.emptyTitle}>暂无保存的 PDF</Text>
-      <Text style={styles.emptyMessage}>
+      <Text style={[styles.emptyIcon, { fontSize: getFontSize(64, width) }]}>📁</Text>
+      <Text style={[styles.emptyTitle, { fontSize: emptyTitleFontSize }]}>暂无保存的 PDF</Text>
+      <Text style={[styles.emptyMessage, { fontSize: emptyMessageFontSize }]}>
         生成一些练习题并保存，然后就会在这里显示
       </Text>
     </View>
@@ -176,7 +211,7 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2196f3" />
-        <Text style={styles.loadingText}>加载中...</Text>
+        <Text style={[styles.loadingText, { fontSize: buttonFontSize }]}>加载中...</Text>
       </View>
     );
   }
@@ -184,19 +219,19 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
   return (
     <View style={styles.container}>
       {/* 头部 */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>我的 PDF</Text>
-        <Text style={styles.headerCount}>{pdfs.length} 个文件</Text>
+      <View style={[styles.header, { padding: headerPadding }]}>
+        <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]}>我的 PDF</Text>
+        <Text style={[styles.headerCount, { fontSize: headerInfoFontSize }]}>{pdfs.length} 个文件</Text>
       </View>
 
       {/* 错误状态 */}
       {error && !refreshing && (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { fontSize: headerInfoFontSize }]}>{error}</Text>
           <TouchableOpacity
-            style={styles.retryButton}
+            style={[styles.retryButton, { minHeight: 48 }]}
             onPress={handleRefresh}>
-            <Text style={styles.retryButtonText}>重试</Text>
+            <Text style={[styles.retryButtonText, { fontSize: buttonFontSize }]}>重试</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -206,7 +241,9 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
         data={pdfs}
         renderItem={renderItem}
         keyExtractor={item => item.path}
-        contentContainerStyle={pdfs.length === 0 ? styles.emptyList : styles.list}
+        numColumns={numColumns}
+        columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
+        contentContainerStyle={pdfs.length === 0 ? styles.emptyList : [styles.list, { padding: listPadding }]}
         ListEmptyComponent={!error ? renderEmptyState : null}
         refreshControl={
           <RefreshControl
@@ -232,37 +269,36 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
     color: '#666',
   },
   header: {
-    padding: 16,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   headerTitle: {
-    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
   },
   headerCount: {
-    fontSize: 14,
     color: '#666',
     marginTop: 4,
   },
   list: {
-    padding: 16,
+    // Padding is now set dynamically
   },
   emptyList: {
     flex: 1,
+  },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   itemContainer: {
     flexDirection: 'row',
     backgroundColor: 'white',
     borderRadius: 12,
-    marginBottom: 12,
-    padding: 12,
+    // marginBottom and padding are now set dynamically
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 1},
     shadowOpacity: 0.1,
@@ -276,7 +312,6 @@ const styles = StyleSheet.create({
   },
   itemIconContainer: {
     width: 48,
-    height: 48,
     borderRadius: 8,
     backgroundColor: '#e3f2fd',
     justifyContent: 'center',
@@ -284,19 +319,17 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   itemIcon: {
-    fontSize: 24,
+    // Font size is now set dynamically
   },
   itemInfo: {
     flex: 1,
   },
   itemName: {
-    fontSize: 16,
     fontWeight: '600',
     color: '#333',
     marginBottom: 4,
   },
   itemMeta: {
-    fontSize: 12,
     color: '#999',
   },
   itemActions: {
@@ -305,15 +338,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   actionButton: {
-    width: 36,
-    height: 36,
     borderRadius: 18,
     backgroundColor: '#f5f5f5',
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionIcon: {
-    fontSize: 16,
+    // Font size is now set dynamically
   },
   deleteIcon: {
     color: '#f44336',
@@ -325,17 +356,14 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   emptyIcon: {
-    fontSize: 64,
     marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 8,
   },
   emptyMessage: {
-    fontSize: 14,
     color: '#999',
     textAlign: 'center',
   },
@@ -349,7 +377,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#c62828',
-    fontSize: 14,
     marginBottom: 12,
   },
   retryButton: {

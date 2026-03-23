@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   Alert,
+  useWindowDimensions,
+  FlatList,
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/native-stack';
 import {Question, Difficulty, QuestionType, PDFMetadata} from '../types';
@@ -14,6 +16,8 @@ import {questionGenerationService} from '../services/questionGenerationService';
 import {pdfService} from '../services/pdfService';
 import QuantitySelector from '../components/QuantitySelector';
 import {preferencesService} from '../services/preferencesService';
+import {getFontSize, getScaledSpacing, getNumColumns} from '../styles/tablet';
+import {Orientation} from '../types';
 
 interface RouteParams {
   baseQuestion: {
@@ -36,6 +40,19 @@ interface Props {
 
 const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
   const {baseQuestion, initialQuantity = 10, initialDifficulty} = route.params;
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const isLargeTablet = width >= 900;
+  const numColumns = getNumColumns(width);
+
+  // Responsive font sizes
+  const questionFontSize = getFontSize(24, width);
+  const headerTitleFontSize = getFontSize(20, width);
+  const bodyFontSize = getFontSize(16, width);
+
+  // Responsive spacing
+  const cardMargin = getScaledSpacing(12, width);
+  const cardPadding = getScaledSpacing(16, width);
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -256,21 +273,66 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
       }
     };
 
+    // Responsive styles
+    const questionCardStyle = {
+      backgroundColor: 'white',
+      borderRadius: 12,
+      padding: cardPadding,
+      marginBottom: getScaledSpacing(12, width),
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+      // Two columns on large tablets in landscape
+      flex: numColumns > 1 ? 1 : undefined,
+      marginLeft: numColumns > 1 && index % 2 === 1 ? getScaledSpacing(8, width) : 0,
+    };
+
+    const questionContentStyle = {
+      fontSize: questionFontSize,
+      fontWeight: '600' as const,
+      color: '#2196f3',
+      textAlign: 'center' as const,
+      marginVertical: getScaledSpacing(16, width),
+    };
+
+    const answerToggleStyle = {
+      borderWidth: 1,
+      borderColor: '#e0e0e0',
+      borderRadius: 8,
+      overflow: 'hidden' as const,
+    };
+
+    const answerToggleHeaderStyle = {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingVertical: getScaledSpacing(12, width) * 0.75, // Scale padding
+      paddingHorizontal: getScaledSpacing(12, width),
+      backgroundColor: '#f8f9fa',
+      // Ensure minimum 48dp touch target
+      minHeight: 48,
+    };
+
     return (
-      <View key={question.id} style={styles.questionCard}>
+      <View key={question.id} style={questionCardStyle}>
         <View style={styles.questionHeader}>
-          <Text style={styles.questionNumber}>题目 {index + 1}</Text>
+          <Text style={[styles.questionNumber, { fontSize: bodyFontSize }]}>
+            题目 {index + 1}
+          </Text>
           <Text style={styles.questionType}>
             {getQuestionTypeLabel(question.type)}
           </Text>
         </View>
-        <Text style={styles.questionContent}>{question.content}</Text>
+        <Text style={questionContentStyle}>{question.content}</Text>
 
         <TouchableOpacity
-          style={styles.answerToggleButton}
-          onPress={() => toggleAnswer(question.id)}>
-          <View style={styles.answerToggleHeader}>
-            <Text style={styles.answerToggleText}>
+          style={answerToggleStyle}
+          onPress={() => toggleAnswer(question.id)}
+          activeOpacity={0.7}>
+          <View style={answerToggleHeaderStyle}>
+            <Text style={[styles.answerToggleText, { fontSize: bodyFontSize }]}>
               {isExpanded ? '隐藏' : '显示'}答案
             </Text>
             <Text style={styles.answerToggleIcon}>
@@ -280,10 +342,18 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
 
           {isExpanded && (
             <View style={styles.answerContent}>
-              <Text style={styles.answerLabel}>答案：</Text>
-              <Text style={styles.answerValue}>{question.answer}</Text>
-              <Text style={styles.explanationLabel}>讲解：</Text>
-              <Text style={styles.explanationValue}>{question.explanation}</Text>
+              <Text style={[styles.answerLabel, { fontSize: bodyFontSize }]}>
+                答案：
+              </Text>
+              <Text style={[styles.answerValue, { fontSize: getFontSize(20, width) }]}>
+                {question.answer}
+              </Text>
+              <Text style={[styles.explanationLabel, { fontSize: bodyFontSize }]}>
+                讲解：
+              </Text>
+              <Text style={[styles.explanationValue, { fontSize: bodyFontSize, lineHeight: 22 }]}>
+                {question.explanation}
+              </Text>
             </View>
           )}
         </TouchableOpacity>
@@ -305,26 +375,28 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>练习题</Text>
+        <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]}>练习题</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
-            style={styles.headerButton}
+            style={[styles.headerButton, { minHeight: 48 }]}
             onPress={() => setShowQuantitySelector(true)}>
-            <Text style={styles.headerButtonText}>{selectedQuantity}题</Text>
+            <Text style={[styles.headerButtonText, { fontSize: bodyFontSize }]}>
+              {selectedQuantity}题
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.headerButton}
+            style={[styles.headerButton, { minHeight: 48 }]}
             onPress={handleRegenerate}>
-            <Text style={styles.headerButtonText}>↻</Text>
+            <Text style={[styles.headerButtonText, { fontSize: bodyFontSize }]}>↻</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.headerButton}
+            style={[styles.headerButton, { minHeight: 48 }]}
             onPress={handleExportPDF}
             disabled={isGeneratingPDF || questions.length === 0}>
             {isGeneratingPDF ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.headerButtonText}>PDF</Text>
+              <Text style={[styles.headerButtonText, { fontSize: bodyFontSize }]}>PDF</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -355,9 +427,21 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
       )}
 
       {/* Questions List */}
-      <ScrollView style={styles.scrollContainer}>
-        {questions.map((q, i) => renderQuestion(q, i))}
-      </ScrollView>
+      {numColumns > 1 ? (
+        // Two-column layout for large tablets
+        <View style={[
+          styles.scrollContainer,
+          styles.gridContainer,
+          { padding: getScaledSpacing(16, width) },
+        ]}>
+          {questions.map((q, i) => renderQuestion(q, i))}
+        </View>
+      ) : (
+        // Single column layout
+        <ScrollView style={styles.scrollContainer}>
+          {questions.map((q, i) => renderQuestion(q, i))}
+        </ScrollView>
+      )}
 
       {/* Generating Overlay */}
       {isGenerating && questions.length > 0 && (
@@ -468,6 +552,10 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     padding: 16,
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   questionCard: {
     backgroundColor: 'white',
