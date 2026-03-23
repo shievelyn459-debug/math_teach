@@ -17,6 +17,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import SetNewPasswordScreen from './src/screens/SetNewPasswordScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
 import PDFPreviewScreen from './src/screens/PDFPreviewScreen';
 import PDFListScreen from './src/screens/PDFListScreen';
 import GeneratedQuestionsList from './src/screens/GeneratedQuestionsList';
@@ -189,6 +190,14 @@ function AuthNavigator() {
         component={GeneratedQuestionsList}
         options={{
           title: '练习题',
+          headerBackTitle: '返回',
+        }}
+      />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{
+          title: '编辑资料',
           headerBackTitle: '返回',
         }}
       />

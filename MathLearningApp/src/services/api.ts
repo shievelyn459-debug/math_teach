@@ -386,13 +386,23 @@ export const userApi = {
   },
 
   /**
-   * 获取用户信息
+   * 获取用户信息 (Story 1-4)
    * 获取当前登录用户的详细资料
    * @returns 用户信息
    */
   getProfile: async (): Promise<ApiResponse<User>> => {
     try {
-      return await request<User>('/users/profile');
+      return await requestWithRetry<User>(
+        '/users/profile',
+        {},
+        5000, // 5秒超时
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 5000,
+          backoffMultiplier: 2,
+        }
+      );
     } catch (error) {
       safeLogError('userApi', error);
       return {
@@ -406,19 +416,32 @@ export const userApi = {
   },
 
   /**
-   * 更新用户资料
-   * @param updates 要更新的用户信息
+   * 更新用户资料 (Story 1-4)
+   * @param updates 要更新的用户信息 (name, email, phone, avatar)
    * @returns 更新后的用户信息
    */
   updateProfile: async (updates: Partial<{
     name: string;
+    email: string;
+    phone: string;
     avatar: string;
   }>): Promise<ApiResponse<User>> => {
     try {
-      return await request<User>('/users/profile', {
-        method: 'PUT',
-        body: JSON.stringify(updates),
-      });
+      // Story 1-4 AC9: 3秒内完成更新
+      return await requestWithRetry<User>(
+        '/users/profile',
+        {
+          method: 'PUT',
+          body: JSON.stringify(updates),
+        },
+        3000, // 3秒超时
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 3000,
+          backoffMultiplier: 2,
+        }
+      );
     } catch (error) {
       safeLogError('userApi', error);
       return {
