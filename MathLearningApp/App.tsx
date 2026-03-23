@@ -21,9 +21,13 @@ import EditProfileScreen from './src/screens/EditProfileScreen';
 import PDFPreviewScreen from './src/screens/PDFPreviewScreen';
 import PDFListScreen from './src/screens/PDFListScreen';
 import GeneratedQuestionsList from './src/screens/GeneratedQuestionsList';
+import ChildListScreen from './src/screens/ChildListScreen';
+import ChildFormScreen from './src/screens/ChildFormScreen';
 
 // 导入认证服务
 import {authService} from './src/services/authService';
+// 导入活跃孩子Context
+import {ActiveChildProvider} from './src/contexts/ActiveChildContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -217,6 +221,22 @@ function AuthNavigator() {
           headerBackTitle: '返回',
         }}
       />
+      <Stack.Screen
+        name="ChildList"
+        component={ChildListScreen}
+        options={{
+          title: '我的孩子',
+          headerBackTitle: '返回',
+        }}
+      />
+      <Stack.Screen
+        name="ChildForm"
+        component={ChildFormScreen}
+        options={{
+          title: '孩子信息',
+          headerBackTitle: '返回',
+        }}
+      />
     </Stack.Navigator>
   );
 }
@@ -224,7 +244,9 @@ function AuthNavigator() {
 export default function App() {
   return (
     <NavigationContainer>
-      <AuthNavigator />
+      <ActiveChildProvider>
+        <AuthNavigator />
+      </ActiveChildProvider>
     </NavigationContainer>
   );
 }

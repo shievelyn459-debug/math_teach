@@ -8,6 +8,10 @@ import {
   ManualCorrection,
   QuestionType,
   Difficulty,
+  Child,
+  ChildCreateRequest,
+  ChildUpdateRequest,
+  Grade,
 } from '../types';
 import {KnowledgePointService} from './knowledgePointService';
 import {getExplanationService} from './explanationService';
@@ -43,6 +47,9 @@ export function getApiDataOrThrow<T>(response: ApiResponse<T>): T {
 // API基础配置
 const API_BASE_URL = 'https://api.math-learning.com/v1';
 const DEFAULT_TIMEOUT = 30000; // 默认30秒超时
+
+// Story 1-5: 孩子管理API超时配置
+const CHILD_API_TIMEOUT = 3000; // 3秒超时 (AC9)
 
 // 各阶段超时配置（毫秒）
 export const STAGE_TIMEOUTS = {
@@ -1000,6 +1007,273 @@ export const explanationApi = {
   },
 };
 
+// Story 1-5: 孩子管理API
+// 孩子姓名验证函数
+const validateChildName = (name: string): {isValid: boolean; error?: string} => {
+  const trimmedName = name.trim();
+  if (trimmedName.length === 0) {
+    return {isValid: false, error: '孩子姓名不能为空'};
+  }
+  if (trimmedName.length < 2) {
+    return {isValid: false, error: '孩子姓名至少需要2个字符'};
+  }
+  if (trimmedName.length > 50) {
+    return {isValid: false, error: '孩子姓名不能超过50个字符'};
+  }
+  return {isValid: true};
+};
+
+// 孩子年级验证函数
+const validateChildGrade = (grade: Grade): {isValid: boolean; error?: string} => {
+  const validGrades = [
+    Grade.GRADE_1,
+    Grade.GRADE_2,
+    Grade.GRADE_3,
+    Grade.GRADE_4,
+    Grade.GRADE_5,
+    Grade.GRADE_6,
+  ];
+  if (!validGrades.includes(grade)) {
+    return {isValid: false, error: '年级必须在1-6之间'};
+  }
+  return {isValid: true};
+};
+
+// 孩子生日验证函数
+const validateChildBirthday = (birthday?: Date): {isValid: boolean; error?: string} => {
+  if (!birthday) {
+    return {isValid: true}; // 生日是可选的
+  }
+
+  // 验证是否为有效的 Date 对象
+  if (isNaN(birthday.getTime())) {
+    return {isValid: false, error: '生日格式无效'};
+  }
+
+  const now = new Date();
+  if (birthday > now) {
+    return {isValid: false, error: '生日不能是未来日期'};
+  }
+
+  // 计算年龄：5-12岁之间适合小学1-6年级
+  const ageInMs = now.getTime() - birthday.getTime();
+  const ageInYears = ageInMs / (1000 * 60 * 60 * 24 * 365.25);
+
+  if (ageInYears < 5) {
+    return {isValid: false, error: '孩子年龄应至少5岁'};
+  }
+  if (ageInYears > 12) {
+    return {isValid: false, error: '孩子年龄应不超过12岁'};
+  }
+
+  return {isValid: true};
+};
+
+export const childApi = {
+  /**
+   * 获取当前用户的所有孩子
+   * Story 1-5 AC1, AC3: 用户可以查看所有孩子
+   */
+  getChildren: async (): Promise<ApiResponse<Child[]>> => {
+    try {
+      return await requestWithRetry<Child[]>(
+        '/children',
+        {},
+        CHILD_API_TIMEOUT, // 3秒超时 (AC9)
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 3000,
+          backoffMultiplier: 2,
+        }
+      );
+    } catch (error) {
+      safeLogError('childApi', error);
+      return {
+        success: false,
+        error: {
+          code: 'GET_CHILDREN_ERROR',
+          message: '获取孩子列表失败',
+        },
+      };
+    }
+  },
+
+  /**
+   * 添加新孩子
+   * Story 1-5 AC1, AC2, AC7: 用户可以添加孩子，包含姓名、年级（必填）和生日（可选）
+   */
+  addChild: async (childData: ChildCreateRequest): Promise<ApiResponse<Child>> => {
+    try {
+      // 客户端验证
+      const nameValidation = validateChildName(childData.name);
+      if (!nameValidation.isValid) {
+        return {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: nameValidation.error!,
+          },
+        };
+      }
+
+      const gradeValidation = validateChildGrade(childData.grade);
+      if (!gradeValidation.isValid) {
+        return {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: gradeValidation.error!,
+          },
+        };
+      }
+
+      const birthdayValidation = validateChildBirthday(childData.birthday);
+      if (!birthdayValidation.isValid) {
+        return {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: birthdayValidation.error!,
+          },
+        };
+      }
+
+      // 调用API
+      return await requestWithRetry<Child>(
+        '/children',
+        {
+          method: 'POST',
+          body: JSON.stringify(childData),
+        },
+        3000, // 3秒超时 (AC9)
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 3000,
+          backoffMultiplier: 2,
+        }
+      );
+    } catch (error) {
+      safeLogError('childApi', error);
+      return {
+        success: false,
+        error: {
+          code: 'ADD_CHILD_ERROR',
+          message: '添加孩子失败',
+        },
+      };
+    }
+  },
+
+  /**
+   * 更新孩子信息
+   * Story 1-5 AC4: 用户可以编辑孩子信息
+   */
+  updateChild: async (
+    childId: string,
+    updates: ChildUpdateRequest
+  ): Promise<ApiResponse<Child>> => {
+    try {
+      // 客户端验证（只验证提供的字段）
+      if (updates.name !== undefined) {
+        const nameValidation = validateChildName(updates.name);
+        if (!nameValidation.isValid) {
+          return {
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: nameValidation.error!,
+            },
+          };
+        }
+      }
+
+      if (updates.grade !== undefined) {
+        const gradeValidation = validateChildGrade(updates.grade);
+        if (!gradeValidation.isValid) {
+          return {
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: gradeValidation.error!,
+            },
+          };
+        }
+      }
+
+      if (updates.birthday !== undefined) {
+        const birthdayValidation = validateChildBirthday(updates.birthday);
+        if (!birthdayValidation.isValid) {
+          return {
+            success: false,
+            error: {
+              code: 'VALIDATION_ERROR',
+              message: birthdayValidation.error!,
+            },
+          };
+        }
+      }
+
+      // 调用API
+      return await requestWithRetry<Child>(
+        `/children/${childId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(updates),
+        },
+        3000, // 3秒超时 (AC9)
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 3000,
+          backoffMultiplier: 2,
+        }
+      );
+    } catch (error) {
+      safeLogError('childApi', error);
+      return {
+        success: false,
+        error: {
+          code: 'UPDATE_CHILD_ERROR',
+          message: '更新孩子信息失败',
+        },
+      };
+    }
+  },
+
+  /**
+   * 删除孩子
+   * Story 1-5 AC5: 用户可以删除孩子（需要确认）
+   */
+  deleteChild: async (childId: string): Promise<ApiResponse<void>> => {
+    try {
+      return await requestWithRetry<void>(
+        `/children/${childId}`,
+        {
+          method: 'DELETE',
+        },
+        3000, // 3秒超时 (AC9)
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 3000,
+          backoffMultiplier: 2,
+        }
+      );
+    } catch (error) {
+      safeLogError('childApi', error);
+      return {
+        success: false,
+        error: {
+          code: 'DELETE_CHILD_ERROR',
+          message: '删除孩子失败',
+        },
+      };
+    }
+  },
+};
+
 export default {
   user: userApi,
   recognition: recognitionApi,
@@ -1009,4 +1283,5 @@ export default {
   export: exportApi,
   explanation: explanationApi,
   passwordReset: passwordResetApi,
+  child: childApi,
 };

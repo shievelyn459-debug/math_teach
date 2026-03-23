@@ -217,7 +217,10 @@ const ProfileScreen = ({navigation}: any) => {
           <Icon name="chevron-right" size={24} color="#999" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => (navigation as any).navigate('ChildList')}
+          testID="child-management-button">
           <View style={styles.menuItemLeft}>
             <Icon name="child-care" size={24} color="#666" />
             <Text style={styles.menuItemText}>孩子信息管理</Text>

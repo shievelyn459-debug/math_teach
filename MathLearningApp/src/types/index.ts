@@ -1,3 +1,41 @@
+// Story 1-5: Grade枚举 - 小学年级（1-6年级）
+export enum Grade {
+  GRADE_1 = '1',
+  GRADE_2 = '2',
+  GRADE_3 = '3',
+  GRADE_4 = '4',
+  GRADE_5 = '5',
+  GRADE_6 = '6',
+}
+
+// Story 1-5: 孩子信息接口
+export interface Child {
+  id: string;
+  parentId: string;
+  name: string;
+  grade: Grade;
+  birthday?: Date; // 可选字段
+  avatar?: string; // 可选字段
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Story 1-5: 孩子创建请求
+export interface ChildCreateRequest {
+  name: string;
+  grade: Grade;
+  birthday?: Date;
+  avatar?: string;
+}
+
+// Story 1-5: 孩子更新请求
+export interface ChildUpdateRequest {
+  name?: string;
+  grade?: Grade;
+  birthday?: Date;
+  avatar?: string;
+}
+
 // 用户类型
 export interface User {
   id: string;
@@ -5,6 +43,7 @@ export interface User {
   email: string;
   phone?: string; // Story 1-4: 可选电话号码
   avatar?: string;
+  children?: Child[]; // Story 1-5: 用户的孩子列表
   createdAt: Date;
   updatedAt: Date;
 }
@@ -195,6 +234,52 @@ export interface PermissionStatus {
   write: boolean;
   allGranted: boolean;
 }
+
+// === Story 5-1: Easy Upload and View Results Types ===
+
+// 生成的题目接口
+export interface GeneratedQuestion {
+  id: string;
+  question: string;
+  answer: string;
+  explanation?: string;
+  difficulty: Difficulty;
+}
+
+// 生成记录接口
+export interface GenerationRecord {
+  id: string;                    // 唯一 ID (timestamp + random)
+  questionType: QuestionType;     // ADDITION, SUBTRACTION, WORD_PROBLEM
+  difficulty: Difficulty;         // EASY, MEDIUM, HARD
+  count: number;                 // 生成的题目数量
+  timestamp: number;             // Unix 时间戳
+  questions: GeneratedQuestion[]; // 生成的题目数组
+  processingTime?: number;        // 总处理时间（毫秒）
+}
+
+// 处理阶段枚举（中文标签）
+export enum GenerationStage {
+  IDLE = 'idle',
+  UPLOADING = 'uploading',
+  RECOGNIZING = 'recognizing',
+  DIFFICULTY_SELECTION = 'difficulty_selection',
+  GENERATING = 'generating',
+  COMPLETED = 'completed',
+  ERROR = 'error',
+  CANCELLED = 'cancelled',
+}
+
+// 处理阶段的中文显示名称
+export const GenerationStageLabels: Record<GenerationStage, string> = {
+  [GenerationStage.IDLE]: '准备就绪',
+  [GenerationStage.UPLOADING]: '上传中',
+  [GenerationStage.RECOGNIZING]: '识别中',
+  [GenerationStage.DIFFICULTY_SELECTION]: '选择难度',
+  [GenerationStage.GENERATING]: '生成中',
+  [GenerationStage.COMPLETED]: '完成',
+  [GenerationStage.ERROR]: '出错',
+  [GenerationStage.CANCELLED]: '已取消',
+};
 
 // === Story 4-4: Tablet UI Optimization Types ===
 
