@@ -14,6 +14,7 @@ import { RouteProp } from '@react-navigation/native';
 import { PDFDocument } from 'react-native-pdf-lib';
 
 import FilenameDialog from '../components/FilenameDialog';
+import PDFActionButtons from '../components/PDFActionButtons';
 import { pdfService } from '../services/pdfService';
 import { Difficulty } from '../types';
 
@@ -37,6 +38,13 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [savedFilePath, setSavedFilePath] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // 操作状态
+  const [sharing, setSharing] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const [fileSize, setFileSize] = useState<number>(0);
   const [pdfLoadFailed, setPdfLoadFailed] = useState(false);
 
   // 生成默认文件名
@@ -72,6 +80,12 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     try {
       // 保存 PDF
       const savedPath = await pdfService.savePDF(pdfPath, filename);
+
+      // 获取文件大小
+      const RNFS = require('react-native-fs');
+      const fileInfo = await RNFS.stat(savedPath);
+      setFileSize(fileInfo.size || 0);
+
       setSavedFilePath(savedPath);
       setShowSuccess(true);
     } catch (err) {
@@ -98,6 +112,70 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleRetry = () => {
     setError(null);
     setShowFilenameDialog(true);
+  };
+
+  // 处理分享
+  const handleShare = async () => {
+    if (!savedFilePath) return;
+
+    setActionError(null);
+    setSharing(true);
+
+    try {
+      await pdfService.sharePDF(savedFilePath, {
+        title: '分享练习题',
+        message: '一年级数学练习题',
+        subject: '数学练习题',
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '分享失败，请重试';
+      setActionError(errorMessage);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  // 处理打印
+  const handlePrint = async () => {
+    if (!savedFilePath) return;
+
+    setActionError(null);
+    setPrinting(true);
+
+    try {
+      await pdfService.printPDF(savedFilePath);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '打印失败，请重试';
+      setActionError(errorMessage);
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  // 处理打开
+  const handleOpen = async () => {
+    if (!savedFilePath) return;
+
+    setActionError(null);
+    setOpening(true);
+
+    try {
+      const opened = await pdfService.openPDF(savedFilePath);
+      if (!opened) {
+        setActionError('没有安装PDF查看器应用');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '打开文件失败';
+      setActionError(errorMessage);
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  // 查看所有 PDF
+  const handleViewAll = () => {
+    setShowSuccess(false);
+    navigation.navigate('PDFList' as never);
   };
 
   // 处理加载完成

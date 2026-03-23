@@ -1,7 +1,7 @@
 import { PDFDocument } from 'react-native-pdf-lib';
 import RNFS from 'react-native-fs';
-import { Platform, PermissionsAndroid, NativeModules } from 'react-native';
-import { Question, Difficulty, PDFMetadata } from '../types';
+import { Platform, PermissionsAndroid, NativeModules, Linking } from 'react-native';
+import { Question, Difficulty, PDFMetadata, PDFFileInfo, ShareOptions } from '../types';
 
 // 检查 Android API 版本
 const getAndroidApiLevel = (): number | null => {
@@ -326,10 +326,149 @@ const generateQuestionsPDF = async (
   }
 };
 
+// 分享 PDF 文件
+const sharePDF = async (filePath: string, options?: ShareOptions): Promise<void> => {
+  try {
+    // 动态导入 react-native-share
+    const Share = require('react-native-share').default;
+
+    const shareOptions = {
+      title: options?.title || '分享练习题',
+      message: options?.message || '一年级数学练习题',
+      url: `file://${filePath}`,
+      type: 'application/pdf',
+      subject: options?.subject || '数学练习题',
+      excludedActivityTypes: options?.excludedActivityTypes,
+      dialogTitle: options?.dialogTitle || '分享 PDF',
+    };
+
+    await Share.open(shareOptions);
+  } catch (error: any) {
+    // 用户取消分享不视为错误
+    if (error.message?.includes('User did not share') || error.message?.includes('User cancelled')) {
+      console.log('[pdfService] Share cancelled by user');
+      return;
+    }
+    console.error('[pdfService] Share error:', error);
+    throw new Error(`分享失败: ${error.message || '未知错误'}`);
+  }
+};
+
+// 打印 PDF 文件
+const printPDF = async (filePath: string): Promise<void> => {
+  try {
+    // 动态导入 expo-print
+    const Print = require('expo-print').Print;
+
+    // 检查打印是否可用
+    const isAvailable = await Print.printAvailableAsync();
+    if (!isAvailable) {
+      throw new Error('打印服务不可用');
+    }
+
+    // 打开打印对话框
+    await Print.printAsync({ uri: `file://${filePath}` });
+  } catch (error: any) {
+    console.error('[pdfService] Print error:', error);
+    throw new Error(`打印失败: ${error instanceof Error ? error.message : '未知错误'}`);
+  }
+};
+
+// 打开 PDF 文件
+const openPDF = async (filePath: string): Promise<boolean> => {
+  try {
+    const url = `file://${filePath}`;
+    const canOpen = await Linking.canOpenURL(url);
+
+    if (!canOpen) {
+      throw new Error('没有安装PDF查看器');
+    }
+
+    await Linking.openURL(url);
+    return true;
+  } catch (error) {
+    console.error('[pdfService] Open file error:', error);
+    if (error instanceof Error && error.message === '没有安装PDF查看器') {
+      throw error;
+    }
+    throw new Error(`打开文件失败: ${error instanceof Error ? error.message : '未知错误'}`);
+  }
+};
+
+// 获取已保存的 PDF 列表
+const getSavedPDFs = async (): Promise<PDFFileInfo[]> => {
+  const searchDirs: string[] = [];
+
+  if (Platform.OS === 'ios') {
+    searchDirs.push(RNFS.DocumentDirectoryPath);
+  } else {
+    // Android
+    searchDirs.push(RNFS.ExternalStorageDirectoryPath + '/Documents');
+    searchDirs.push(RNFS.DownloadDirectoryPath);
+  }
+
+  const pdfFiles: PDFFileInfo[] = [];
+
+  for (const dir of searchDirs) {
+    try {
+      const exists = await RNFS.exists(dir);
+      if (!exists) continue;
+
+      const files = await RNFS.readDir(dir);
+      const pdfs = files
+        .filter(f => f.name.endsWith('.pdf') && !f.name.startsWith('.'))
+        .map(f => ({
+          name: f.name,
+          path: f.path,
+          size: f.size || 0,
+          createdAt: new Date(f.ctime || 0),
+          modifiedAt: new Date(f.mtime || 0),
+        }));
+      pdfFiles.push(...pdfs);
+    } catch (error) {
+      console.warn(`[pdfService] Cannot read directory: ${dir}`, error);
+    }
+  }
+
+  // 按修改时间排序，最新的在前
+  return pdfFiles.sort((a, b) =>
+    b.modifiedAt.getTime() - a.modifiedAt.getTime()
+  );
+};
+
+// 删除 PDF 文件
+const deletePDF = async (filePath: string): Promise<void> => {
+  try {
+    const exists = await RNFS.exists(filePath);
+    if (!exists) {
+      throw new Error('文件不存在');
+    }
+
+    await RNFS.unlink(filePath);
+    console.log('[pdfService] File deleted:', filePath);
+  } catch (error) {
+    console.error('[pdfService] Delete file error:', error);
+    throw new Error(`删除文件失败: ${error instanceof Error ? error.message : '未知错误'}`);
+  }
+};
+
+// 获取文件大小（格式化）
+const getFormattedFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 // 导出服务
 export const pdfService = {
   generateQuestionsPDF,
   savePDF,
+  sharePDF,
+  printPDF,
+  openPDF,
+  getSavedPDFs,
+  deletePDF,
+  getFormattedFileSize,
   getPDFSavePath,
   checkStoragePermissions,
   requestStoragePermissions,

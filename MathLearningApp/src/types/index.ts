@@ -146,3 +146,35 @@ export interface PDFSaveOptions {
   filename?: string;
   showPreview?: boolean;
 }
+
+// PDF 文件信息
+export interface PDFFileInfo {
+  name: string;
+  path: string;
+  size: number;
+  createdAt: Date;
+  modifiedAt: Date;
+}
+
+// 分享选项
+export interface ShareOptions {
+  title?: string;
+  message?: string;
+  subject?: string; // 用于邮件
+  excludedActivityTypes?: string[]; // iOS: 排除某些应用
+  dialogTitle?: string; // Android: 分享对话框标题
+}
+
+// 打印选项
+export interface PrintOptions {
+  printerName?: string; // 特定打印机
+  orientation?: 'portrait' | 'landscape';
+  copies?: number;
+}
+
+// 权限状态
+export interface PermissionStatus {
+  storage: boolean;
+  write: boolean;
+  allGranted: boolean;
+}
