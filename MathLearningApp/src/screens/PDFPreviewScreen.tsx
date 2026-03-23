@@ -411,7 +411,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 4,
+  },
+  successFileSize: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 24,
   },
   successButtonContainer: {
     width: '100%',
@@ -477,6 +483,32 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  actionErrorContainer: {
+    width: '100%',
+    backgroundColor: '#fff3e0',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#ffb74d',
+  },
+  actionErrorText: {
+    fontSize: 14,
+    color: '#e65100',
+    marginBottom: 8,
+  },
+  dismissErrorButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    backgroundColor: '#ffb74d',
+    borderRadius: 4,
+  },
+  dismissErrorButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 
