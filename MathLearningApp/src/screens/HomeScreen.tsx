@@ -1,9 +1,15 @@
 import React, {useState, useEffect} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {Card, Title, Paragraph, Button} from 'react-native-paper';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import {generationHistoryService} from '../services/generationHistoryService';
+import {feedbackManager} from '../services/feedbackManager';
 import {GenerationRecord} from '../types';
 import RecentPracticeCard from '../components/RecentPracticeCard';
+import HelpDialog from '../components/HelpDialog';
+import OnboardingTour from '../components/OnboardingTour';
+import CelebrationOverlay from '../components/CelebrationOverlay';
+import {checkTourCompleted, MilestoneType} from '../components/OnboardingTour';
 
 // PATCH-017: 提取魔法数字为常量
 const MAX_RECENT_ITEMS = 5;
@@ -11,11 +17,29 @@ const MAX_RECENT_ITEMS = 5;
 const HomeScreen = ({navigation}: any) => {
   const [recentGenerations, setRecentGenerations] = useState<GenerationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationMessage, setCelebrationMessage] = useState('');
 
   // 加载最近练习记录
   useEffect(() => {
     loadRecentGenerations();
+    checkFirstTimeUser();
   }, []);
+
+  // 检查是否首次使用用户
+  const checkFirstTimeUser = async () => {
+    try {
+      const completed = await checkTourCompleted('HomeScreen');
+      if (!completed) {
+        // 延迟一点显示导览，让用户先看到界面
+        setTimeout(() => setShowTour(true), 500);
+      }
+    } catch (error) {
+      console.error('Failed to check tour completion:', error);
+    }
+  };
 
   /**
    * 加载最近练习记录
@@ -25,8 +49,22 @@ const HomeScreen = ({navigation}: any) => {
       setIsLoading(true);
       const generations = await generationHistoryService.getRecentGenerations(MAX_RECENT_ITEMS);
       setRecentGenerations(generations);
+
+      // 检查里程碑
+      const allGenerations = await generationHistoryService.getAllGenerations();
+      const totalCount = allGenerations.length;
+
+      // 检查首次生成
+      await feedbackManager.checkMilestone(MilestoneType.FIRST_GENERATION, totalCount);
+
+      // 检查5次生成里程碑
+      await feedbackManager.checkMilestone(MilestoneType.FIVE_GENERATIONS, totalCount);
+
+      // 检查10次生成里程碑
+      await feedbackManager.checkMilestone(MilestoneType.TEN_GENERATIONS, totalCount);
     } catch (error) {
       console.error('Failed to load recent generations:', error);
+      feedbackManager.showFriendlyError(error, '加载练习记录');
     } finally {
       setIsLoading(false);
     }
@@ -55,8 +93,18 @@ const HomeScreen = ({navigation}: any) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>一年级数学学习助手</Text>
-        <Text style={styles.subtitle}>让家长轻松掌握辅导方法</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>一年级数学学习助手</Text>
+            <Text style={styles.subtitle}>让家长轻松掌握辅导方法</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setShowHelp(true)}
+            style={styles.helpButton}
+            accessibilityLabel="帮助">
+            <Icon name="help-outline" size={28} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Card style={styles.card} onPress={() => navigation.navigate('Camera')}>
@@ -126,6 +174,29 @@ const HomeScreen = ({navigation}: any) => {
           </Text>
         </Card.Content>
       </Card>
+
+      {/* 帮助对话框 */}
+      <HelpDialog
+        visible={showHelp}
+        screenId="HomeScreen"
+        onClose={() => setShowHelp(false)}
+      />
+
+      {/* 入门导览 */}
+      <OnboardingTour
+        visible={showTour}
+        screenId="HomeScreen"
+        onComplete={() => setShowTour(false)}
+        onSkip={() => setShowTour(false)}
+      />
+
+      {/* 成功庆祝 */}
+      <CelebrationOverlay
+        visible={showCelebration}
+        message={celebrationMessage}
+        duration={2000}
+        onComplete={() => setShowCelebration(false)}
+      />
     </ScrollView>
   );
 };
@@ -140,17 +211,26 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 40,
   },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerText: {
+    flex: 1,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: 'white',
-    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     color: 'white',
-    textAlign: 'center',
     marginTop: 5,
+  },
+  helpButton: {
+    padding: 8,
   },
   card: {
     margin: 15,

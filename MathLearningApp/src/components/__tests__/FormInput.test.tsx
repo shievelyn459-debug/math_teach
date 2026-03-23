@@ -137,6 +137,110 @@ describe('FormInput Component', () => {
       const input = getByTestId('test-input');
       expect(input.props.autoCapitalize).toBe('none');
     });
+
+    // 新增：内联验证测试
+    it('should show success icon when valid and has value', () => {
+      const {getByTestId, getByText} = render(
+        <FormInput
+          {...defaultProps}
+          value="test@email.com"
+          valid={true}
+          showSuccessIcon={true}
+          testID="test-input"
+        />
+      );
+
+      expect(getByText('✓')).toBeTruthy();
+    });
+
+    it('should not show success icon when value is empty', () => {
+      const {queryByText} = render(
+        <FormInput
+          {...defaultProps}
+          value=""
+          valid={true}
+          showSuccessIcon={true}
+          testID="test-input"
+        />
+      );
+
+      expect(queryByText('✓')).toBeNull();
+    });
+
+    it('should not show success icon when showSuccessIcon is false', () => {
+      const {queryByText} = render(
+        <FormInput
+          {...defaultProps}
+          value="test@email.com"
+          valid={true}
+          showSuccessIcon={false}
+          testID="test-input"
+        />
+      );
+
+      expect(queryByText('✓')).toBeNull();
+    });
+
+    it('should show validating text when validating', () => {
+      const {getByText} = render(
+        <FormInput
+          {...defaultProps}
+          value="test@email.com"
+          validating={true}
+          testID="test-input"
+        />
+      );
+
+      expect(getByText('验证中...')).toBeTruthy();
+    });
+
+    it('should call onClearError when input changes and error exists', () => {
+      const onClearError = jest.fn();
+      const {getByTestId} = render(
+        <FormInput
+          {...defaultProps}
+          value=""
+          error="Invalid email"
+          onClearError={onClearError}
+          testID="test-input"
+        />
+      );
+
+      const input = getByTestId('test-input');
+      fireEvent.changeText(input, 'test');
+
+      expect(onClearError).toHaveBeenCalled();
+    });
+
+    it('should show inline error with clear button', () => {
+      const {getByText} = render(
+        <FormInput
+          {...defaultProps}
+          error="This field is required"
+          onClearError={jest.fn()}
+          testID="test-input"
+        />
+      );
+
+      expect(getByText('This field is required')).toBeTruthy();
+      expect(getByText('✕')).toBeTruthy();
+    });
+
+    it('should apply green border when valid and has value', () => {
+      const {getByTestId} = render(
+        <FormInput
+          {...defaultProps}
+          value="valid@email.com"
+          valid={true}
+          testID="test-input"
+        />
+      );
+
+      const input = getByTestId('test-input');
+      const styles = input.props.style;
+      const hasGreenBorder = styles.some((s: any) => s?.borderColor === '#4caf50');
+      expect(hasGreenBorder).toBe(true);
+    });
   });
 
   describe('PasswordInput Component', () => {
@@ -151,7 +255,7 @@ describe('FormInput Component', () => {
     });
 
     it('should render correctly with required props', () => {
-      const {getByText, getByPlaceholderText} = (
+      const {getByText, getByPlaceholderText} = render(
         <PasswordInput {...defaultProps} testID="password-input" />
       );
 

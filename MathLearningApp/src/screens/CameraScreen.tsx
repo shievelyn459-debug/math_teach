@@ -10,10 +10,14 @@ import QuestionTypeSelector from '../components/QuestionTypeSelector';
 import DifficultySelector from '../components/DifficultySelector';
 import ProcessingProgress from '../components/ProcessingProgress';
 import KnowledgePointTag from '../components/KnowledgePointTag';
+import HelpDialog from '../components/HelpDialog';
+import OnboardingTour from '../components/OnboardingTour';
 import {preferencesService} from '../services/preferencesService';
 import {performanceTracker, WARNING_THRESHOLD} from '../services/performanceTracker';
+import {feedbackManager} from '../services/feedbackManager';
 import {imageOptimizer} from '../utils/imageOptimizer';
 import {generationHistoryService, generateUniqueId} from '../services/generationHistoryService';
+import {checkTourCompleted} from '../components/OnboardingTour';
 
 const CameraScreen = () => {
   const navigation = useNavigation();
@@ -30,6 +34,10 @@ const CameraScreen = () => {
   const [recommendedDifficulty, setRecommendedDifficulty] = useState<Difficulty | undefined>(undefined);
   const [isLoadingDifficulty, setIsLoadingDifficulty] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+
+  // 帮助和导览状态
+  const [showHelp, setShowHelp] = useState(false);
+  const [showTour, setShowTour] = useState(false);
 
   // 性能跟踪相关状态
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null);
@@ -64,6 +72,15 @@ const CameraScreen = () => {
     return unsubscribe;
   }, [showWarning]);
 
+  // 检查是否需要显示导览
+  useEffect(() => {
+    checkTourCompleted('CameraScreen').then(completed => {
+      if (!completed) {
+        setTimeout(() => setShowTour(true), 300);
+      }
+    });
+  }, []);
+
   const takePicture = async () => {
     if (!cameraRef.current) return;
 
@@ -96,7 +113,7 @@ const CameraScreen = () => {
     } catch (error) {
       console.error('Error taking picture:', error);
       performanceTracker.markError('拍照失败');
-      Alert.alert('错误', '拍照失败，请重试');
+      feedbackManager.showFriendlyError(error, '拍照', () => takePicture());
     } finally {
       setIsTakingPicture(false);
     }
@@ -129,17 +146,27 @@ const CameraScreen = () => {
         // 显示难度选择器（AC:1 题目类型识别后显示难度选择界面）
         await showDifficultySelectionModal(response.data.questionType);
       } else {
-        setError(response.error?.message || '识别失败');
-        performanceTracker.markError(response.error?.message || '识别失败');
-        Alert.alert('识别失败', response.error?.message || '无法识别题目类型', [
-          {text: '确定', onPress: () => {
-            performanceTracker.completeSession();
-          }},
-          {text: '手动选择', onPress: () => {
-            performanceTracker.recordStage(ProcessingStage.CORRECTION);
-            setShowManualCorrection(true);
-          }}
-        ]);
+        const errorMsg = response.error?.message || '无法识别题目类型';
+        setError(errorMsg);
+        performanceTracker.markError(errorMsg);
+
+        // 使用友好的错误对话框
+        feedbackManager.showErrorDialog(
+          '题目识别失败',
+          '可能是图片不清晰或题目不在拍摄范围内。您可以重试或手动选择题目类型。',
+          [
+            {text: '重试', onPress: () => {
+              recognizeQuestionType(imageUri);
+            }},
+            {text: '手动选择', onPress: () => {
+              performanceTracker.recordStage(ProcessingStage.CORRECTION);
+              setShowManualCorrection(true);
+            }},
+            {text: '取消', style: 'cancel', onPress: () => {
+              performanceTracker.completeSession();
+            }}
+          ]
+        );
       }
     } catch (error) {
       console.error('Recognition error:', error);
@@ -399,7 +426,15 @@ const CameraScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>拍摄数学题目</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>拍摄数学题目</Text>
+        <TouchableOpacity
+          onPress={() => setShowHelp(true)}
+          style={styles.helpButton}
+          accessibilityLabel="帮助">
+          <Icon name="help-outline" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
 
       <Card style={styles.instructionCard}>
         <Card.Content>
@@ -569,6 +604,21 @@ const CameraScreen = () => {
           </View>
         </Modal>
       )}
+
+      {/* 帮助对话框 */}
+      <HelpDialog
+        visible={showHelp}
+        screenId="CameraScreen"
+        onClose={() => setShowHelp(false)}
+      />
+
+      {/* 入门导览 */}
+      <OnboardingTour
+        visible={showTour}
+        screenId="CameraScreen"
+        onComplete={() => setShowTour(false)}
+        onSkip={() => setShowTour(false)}
+      />
     </View>
   );
 };
@@ -582,7 +632,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    margin: 20,
+    color: 'white',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 20,
+    backgroundColor: '#2196f3',
+  },
+  helpButton: {
+    padding: 8,
   },
   instructionCard: {
     margin: 15,
