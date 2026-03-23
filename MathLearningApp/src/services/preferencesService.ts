@@ -6,6 +6,7 @@ const PREFERENCES_KEY = '@math_learning_preferences';
 const CORRECTION_HISTORY_KEY = '@math_learning_correction_history';
 const DIFFICULTY_PREFERENCES_KEY = '@math_learning_difficulty_preferences';
 const FORMAT_PREFERENCE_KEY = '@math_learning_format_preference'; // Story 3-4: 格式偏好
+const QUANTITY_PREFERENCE_KEY = '@math_learning_quantity_preference'; // Story 4-1: 题目数量偏好
 
 // 用于序列化的内部类型（Date存储为ISO字符串）
 interface UserPreferencesSerialized {
@@ -440,6 +441,55 @@ class PreferencesService {
       });
     } catch (error) {
       console.error('Failed to clear format preference:', error);
+    }
+  }
+
+  // Story 4-1: 题目数量偏好管理
+
+  /**
+   * 获取保存的题目数量偏好
+   * @returns 题目数量，默认为10
+   */
+  async getQuantityPreference(): Promise<number> {
+    try {
+      const quantityString = await AsyncStorage.getItem(QUANTITY_PREFERENCE_KEY);
+      if (quantityString) {
+        const quantity = parseInt(quantityString, 10);
+        // 检查是否为 NaN
+        if (isNaN(quantity)) {
+          console.warn('[PreferencesService] Quantity preference is NaN, using default');
+          return 10;
+        }
+        // 验证是否为有效选项（5, 10, 或15）
+        if ([5, 10, 15].includes(quantity)) {
+          return quantity;
+        }
+      }
+      return 10; // 默认10题
+    } catch (error) {
+      console.error('Failed to get quantity preference:', error);
+      return 10;
+    }
+  }
+
+  /**
+   * 保存题目数量偏好
+   * @param quantity 选中的数量
+   */
+  async setQuantityPreference(quantity: number): Promise<void> {
+    // 验证参数
+    if (!Number.isInteger(quantity) || ![5, 10, 15].includes(quantity)) {
+      throw new Error(`setQuantityPreference: quantity must be 5, 10, or 15, got ${quantity}`);
+    }
+
+    try {
+      await this.operationQueue.enqueue(async () => {
+        await AsyncStorage.setItem(QUANTITY_PREFERENCE_KEY, String(quantity));
+        console.log('[PreferencesService] Quantity preference saved:', quantity);
+      });
+    } catch (error) {
+      console.error('Failed to set quantity preference:', error);
+      throw error;
     }
   }
 }

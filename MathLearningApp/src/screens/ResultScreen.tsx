@@ -6,15 +6,30 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import {RecognitionResult} from '../types';
+import {StackNavigationProp} from '@react-navigation/native-stack';
+import {RecognitionResult, Difficulty} from '../types';
 import KnowledgePointTag from '../components/KnowledgePointTag';
+import {authService} from '../services/authService';
+import {preferencesService} from '../services/preferencesService';
 
-interface ResultScreenProps {
+interface RouteParams {
   recognitionResult: RecognitionResult | null;
   isLoading: boolean;
-  onKnowledgePointPress: (knowledgePointId: string) => void;
-  onBack: () => void;
+}
+
+type NavigationProp = StackNavigationProp<any, 'ResultScreen'>;
+
+interface ResultScreenProps {
+  route: {
+    params: RouteParams;
+  };
+  navigation: NavigationProp;
+  recognitionResult?: RecognitionResult | null;
+  isLoading?: boolean;
+  onKnowledgePointPress?: (knowledgePointId: string) => void;
+  onBack?: () => void;
 }
 
 /**
@@ -22,11 +37,66 @@ interface ResultScreenProps {
  * 显示识别结果和知识点标签 (AC: 1, 4, 6)
  */
 const ResultScreen: React.FC<ResultScreenProps> = ({
-  recognitionResult,
-  isLoading,
-  onKnowledgePointPress,
-  onBack,
+  route,
+  navigation,
+  recognitionResult: propRecognitionResult,
+  isLoading: propIsLoading,
+  onKnowledgePointPress: propOnKnowledgePointPress,
+  onBack: propOnBack,
 }) => {
+  // 支持两种使用方式：直接props或navigation params
+  const recognitionResult = route?.params?.recognitionResult ?? propRecognitionResult ?? null;
+  const isLoading = route?.params?.isLoading ?? propIsLoading ?? false;
+  const onKnowledgePointPress = propOnKnowledgePointPress ?? ((id: string) => {
+    console.log('Knowledge point pressed:', id);
+  });
+  const onBack = propOnBack ?? (() => {
+    navigation?.goBack();
+  });
+
+  const handleGenerateSimilar = async () => {
+    if (!recognitionResult) {
+      Alert.alert('错误', '无法生成题目：缺少题目信息');
+      return;
+    }
+
+    // 获取当前登录用户
+    const currentUser = authService.getCurrentUser();
+    if (!currentUser) {
+      Alert.alert('错误', '请先登录');
+      return;
+    }
+
+    // 确定难度级别，记录降级警告
+    const targetDifficulty = recognitionResult.difficulty || recognitionResult.selectedDifficulty;
+    if (!targetDifficulty) {
+      console.warn('[ResultScreen] No difficulty specified, falling back to MEDIUM');
+    }
+    const finalDifficulty = targetDifficulty || Difficulty.MEDIUM;
+
+    // 获取保存的数量偏好
+    let quantity = 10; // 默认值
+    try {
+      quantity = await preferencesService.getQuantityPreference();
+    } catch (error) {
+      console.warn('Failed to get quantity preference, using default:', error);
+    }
+
+    try {
+      navigation.navigate('GeneratedQuestionsList', {
+        baseQuestion: {
+          type: recognitionResult.questionType,
+          difficulty: finalDifficulty,
+          userId: currentUser.id,
+        },
+        initialQuantity: quantity,
+        initialDifficulty: finalDifficulty,
+      });
+    } catch (navigationError) {
+      console.error('Navigation error:', navigationError);
+      Alert.alert('错误', '无法打开题目生成页面，请稍后重试');
+    }
+  };
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -131,10 +201,17 @@ const ResultScreen: React.FC<ResultScreenProps> = ({
         </View>
       )}
 
-      {/* 返回按钮 */}
-      <TouchableOpacity style={styles.backButton} onPress={onBack}>
-        <Text style={styles.backButtonText}>返回</Text>
-      </TouchableOpacity>
+      {/* 操作按钮 */}
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity
+          style={styles.generateButton}
+          onPress={handleGenerateSimilar}>
+          <Text style={styles.generateButtonText}>✨ 生成相似题目</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+          <Text style={styles.backButtonText}>返回</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 };
@@ -239,9 +316,27 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
-    marginBottom: 20,
+    flex: 1,
+    marginLeft: 8,
   },
   backButtonText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: '600',
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  generateButton: {
+    backgroundColor: '#4caf50',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  generateButtonText: {
     fontSize: 16,
     color: 'white',
     fontWeight: '600',
