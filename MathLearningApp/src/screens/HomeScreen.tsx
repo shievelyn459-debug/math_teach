@@ -1,15 +1,15 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {Card, Title, Paragraph, Button} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {generationHistoryService} from '../services/generationHistoryService';
-import {feedbackManager} from '../services/feedbackManager';
+import {feedbackManager, MilestoneType} from '../services/feedbackManager';
 import {GenerationRecord} from '../types';
 import RecentPracticeCard from '../components/RecentPracticeCard';
 import HelpDialog from '../components/HelpDialog';
 import OnboardingTour from '../components/OnboardingTour';
 import CelebrationOverlay from '../components/CelebrationOverlay';
-import {checkTourCompleted, MilestoneType} from '../components/OnboardingTour';
+import {checkTourCompleted} from '../components/OnboardingTour';
 
 // PATCH-017: 提取魔法数字为常量
 const MAX_RECENT_ITEMS = 5;
@@ -22,19 +22,36 @@ const HomeScreen = ({navigation}: any) => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationMessage, setCelebrationMessage] = useState('');
 
+  // 追踪timeout用于清理
+  const tourTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+
   // 加载最近练习记录
   useEffect(() => {
     loadRecentGenerations();
     checkFirstTimeUser();
+
+    return () => {
+      isMountedRef.current = false;
+      // 清理timeout
+      if (tourTimeoutRef.current) {
+        clearTimeout(tourTimeoutRef.current);
+      }
+    };
   }, []);
 
-  // 检查是否首次使用用户
+  // 检查是否首次使用用户（修复竞态条件）
   const checkFirstTimeUser = async () => {
     try {
       const completed = await checkTourCompleted('HomeScreen');
-      if (!completed) {
-        // 延迟一点显示导览，让用户先看到界面
-        setTimeout(() => setShowTour(true), 500);
+      if (!completed && isMountedRef.current) {
+        // 延迟一点显示导览，让用户先看看界面
+        // 使用ref追踪timeout以便在unmount时清理
+        tourTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            setShowTour(true);
+          }
+        }, 500);
       }
     } catch (error) {
       console.error('Failed to check tour completion:', error);
@@ -48,25 +65,39 @@ const HomeScreen = ({navigation}: any) => {
     try {
       setIsLoading(true);
       const generations = await generationHistoryService.getRecentGenerations(MAX_RECENT_ITEMS);
-      setRecentGenerations(generations);
+      if (isMountedRef.current) {
+        setRecentGenerations(generations);
+      }
 
-      // 检查里程碑
+      // 检查里程碑（并行检查以提高性能）
       const allGenerations = await generationHistoryService.getAllGenerations();
       const totalCount = allGenerations.length;
 
-      // 检查首次生成
-      await feedbackManager.checkMilestone(MilestoneType.FIRST_GENERATION, totalCount);
+      // 并行检查所有里程碑并显示庆祝
+      const milestones = [
+        {type: MilestoneType.FIRST_GENERATION, message: '🎉 第一次生成题目，太棒了！'},
+        {type: MilestoneType.FIVE_GENERATIONS, message: '🌟 已生成5次题目，坚持得真好！'},
+        {type: MilestoneType.TEN_GENERATIONS, message: '🏆 练习达人！已完成10次练习'},
+      ];
 
-      // 检查5次生成里程碑
-      await feedbackManager.checkMilestone(MilestoneType.FIVE_GENERATIONS, totalCount);
+      // 并行检查里程碑
+      const results = await Promise.all(
+        milestones.map(m => feedbackManager.checkMilestone(m.type, totalCount))
+      );
 
-      // 检查10次生成里程碑
-      await feedbackManager.checkMilestone(MilestoneType.TEN_GENERATIONS, totalCount);
+      // 如果有里程碑达成，显示庆祝
+      const achievedIndex = results.findIndex(r => r === true);
+      if (achievedIndex !== -1 && isMountedRef.current) {
+        setCelebrationMessage(milestones[achievedIndex].message);
+        setShowCelebration(true);
+      }
     } catch (error) {
       console.error('Failed to load recent generations:', error);
-      feedbackManager.showFriendlyError(error, '加载练习记录');
+      feedbackManager.showFriendlyError(error, '加载练习记录', () => loadRecentGenerations());
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -107,7 +138,7 @@ const HomeScreen = ({navigation}: any) => {
         </View>
       </View>
 
-      <Card style={styles.card} onPress={() => navigation.navigate('Camera')}>
+      <Card style={styles.card} onPress={() => navigation?.navigate('Camera')}>
         <Card.Content>
           <Title style={styles.cardTitle}>📸 拍照上传题目</Title>
           <Paragraph>
@@ -123,7 +154,7 @@ const HomeScreen = ({navigation}: any) => {
             <Title style={styles.cardTitle}>📚 最近练习</Title>
             {recentGenerations.length > 0 && (
               <TouchableOpacity
-                onPress={() => navigation.navigate('QuestionList')}
+                onPress={() => navigation?.navigate('QuestionList')}
                 style={styles.viewAllButton}>
                 <Text style={styles.viewAllText}>查看全部</Text>
               </TouchableOpacity>

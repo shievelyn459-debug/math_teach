@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const CACHE_KEY = 'help_content_cache';
 const CACHE_VERSION_KEY = 'help_content_version';
 const CURRENT_VERSION = '1.0.0';
+const MAX_SEARCH_QUERY_LENGTH = 100; // 搜索查询最大长度
+const MAX_CACHE_SIZE = 100; // 缓存最大条目数（LRU策略）
 
 /**
  * 帮助区块
@@ -44,34 +46,45 @@ export interface HelpContent {
 class HelpContentService {
   private cache: Map<string, HelpContent> = new Map();
   private initialized = false;
+  private initializationPromise: Promise<void> | null = null;
+  private cacheAccessOrder: string[] = []; // 用于LRU淘汰
 
   /**
-   * 初始化服务
+   * 初始化服务（防竞态条件）
    */
   async initialize(): Promise<void> {
-    if (this.initialized) {
-      return;
+    // 如果正在初始化，返回相同的Promise
+    if (this.initializationPromise) {
+      return this.initializationPromise;
     }
 
-    try {
-      // 检查缓存版本
-      const cachedVersion = await AsyncStorage.getItem(CACHE_VERSION_KEY);
-
-      if (cachedVersion === CURRENT_VERSION) {
-        // 加载缓存
-        await this.loadCache();
-      } else {
-        // 版本不匹配，重新加载所有内容
-        await this.refreshCache();
+    this.initializationPromise = (async () => {
+      if (this.initialized) {
+        return;
       }
 
-      this.initialized = true;
-    } catch (error) {
-      console.error('Failed to initialize help content service:', error);
-      // 即使失败也继续使用默认内容
-      this.loadDefaultContent();
-      this.initialized = true;
-    }
+      try {
+        // 检查缓存版本
+        const cachedVersion = await AsyncStorage.getItem(CACHE_VERSION_KEY);
+
+        if (cachedVersion === CURRENT_VERSION) {
+          // 加载缓存
+          await this.loadCache();
+        } else {
+          // 版本不匹配，重新加载所有内容
+          await this.refreshCache();
+        }
+
+        this.initialized = true;
+      } catch (error) {
+        console.error('Failed to initialize help content service:', error);
+        // 即使失败也继续使用默认内容
+        this.loadDefaultContent();
+        this.initialized = true;
+      }
+    })();
+
+    return this.initializationPromise;
   }
 
   /**
@@ -80,6 +93,12 @@ class HelpContentService {
    * @returns 帮助内容
    */
   async getHelpContent(screenId: string): Promise<HelpContent | null> {
+    // 输入验证
+    if (!screenId || typeof screenId !== 'string') {
+      console.warn('Invalid screenId provided to getHelpContent');
+      return this.getGenericHelp();
+    }
+
     if (!this.initialized) {
       await this.initialize();
     }
@@ -90,6 +109,9 @@ class HelpContentService {
       // 如果没有找到，返回通用帮助
       return this.getGenericHelp();
     }
+
+    // 更新LRU顺序
+    this.updateCacheAccessOrder(screenId);
 
     return content;
   }
@@ -104,8 +126,19 @@ class HelpContentService {
       await this.initialize();
     }
 
-    if (!query || query.trim().length === 0) {
+    // 输入验证 - 限制查询长度
+    if (!query || typeof query !== 'string') {
       return Array.from(this.cache.values());
+    }
+
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length === 0) {
+      return Array.from(this.cache.values());
+    }
+
+    if (trimmedQuery.length > MAX_SEARCH_QUERY_LENGTH) {
+      console.warn(`Search query too long, truncating to ${MAX_SEARCH_QUERY_LENGTH} characters`);
+      query = trimmedQuery.substring(0, MAX_SEARCH_QUERY_LENGTH);
     }
 
     const lowerQuery = query.toLowerCase();
@@ -146,6 +179,25 @@ class HelpContentService {
   }
 
   /**
+   * 更新缓存访问顺序（LRU）
+   */
+  private updateCacheAccessOrder(key: string): void {
+    const index = this.cacheAccessOrder.indexOf(key);
+    if (index > -1) {
+      this.cacheAccessOrder.splice(index, 1);
+    }
+    this.cacheAccessOrder.push(key);
+
+    // 如果超过最大缓存大小，删除最旧的条目
+    if (this.cacheAccessOrder.length > MAX_CACHE_SIZE) {
+      const oldestKey = this.cacheAccessOrder.shift();
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+      }
+    }
+  }
+
+  /**
    * 获取所有帮助内容
    */
   async getAllHelpContent(): Promise<HelpContent[]> {
@@ -173,8 +225,28 @@ class HelpContentService {
       const cached = await AsyncStorage.getItem(CACHE_KEY);
 
       if (cached) {
-        const parsed = JSON.parse(cached);
-        this.cache = new Map(Object.entries(parsed));
+        try {
+          const parsed = JSON.parse(cached);
+
+          // 验证解析结果是否为对象
+          if (parsed && typeof parsed === 'object') {
+            const entries = Object.entries(parsed);
+
+            // 验证每个条目
+            for (const [key, value] of entries) {
+              if (value && typeof value === 'object' && value.screenId && value.title) {
+                this.cache.set(key, value as HelpContent);
+                this.cacheAccessOrder.push(key);
+              }
+            }
+          } else {
+            console.warn('Invalid cache data format, loading default content');
+            this.loadDefaultContent();
+          }
+        } catch (parseError) {
+          console.error('Failed to parse cached data:', parseError);
+          this.loadDefaultContent();
+        }
       } else {
         this.loadDefaultContent();
       }
@@ -201,6 +273,7 @@ class HelpContentService {
    */
   private loadDefaultContent(): void {
     this.cache.clear();
+    this.cacheAccessOrder = [];
 
     // HomeScreen 帮助
     this.cache.set('HomeScreen', {

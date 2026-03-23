@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Modal} from 'react-native';
 import {RNCamera} from 'react-native-camera';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -19,6 +19,7 @@ import {feedbackManager} from '../services/feedbackManager';
 import {imageOptimizer} from '../utils/imageOptimizer';
 import {generationHistoryService, generateUniqueId} from '../services/generationHistoryService';
 import {checkTourCompleted} from '../components/OnboardingTour';
+import {recognitionCache} from '../services/recognitionCache'; // PATCH-C4: Import cache
 
 const CameraScreen = () => {
   const navigation = useNavigation();
@@ -45,15 +46,28 @@ const CameraScreen = () => {
   const [showProcessingProgress, setShowProcessingProgress] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
 
+  // 使用ref追踪组件状态和清理
+  const isMountedRef = useRef(true);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const tourTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentSessionIdRef = useRef<string | null>(null);
+
   // 默认一年级（可以根据用户设置调整）
   const gradeLevel = 1;
 
   // 生成会话ID
   const generateSessionId = () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  // 订阅性能跟踪更新
+  // 订阅性能跟踪更新（改进订阅清理）
   useEffect(() => {
+    // 清理之前的订阅
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+    }
+
     const unsubscribe = performanceTracker.subscribe((metrics) => {
+      if (!isMountedRef.current) return;
+
       setPerformanceMetrics(metrics);
 
       // 检查是否应显示进度
@@ -70,16 +84,57 @@ const CameraScreen = () => {
       }
     });
 
-    return unsubscribe;
+    unsubscribeRef.current = unsubscribe;
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
   }, [showWarning]);
 
-  // 检查是否需要显示导览
+  // 组件卸载时清理资源
   useEffect(() => {
-    checkTourCompleted('CameraScreen').then(completed => {
-      if (!completed) {
-        setTimeout(() => setShowTour(true), 300);
+    return () => {
+      isMountedRef.current = false;
+      // 清理导览timeout
+      if (tourTimeoutRef.current) {
+        clearTimeout(tourTimeoutRef.current);
       }
-    });
+      // 完成性能跟踪会话
+      if (currentSessionIdRef.current) {
+        try {
+          performanceTracker.completeSession();
+        } catch (e) {
+          console.warn('Failed to complete performance session:', e);
+        }
+      }
+      // 清理订阅
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
+  }, []);
+
+  // 检查是否需要显示导览（修复timeout清理）
+  useEffect(() => {
+    const checkAndShowTour = async () => {
+      try {
+        const completed = await checkTourCompleted('CameraScreen');
+        if (!completed && isMountedRef.current) {
+          tourTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current) {
+              setShowTour(true);
+            }
+          }, 300);
+        }
+      } catch (error) {
+        console.error('Failed to check tour completion:', error);
+      }
+    };
+
+    checkAndShowTour();
   }, []);
 
   const takePicture = async () => {
@@ -90,8 +145,9 @@ const CameraScreen = () => {
     setError(null);
     setShowWarning(false);
 
-    // 启动性能跟踪会话
+    // 启动性能跟踪会话并追踪
     const sessionId = generateSessionId();
+    currentSessionIdRef.current = sessionId;
     performanceTracker.startSession(sessionId);
 
     try {
@@ -109,8 +165,18 @@ const CameraScreen = () => {
       performanceTracker.recordStage(ProcessingStage.UPLOADING);
       setCurrentImageUri(data.uri);
 
+      // PATCH-C5: Story 5-3 - Optimize image for performance before upload
+      let optimizedImageUri = data.uri;
+      try {
+        const optimized = await imageOptimizer.optimizeForPerformance(data.uri);
+        optimizedImageUri = optimized.uri;
+        console.log(`[CameraScreen] Image optimized: ${formatBytes(optimized.size)} bytes`);
+      } catch (optimizationError) {
+        console.warn('[CameraScreen] Image optimization failed, using original:', optimizationError);
+      }
+
       // 识别题目类型
-      await recognizeQuestionType(data.uri);
+      await recognizeQuestionType(optimizedImageUri);
     } catch (error) {
       console.error('Error taking picture:', error);
       performanceTracker.markError('拍照失败');
@@ -121,12 +187,42 @@ const CameraScreen = () => {
   };
 
   const recognizeQuestionType = async (imageUri: string) => {
+    // 防止并发识别请求
+    if (isRecognizing) {
+      console.warn('[CameraScreen] Recognition already in progress, ignoring duplicate request');
+      return;
+    }
+
     setIsRecognizing(true);
 
     // 记录识别阶段
     performanceTracker.recordStage(ProcessingStage.RECOGNIZING);
 
     try {
+      // PATCH-C4: Story 5-3 - Check cache before making API call
+      const cacheKey = await recognitionCache.generateCacheKey(imageUri);
+      const cachedResult = await recognitionCache.get(cacheKey);
+
+      if (cachedResult) {
+        console.log('[CameraScreen] Cache hit! Using cached recognition result');
+        if (!isMountedRef.current) return;
+        setRecognitionResult(cachedResult);
+
+        // Check for user preferences
+        const suggestion = await preferencesService.suggestQuestionType(
+          cachedResult.questionType
+        );
+        if (isMountedRef.current) {
+          setSuggestedType(suggestion);
+        }
+
+        // Show difficulty selector
+        await showDifficultySelectionModal(cachedResult.questionType);
+        setIsRecognizing(false);
+        return;
+      }
+
+      console.log('[CameraScreen] Cache miss, calling recognition API...');
       const response = await recognitionApi.recognizeQuestionType(
         imageUri,
         (stage, progress) => {
@@ -136,32 +232,49 @@ const CameraScreen = () => {
       );
 
       if (response.success && response.data) {
+        if (!isMountedRef.current) return;
         setRecognitionResult(response.data);
+
+        // PATCH-C4: Story 5-3 - Cache the recognition result
+        try {
+          await recognitionCache.set(cacheKey, response.data);
+          console.log('[CameraScreen] Recognition result cached');
+        } catch (cacheError) {
+          console.warn('[CameraScreen] Failed to cache recognition result:', cacheError);
+        }
 
         // 检查是否有用户偏好建议
         const suggestion = await preferencesService.suggestQuestionType(
           response.data.questionType
         );
-        setSuggestedType(suggestion);
+        if (isMountedRef.current) {
+          setSuggestedType(suggestion);
+        }
 
         // 显示难度选择器（AC:1 题目类型识别后显示难度选择界面）
         await showDifficultySelectionModal(response.data.questionType);
       } else {
         const errorMsg = response.error?.message || '无法识别题目类型';
+        if (!isMountedRef.current) return;
         setError(errorMsg);
         performanceTracker.markError(errorMsg);
 
-        // 使用友好的错误对话框
+        // 使用友好的错误对话框（修复并发重试问题）
         feedbackManager.showErrorDialog(
           '题目识别失败',
           '可能是图片不清晰或题目不在拍摄范围内。您可以重试或手动选择题目类型。',
           [
             {text: '重试', onPress: () => {
-              recognizeQuestionType(imageUri);
+              // 检查是否仍在识别中，防止并发
+              if (!isRecognizing) {
+                recognizeQuestionType(imageUri);
+              }
             }},
             {text: '手动选择', onPress: () => {
               performanceTracker.recordStage(ProcessingStage.CORRECTION);
-              setShowManualCorrection(true);
+              if (isMountedRef.current) {
+                setShowManualCorrection(true);
+              }
             }},
             {text: '取消', style: 'cancel', onPress: () => {
               performanceTracker.completeSession();
@@ -171,11 +284,14 @@ const CameraScreen = () => {
       }
     } catch (error) {
       console.error('Recognition error:', error);
+      if (!isMountedRef.current) return;
       setError(error instanceof Error ? error.message : '识别过程出错');
       performanceTracker.markError(error instanceof Error ? error.message : '识别出错');
       Alert.alert('错误', '识别过程出错，请重试');
     } finally {
-      setIsRecognizing(false);
+      if (isMountedRef.current) {
+        setIsRecognizing(false);
+      }
     }
   };
 
@@ -414,6 +530,15 @@ const CameraScreen = () => {
       [Difficulty.HARD]: '困难'
     };
     return labels[difficulty] || '未知难度';
+  };
+
+  // Helper function for formatting bytes
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0 || bytes < 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = bytes > 0 ? Math.floor(Math.log(bytes) / Math.log(k)) : 0;
+    return `${(bytes / Math.pow(k, Math.max(0, i))).toFixed(2)} ${sizes[Math.max(0, Math.min(i, sizes.length - 1))]}`;
   };
 
   // Story 3-3: 处理知识点标签点击 - 导航到讲解屏幕

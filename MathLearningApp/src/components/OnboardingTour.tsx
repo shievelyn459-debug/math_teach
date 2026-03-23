@@ -12,13 +12,14 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  LayoutChangeEvent,
 } from 'react-native';
 import {useTheme, Card, Button} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TOUR_COMPLETED_KEY = 'onboarding_tour_completed_';
+const TOOLTIP_WIDTH = 300;
+const TOOLTIP_HEIGHT = 200;
 
 /**
  * 导览步骤
@@ -130,9 +131,26 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
-  const tourContent = TOUR_CONTENTS[screenId];
+  const tourContent = TOUR_CONTENTS[screenId] || getDefaultTourContent(screenId);
   const currentStep = tourContent?.steps[currentStepIndex];
   const isLastStep = currentStepIndex === (tourContent?.steps.length || 0) - 1;
+
+  /**
+   * 获取默认导览内容（针对未定义的屏幕）
+   */
+  function getDefaultTourContent(id: string): TourContent {
+    return {
+      screenId: id,
+      steps: [
+        {
+          targetId: '',
+          title: '欢迎使用应用',
+          description: '这是一个帮助您辅导孩子学习数学的应用。您可以随时查看帮助内容了解更多功能。',
+          position: 'center',
+        },
+      ],
+    };
+  }
 
   // 检查是否已完成导览
   useEffect(() => {
@@ -179,9 +197,16 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
       if (completed === 'true') {
         // 已完成，不显示导览
         setShowTour(false);
+      } else if (visible) {
+        // 未完成且应该显示，确保showTour为true
+        setShowTour(true);
       }
     } catch (error) {
       console.error('Failed to check tour completion:', error);
+      // 错误情况下，如果visible为true则显示导览
+      if (visible) {
+        setShowTour(true);
+      }
     }
   };
 
@@ -189,7 +214,12 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
     if (isLastStep) {
       handleComplete();
     } else {
-      setCurrentStepIndex(prev => prev + 1);
+      setCurrentStepIndex(prev => {
+        const newIndex = prev + 1;
+        // 边界检查
+        const maxIndex = (tourContent?.steps.length || 0) - 1;
+        return newIndex <= maxIndex ? newIndex : prev;
+      });
     }
   };
 
@@ -231,7 +261,11 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
     const targetPos = targetPositions[currentStep?.targetId || ''];
 
     if (!targetPos) {
-      return {top: height / 2 - 100, left: width / 2 - 150};
+      // 居中显示
+      return {
+        top: Math.max(10, height / 2 - TOOLTIP_HEIGHT / 2),
+        left: Math.max(10, Math.min(width / 2 - TOOLTIP_WIDTH / 2, width - TOOLTIP_WIDTH - 10))
+      };
     }
 
     let top = 0;
@@ -239,30 +273,30 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
     switch (currentStep?.position) {
       case 'top':
-        top = targetPos.y - 180;
-        left = targetPos.x + targetPos.width / 2 - 150;
+        top = targetPos.y - TOOLTIP_HEIGHT - 20;
+        left = targetPos.x + targetPos.width / 2 - TOOLTIP_WIDTH / 2;
         break;
       case 'bottom':
         top = targetPos.y + targetPos.height + 20;
-        left = targetPos.x + targetPos.width / 2 - 150;
+        left = targetPos.x + targetPos.width / 2 - TOOLTIP_WIDTH / 2;
         break;
       case 'left':
-        top = targetPos.y + targetPos.height / 2 - 75;
-        left = targetPos.x - 310;
+        top = targetPos.y + targetPos.height / 2 - TOOLTIP_HEIGHT / 2;
+        left = targetPos.x - TOOLTIP_WIDTH - 20;
         break;
       case 'right':
-        top = targetPos.y + targetPos.height / 2 - 75;
+        top = targetPos.y + targetPos.height / 2 - TOOLTIP_HEIGHT / 2;
         left = targetPos.x + targetPos.width + 20;
         break;
       case 'center':
-        top = height / 2 - 100;
-        left = width / 2 - 150;
+        top = height / 2 - TOOLTIP_HEIGHT / 2;
+        left = width / 2 - TOOLTIP_WIDTH / 2;
         break;
     }
 
-    // 边界检查
-    left = Math.max(10, Math.min(left, width - 310));
-    top = Math.max(10, Math.min(top, height - 200));
+    // 边界检查 - 使用常量
+    left = Math.max(10, Math.min(left, width - TOOLTIP_WIDTH - 10));
+    top = Math.max(10, Math.min(top, height - TOOLTIP_HEIGHT - 10));
 
     return {top, left};
   };
@@ -281,19 +315,6 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
       onRequestClose={handleSkip}>
       {/* 半透明背景 */}
       <View style={styles.overlay}>
-        {/* 高亮目标区域（可选） */}
-        {/* <View
-          style={[
-            styles.highlight,
-            {
-              left: targetPositions[currentStep.targetId]?.x || 0,
-              top: targetPositions[currentStep.targetId]?.y || 0,
-              width: targetPositions[currentStep.targetId]?.width || 0,
-              height: targetPositions[currentStep.targetId]?.height || 0,
-            },
-          ]}
-        /> */}
-
         {/* 提示框 */}
         <Animated.View
           style={[
@@ -331,7 +352,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
               {/* 进度指示器 */}
               <View style={styles.progressContainer}>
-                {tourContent.steps.map((_, index) => (
+                {tourContent?.steps?.map((_, index) => (
                   <View
                     key={index}
                     style={[

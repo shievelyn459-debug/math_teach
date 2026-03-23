@@ -65,6 +65,8 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
 
   const confettiPieces = useRef<ConfettiPiece[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isClosingRef = useRef(false);
+  const hasCompletedRef = useRef(false);
 
   // 彩纸颜色
   const colors = [
@@ -87,6 +89,10 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   // 显示动画
   useEffect(() => {
     if (visible) {
+      // 重置状态
+      isClosingRef.current = false;
+      hasCompletedRef.current = false;
+
       // 重置所有动画
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.5);
@@ -122,19 +128,30 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
         handleClose();
       }, duration);
     } else {
-      // 关闭动画
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.5,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      // 开始关闭动画
+      if (!isClosingRef.current) {
+        isClosingRef.current = true;
+
+        // 关闭动画
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 0.5,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // 动画完成后调用onComplete
+          if (!hasCompletedRef.current) {
+            hasCompletedRef.current = true;
+            onComplete?.();
+          }
+        });
+      }
     }
 
     return () => {
@@ -145,10 +162,19 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
   }, [visible]);
 
   const handleClose = () => {
+    // 防止重复调用
+    if (hasCompletedRef.current) {
+      return;
+    }
+
+    // 清除timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+
+    // 标记为已完成并调用回调
+    hasCompletedRef.current = true;
     onComplete?.();
   };
 
@@ -305,15 +331,3 @@ const styles = StyleSheet.create({
 });
 
 export default CelebrationOverlay;
-
-/**
- * 快捷方法：显示庆祝
- */
-export const showCelebration = (
-  message?: string,
-  type?: keyof typeof CELEBRATION_MESSAGES
-): void => {
-  // 这里需要在实际使用时由父组件控制
-  // 或者使用事件总线/全局状态管理
-  // 目前仅作为示例
-};

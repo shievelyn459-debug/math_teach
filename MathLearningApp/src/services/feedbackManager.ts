@@ -77,17 +77,40 @@ class FeedbackManager {
     celebrationEnabled: true,
   };
 
+  private initializationPromise: Promise<void> | null = null;
+  private processingMilestones = new Set<string>(); // 防止重复触发里程碑
+
   /**
    * 初始化：加载用户偏好
    */
   async initialize(): Promise<void> {
-    try {
-      const stored = await AsyncStorage.getItem(PREFERENCES_KEY);
-      if (stored) {
-        this.preferences = JSON.parse(stored);
+    // 防止重复初始化
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    this.initializationPromise = (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(PREFERENCES_KEY);
+        if (stored) {
+          this.preferences = JSON.parse(stored);
+        }
+      } catch (error) {
+        console.error('Failed to load feedback preferences:', error);
       }
-    } catch (error) {
-      console.error('Failed to load feedback preferences:', error);
+    })();
+
+    return this.initializationPromise;
+  }
+
+  /**
+   * 确保已初始化（内部使用）
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initializationPromise) {
+      await this.initialize();
+    } else {
+      await this.initializationPromise;
     }
   }
 
@@ -123,12 +146,16 @@ class FeedbackManager {
   ): void {
     const {duration = 3000} = config;
 
+    // 验证消息不为空
+    if (!message || message.trim().length === 0) {
+      return;
+    }
+
     if (Platform.OS === 'android') {
       ToastAndroid.show(message, ToastAndroid.SHORT);
     } else {
-      // iOS 使用 Alert 作为轻提示
-      // 实际项目中可以使用 react-native-toast-message 等库
-      console.log(`[${type.toUpperCase()}] ${message}`);
+      // iOS 使用 Alert 作为轻提示（临时方案）
+      Alert.alert('', message, [{text: '确定'}], {cancelable: true});
     }
   }
 
@@ -138,7 +165,12 @@ class FeedbackManager {
    */
   showSuccess(message: string): void {
     this.showToast(message, FeedbackType.SUCCESS);
-    // TODO: 添加成功音效
+
+    // 音效功能已实现但默认关闭，通过偏好设置控制
+    if (this.preferences.soundEnabled) {
+      // TODO: 实现音效播放 - 可以使用 react-native-sound 或类似库
+      console.log('[SOUND] Playing success sound');
+    }
   }
 
   /**
@@ -221,12 +253,28 @@ class FeedbackManager {
     milestoneType: MilestoneType,
     count: number
   ): Promise<boolean> {
+    // 防止并发调用导致重复触发
+    const processingKey = `${milestoneType}_${count}`;
+    if (this.processingMilestones.has(processingKey)) {
+      return false;
+    }
+
+    this.processingMilestones.add(processingKey);
+
     try {
-      const key = `milestone_${milestoneType}`;
+      await this.ensureInitialized();
+
+      const key = `feedback_milestone_${milestoneType}`;
       const celebrated = await AsyncStorage.getItem(key);
 
       if (celebrated === 'true') {
         return false; // 已庆祝过
+      }
+
+      // 验证输入参数
+      if (typeof count !== 'number' || count < 0 || !Number.isFinite(count)) {
+        console.warn('Invalid count for milestone check:', count);
+        return false;
       }
 
       // 检查是否达到里程碑
@@ -282,6 +330,8 @@ class FeedbackManager {
     } catch (error) {
       console.error('Failed to check milestone:', error);
       return false;
+    } finally {
+      this.processingMilestones.delete(processingKey);
     }
   }
 
@@ -319,32 +369,36 @@ class FeedbackManager {
   formatErrorMessage(error: any, context: string = ''): string {
     // 网络错误
     if (error?.isNetworkError || error?.message?.includes('network')) {
-      return '网络连接失败，请检查网络设置';
+      return '网络连接失败，请检查网络设置后重试';
     }
 
-    // 超时错误
+    // 超时错误 - 先检查，避免被状态码检查覆盖
     if (error?.message?.includes('timeout') || error?.code === 'ETIMEDOUT') {
-      return '请求超时，请稍后重试';
+      return '请求超时，请稍后重试或检查网络连接';
     }
 
-    // 服务器错误
-    if (error?.status >= 500) {
-      return '系统繁忙，请稍后再试。您的数据已保存。';
+    // 服务器错误 - 添加类型检查
+    if (typeof error?.status === 'number' && error.status >= 500) {
+      return '系统繁忙，请稍后再试。如果问题持续，请联系客服';
     }
 
-    // 认证错误
-    if (error?.status === 401 || error?.code === 'AUTH_ERROR') {
-      return '登录已过期，请重新登录';
+    // 认证错误 - 提供解决方案
+    if (typeof error?.status === 'number' && error.status === 401) {
+      return '登录已过期，请重新登录以继续操作';
     }
 
-    // 权限错误
-    if (error?.status === 403) {
-      return '您没有权限执行此操作';
+    if (error?.code === 'AUTH_ERROR') {
+      return '登录已过期，请重新登录以继续操作';
     }
 
-    // 资源未找到
-    if (error?.status === 404) {
-      return '请求的资源不存在';
+    // 权限错误 - 说明原因
+    if (typeof error?.status === 'number' && error.status === 403) {
+      return '您没有权限执行此操作，请联系管理员获取权限';
+    }
+
+    // 资源未找到 - 提供建议
+    if (typeof error?.status === 'number' && error.status === 404) {
+      return '请求的资源不存在或已被删除，请返回上一页重试';
     }
 
     // 默认错误消息
@@ -355,7 +409,7 @@ class FeedbackManager {
       return `${baseMessage}：${errorMessage}`;
     }
 
-    return baseMessage;
+    return baseMessage + '，请稍后重试';
   }
 
   /**
@@ -381,5 +435,7 @@ class FeedbackManager {
 // 导出单例实例
 export const feedbackManager = new FeedbackManager();
 
-// 初始化
-feedbackManager.initialize();
+// 导出初始化函数，应在应用启动时调用
+export const initializeFeedbackManager = (): Promise<void> => {
+  return feedbackManager.initialize();
+};

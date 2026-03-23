@@ -3,7 +3,7 @@
  * 显示帮助内容，支持搜索和导航
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   TextInput,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import {Card, Title, Searchbar, Button, useTheme} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -38,6 +39,10 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
   const [searchResults, setSearchResults] = useState<HelpContent[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  // 防止搜索竞态条件 - 追踪最新的搜索请求
+  const searchRequestIdRef = useRef(0);
 
   const spacing = getScaledSpacing(16, width);
   const fontSize = getFontSize(16, width);
@@ -51,31 +56,46 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
 
   const loadHelpContent = async () => {
     setIsLoading(true);
+    setLoadError(false);
     try {
       const content = await helpContentService.getHelpContent(screenId);
       setHelpContent(content);
     } catch (error) {
       console.error('Failed to load help content:', error);
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 搜索功能
+  // 搜索功能（修复竞态条件）
   useEffect(() => {
     const performSearch = async () => {
+      // 生成新的请求ID
+      const requestId = ++searchRequestIdRef.current;
+
       if (searchQuery.trim().length > 0) {
         setIsSearching(true);
         const results = await helpContentService.searchHelp(searchQuery);
-        setSearchResults(results);
+
+        // 只更新最新的搜索结果
+        if (requestId === searchRequestIdRef.current) {
+          setSearchResults(results);
+        }
       } else {
-        setIsSearching(false);
-        setSearchResults([]);
+        if (requestId === searchRequestIdRef.current) {
+          setIsSearching(false);
+          setSearchResults([]);
+        }
       }
     };
 
     const timeoutId = setTimeout(performSearch, 300);
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      // 清除时增加请求ID，确保超时的搜索不会更新结果
+      searchRequestIdRef.current++;
+    };
   }, [searchQuery]);
 
   const renderSection = (section: HelpSection, index: number) => (
@@ -145,6 +165,8 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
               value={searchQuery}
               style={styles.searchBar}
               iconColor={theme.colors.primary}
+              accessibilityLabel="搜索帮助内容"
+              accessibilityHint="输入关键词搜索帮助"
             />
           </View>
         </View>
@@ -152,10 +174,13 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
         {/* 内容区域 */}
         <ScrollView
           style={styles.content}
-          contentContainerStyle={[styles.contentContainer, {padding: spacing}]}>
+          contentContainerStyle={[styles.contentContainer, {padding: spacing}]}
+          accessibilityLabel="帮助内容"
+          accessibilityRole="text">
           {isLoading ? (
             <View style={styles.centerContainer}>
-              <Text style={{fontSize}}>加载中...</Text>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={{fontSize, marginTop: spacing}}>加载中...</Text>
             </View>
           ) : isSearching ? (
             <>
@@ -174,11 +199,30 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
                         {content.title}
                       </Text>
                       {content.sections.slice(0, 2).map((section, i) => renderSection(section, i))}
+                      {content.sections.length > 2 && (
+                        <Text style={[styles.moreText, {fontSize, color: theme.colors.primary}]}>
+                          还有 {content.sections.length - 2} 个区块...
+                        </Text>
+                      )}
                     </Card.Content>
                   </Card>
                 ))
               )}
             </>
+          ) : loadError ? (
+            <View style={styles.centerContainer}>
+              <Icon name="error-outline" size={48} color={theme.colors.error} />
+              <Text style={[styles.errorTitle, {fontSize, marginTop: spacing}]}>
+                帮助内容加载失败
+              </Text>
+              <Button
+                mode="contained"
+                onPress={loadHelpContent}
+                style={styles.retryButton}
+                accessibilityLabel="重试加载帮助内容">
+                重试
+              </Button>
+            </View>
           ) : helpContent ? (
             <>
               {helpContent.sections.map((section, index) => renderSection(section, index))}
@@ -243,6 +287,17 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: '#757575',
+  },
+  errorTitle: {
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  retryButton: {
+    marginTop: 16,
+  },
+  moreText: {
+    fontStyle: 'italic',
+    marginTop: 8,
   },
   section: {
     marginBottom: 16,
