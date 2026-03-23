@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,18 +9,26 @@ import {
   Alert,
   useWindowDimensions,
   FlatList,
+  Animated,
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/native-stack';
-import {Question, Difficulty, QuestionType, PDFMetadata} from '../types';
+import {Question, Difficulty, QuestionType, PDFMetadata, GeneratedQuestion} from '../types';
 import {questionGenerationService} from '../services/questionGenerationService';
 import {pdfService} from '../services/pdfService';
+import {generationHistoryService} from '../services/generationHistoryService';
 import QuantitySelector from '../components/QuantitySelector';
 import {preferencesService} from '../services/preferencesService';
 import {getFontSize, getScaledSpacing, getNumColumns} from '../styles/tablet';
 import {Orientation} from '../types';
 
 interface RouteParams {
-  baseQuestion: {
+  // 从 CameraScreen 传入的已生成题目
+  generationId?: string;
+  questions?: GeneratedQuestion[];
+  questionType?: QuestionType; // BAD_SPEC-002: 添加题目类型参数
+
+  // 原有参数
+  baseQuestion?: {
     type: string;
     difficulty: Difficulty;
     userId: string;
@@ -39,7 +47,16 @@ interface Props {
 }
 
 const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
-  const {baseQuestion, initialQuantity = 10, initialDifficulty} = route.params;
+  // PATCH-013: 添加路由参数默认值以防止 undefined 错误
+  const params = route.params || {};
+  const {
+    generationId,
+    questions: preloadedQuestions,
+    questionType,
+    baseQuestion,
+    initialQuantity = 10,
+    initialDifficulty
+  } = params;
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   const isLargeTablet = width >= 900;
@@ -65,23 +82,125 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
 
+  // 成功动画状态
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+
   // 使用 ref 来跟踪组件挂载状态和 interval
   const isMountedRef = useRef(true);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // 初始生成题目
-  React.useEffect(() => {
-    generateQuestions();
+  // 检查是否有预加载的题目
+  const hasPreloadedQuestions = preloadedQuestions && preloadedQuestions.length > 0;
 
-    // 清理函数：组件卸载时设置标志并清理 interval
+  // 加载预加载的题目或从历史记录加载
+  useEffect(() => {
+    const loadPreloadedOrHistoryQuestions = async () => {
+      // PATCH-010: 添加竞态条件保护
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (hasPreloadedQuestions) {
+        // 有预加载的题目，直接转换并显示
+        const convertedQuestions: Question[] = preloadedQuestions.map((pq, index) => ({
+          id: pq.id,
+          title: `题目 ${index + 1}`,
+          content: pq.question,
+          imageUrl: '',
+          // BAD_SPEC-002: 使用传入的 questionType 参数而非硬编码
+          type: questionType || QuestionType.ADDITION,
+          difficulty: pq.difficulty,
+          grade: 1,
+          knowledgePoint: '',
+          explanation: pq.explanation || '',
+          answer: pq.answer,
+          createdAt: new Date(),
+          userId: '',
+        }));
+
+        if (isMountedRef.current) {
+          setQuestions(convertedQuestions);
+          // 显示成功动画
+          showSuccessAnimationAndScroll();
+        }
+      } else if (generationId) {
+        // 从历史记录加载
+        try {
+          const record = await generationHistoryService.getGenerationById(generationId);
+          if (record && record.questions && isMountedRef.current) {
+            const convertedQuestions: Question[] = record.questions.map((pq, index) => ({
+              id: pq.id,
+              title: `题目 ${index + 1}`,
+              content: pq.question,
+              imageUrl: '',
+              type: record.questionType,
+              difficulty: record.difficulty,
+              grade: 1,
+              knowledgePoint: '',
+              explanation: pq.explanation || '',
+              answer: pq.answer,
+              createdAt: new Date(record.timestamp),
+              userId: '',
+            }));
+
+            if (isMountedRef.current) {
+              setQuestions(convertedQuestions);
+              showSuccessAnimationAndScroll();
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load generation history:', error);
+          if (isMountedRef.current) {
+            setError('无法加载练习记录');
+          }
+        }
+      }
+    };
+
+    loadPreloadedOrHistoryQuestions();
+  }, [generationId, preloadedQuestions, questionType]); // PATCH-012: 添加 questionType 到依赖
+
+  // 显示成功动画并滚动到顶部
+  const showSuccessAnimationAndScroll = () => {
+    setShowSuccessAnimation(true);
+
+    // 淡入动画
+    const animation = Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    });
+    animation.start();
+
+    // 2秒后隐藏动画 - 保存 timeout ID 以便清理
+    successTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        setShowSuccessAnimation(false);
+      }
+    }, 2000);
+  };
+
+  // 初始生成题目（仅当没有预加载题目时）
+  useEffect(() => {
+    if (!hasPreloadedQuestions && !generationId && baseQuestion) {
+      generateQuestions();
+    }
+
+    // 清理函数：组件卸载时设置标志并清理 interval、timeout
     return () => {
       isMountedRef.current = false;
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+        successTimeoutRef.current = null;
+      }
     };
-  }, []);
+  }, [hasPreloadedQuestions, generationId]);
 
   const generateQuestions = async (quantity?: number) => {
     // 防止竞态条件：如果正在生成，直接返回

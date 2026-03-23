@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import {Button, Card, Title} from 'react-native-paper';
 import {useNavigation} from '@react-navigation/native';
 import {recognitionApi} from '../services/api';
-import {RecognitionResult, QuestionType, ManualCorrection, Difficulty, PerformanceMetrics, ProcessingStage} from '../types';
+import {RecognitionResult, QuestionType, ManualCorrection, Difficulty, PerformanceMetrics, ProcessingStage, GenerationRecord, GeneratedQuestion} from '../types';
 import QuestionTypeSelector from '../components/QuestionTypeSelector';
 import DifficultySelector from '../components/DifficultySelector';
 import ProcessingProgress from '../components/ProcessingProgress';
@@ -13,6 +13,7 @@ import KnowledgePointTag from '../components/KnowledgePointTag';
 import {preferencesService} from '../services/preferencesService';
 import {performanceTracker, WARNING_THRESHOLD} from '../services/performanceTracker';
 import {imageOptimizer} from '../utils/imageOptimizer';
+import {generationHistoryService, generateUniqueId} from '../services/generationHistoryService';
 
 const CameraScreen = () => {
   const navigation = useNavigation();
@@ -290,13 +291,62 @@ const CameraScreen = () => {
       });
 
       if (response.success && response.data) {
+        // PATCH-004: 验证题目数组不为空
+        if (!response.data.questions || response.data.questions.length === 0) {
+          throw new Error('未生成任何题目');
+        }
+
+        // 获取性能指标
+        const metrics = performanceTracker.getCurrentMetrics();
+        const processingTime = metrics?.totalTime || 0;
+
         // 完成性能跟踪
         performanceTracker.completeSession();
 
-        Alert.alert(
-          '生成成功',
-          `已生成 ${response.data.questions.length} 道${getDifficultyLabel(difficulty)}题目\n总用时: ${performanceTracker.getCurrentMetrics()?.totalTime ? (performanceTracker.getCurrentMetrics()!.totalTime! / 1000).toFixed(1) : 'N/A'}秒`
+        // PATCH-005, 006: 安全映射题目属性，改进 ID 生成
+        const validQuestions = response.data.questions.filter((q: any) =>
+          q && (q.question || q.text)
         );
+
+        if (validQuestions.length === 0) {
+          throw new Error('没有有效的题目数据');
+        }
+
+        // 创建生成记录
+        const generationRecord: GenerationRecord = {
+          id: generateUniqueId(),
+          questionType,
+          difficulty,
+          count: validQuestions.length,
+          timestamp: Date.now(),
+          questions: validQuestions.map((q: any, index: number) => ({
+            id: `q_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+            question: q.question || q.text,
+            answer: q.answer || '',
+            explanation: q.explanation || '',
+            difficulty,
+          })),
+          processingTime,
+        };
+
+        // PATCH-003: 添加错误处理
+        try {
+          await generationHistoryService.saveGeneration(generationRecord);
+        } catch (saveError) {
+          console.error('Failed to save generation history:', saveError);
+          // 保存失败不应阻止用户查看结果，但应记录错误
+          Alert.alert(
+            '提示',
+            '题目已生成，但保存历史记录失败'
+          );
+        }
+
+        // 自动导航到 GeneratedQuestionsList
+        navigation.navigate('GeneratedQuestionsList' as never, {
+          generationId: generationRecord.id,
+          questions: generationRecord.questions,
+          questionType: generationRecord.questionType,
+        } as never);
       } else {
         throw new Error(response.error?.message || '生成失败');
       }

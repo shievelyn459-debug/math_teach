@@ -1,8 +1,57 @@
-import React from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {Card, Title, Paragraph, Button} from 'react-native-paper';
+import {generationHistoryService} from '../services/generationHistoryService';
+import {GenerationRecord} from '../types';
+import RecentPracticeCard from '../components/RecentPracticeCard';
+
+// PATCH-017: 提取魔法数字为常量
+const MAX_RECENT_ITEMS = 5;
 
 const HomeScreen = ({navigation}: any) => {
+  const [recentGenerations, setRecentGenerations] = useState<GenerationRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 加载最近练习记录
+  useEffect(() => {
+    loadRecentGenerations();
+  }, []);
+
+  /**
+   * 加载最近练习记录
+   */
+  const loadRecentGenerations = async () => {
+    try {
+      setIsLoading(true);
+      const generations = await generationHistoryService.getRecentGenerations(MAX_RECENT_ITEMS);
+      setRecentGenerations(generations);
+    } catch (error) {
+      console.error('Failed to load recent generations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * 刷新最近练习记录
+   */
+  const refreshRecentGenerations = async () => {
+    await loadRecentGenerations();
+  };
+
+  // 当屏幕获得焦点时刷新数据（从其他页面返回时）
+  useEffect(() => {
+    // PATCH-007: 添加导航空值检查
+    if (!navigation) {
+      return;
+    }
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      refreshRecentGenerations();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -19,10 +68,44 @@ const HomeScreen = ({navigation}: any) => {
         </Card.Content>
       </Card>
 
+      {/* 最近练习部分 */}
       <Card style={styles.card}>
         <Card.Content>
-          <Title style={styles.cardTitle}>📚 最近练习</Title>
-          <Text style={styles.emptyText}>暂无练习记录</Text>
+          <View style={styles.sectionHeader}>
+            <Title style={styles.cardTitle}>📚 最近练习</Title>
+            {recentGenerations.length > 0 && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('QuestionList')}
+                style={styles.viewAllButton}>
+                <Text style={styles.viewAllText}>查看全部</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#007bff" />
+            </View>
+          ) : recentGenerations.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📝</Text>
+              <Text style={styles.emptyTitle}>还没有练习记录</Text>
+              <Text style={styles.emptyMessage}>
+                点击上方"拍照上传题目"开始第一次练习吧！
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.recentList}>
+              {recentGenerations
+                .filter(record => record && record.id) // PATCH-016: 过滤掉没有有效 ID 的记录
+                .map(record => (
+                  <RecentPracticeCard
+                    key={record.id}
+                    record={record}
+                  />
+                ))}
+            </View>
+          )}
         </Card.Content>
       </Card>
 
@@ -87,6 +170,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 24,
     color: '#333',
+  },
+  // 新增样式
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  viewAllButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#007bff',
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  emptyMessage: {
+    fontSize: 14,
+    color: '#757575',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  recentList: {
+    // 留空，卡片自带间距
   },
 });
 
