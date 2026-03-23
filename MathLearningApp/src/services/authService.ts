@@ -7,15 +7,35 @@ import {userApi, isApiSuccess} from './api';
  */
 const AUTH_TOKEN_KEY = '@math_learning_auth_token';
 const USER_DATA_KEY = '@math_learning_user_data';
+const REMEMBER_ME_KEY = '@math_learning_remember_me';
 
 /**
  * 令牌配置
  */
 const TOKEN_CONFIG = {
-  EXPIRY_MS: 7 * 24 * 60 * 60 * 1000, // 7天过期
+  EXPIRY_MS: 7 * 24 * 60 * 60 * 1000, // 7天过期 (默认)
+  EXPIRY_MS_REMEMBER: 30 * 24 * 60 * 60 * 1000, // 30天过期 (记住我)
   // 简单的签名密钥（生产环境应从安全配置获取）
   SIGNING_SECRET: 'math_learn_secure_token_v1',
 };
+
+/**
+ * 失败登录尝试配置 (AC7)
+ */
+const FAILED_LOGIN_CONFIG = {
+  MAX_ATTEMPTS: 5,              // 最大失败尝试次数
+  ATTEMPT_WINDOW_MS: 15 * 60 * 1000,  // 尝试时间窗口：15分钟
+  LOCKOUT_DURATION_MS: 30 * 60 * 1000,  // 锁定时长：30分钟
+};
+
+/**
+ * 失败登录尝试数据
+ */
+interface FailedAttempt {
+  count: number;
+  lastAttempt: number;  // 时间戳
+  lockedUntil?: number; // 锁定到期时间戳
+}
 
 /**
  * 认证响应接口
@@ -144,6 +164,9 @@ class AuthService {
 
       // 使用类型守卫确保类型安全
       if (isApiSuccess(response)) {
+        // 注册成功，清除该邮箱的任何失败尝试记录
+        await this.clearFailedAttempts(email);
+
         // 注册成功，自动登录
         const authResponse: AuthResponse = {
           user: response.data,
@@ -179,11 +202,13 @@ class AuthService {
    * 用户登录
    * @param email 邮箱地址
    * @param password 密码
+   * @param rememberMe 是否记住登录状态（可选，默认 false）
    * @returns 登录结果
    */
   async login(
     email: string,
-    password: string
+    password: string,
+    rememberMe: boolean = false
   ): Promise<ApiResponse<AuthResponse>> {
     try {
       // 客户端验证
@@ -197,22 +222,66 @@ class AuthService {
         };
       }
 
+      // 检查账户是否被锁定 (AC7)
+      const lockCheck = await this.isAccountLocked(email);
+      if (lockCheck.locked) {
+        return {
+          success: false,
+          error: {
+            code: 'ACCOUNT_LOCKED',
+            message: lockCheck.error || '账户已临时锁定，请稍后再试',
+          },
+        };
+      }
+
       // 调用登录API
       const response = await userApi.login({email, password});
 
       // 使用类型守卫确保类型安全
       if (isApiSuccess(response)) {
+        // 登录成功，清除失败尝试记录
+        await this.clearFailedAttempts(email);
+
+        // 根据记住我偏好生成不同过期时间的令牌
+        const tokenExpiry = rememberMe ? TOKEN_CONFIG.EXPIRY_MS_REMEMBER : TOKEN_CONFIG.EXPIRY_MS;
         const authResponse: AuthResponse = {
           user: response.data,
-          token: this.generateToken(response.data),
+          token: this.generateToken(response.data, tokenExpiry),
         };
 
-        await this.setAuthData(authResponse);
+        await this.setAuthData(authResponse, rememberMe);
 
         return {
           success: true,
           data: authResponse,
           message: '登录成功！',
+        };
+      }
+
+      // 登录失败，记录失败尝试 (AC7)
+      const attemptData = await this.recordFailedAttempt(email);
+
+      // 如果达到最大尝试次数，返回账户锁定错误
+      if (attemptData.lockedUntil) {
+        return {
+          success: false,
+          error: {
+            code: 'ACCOUNT_LOCKED',
+            message: `登录失败次数过多，账户已临时锁定30分钟`,
+          },
+        };
+      }
+
+      // 返回剩余尝试次数
+      const remainingAttempts = FAILED_LOGIN_CONFIG.MAX_ATTEMPTS - attemptData.count;
+      if (remainingAttempts > 0 && remainingAttempts <= 2) {
+        // 只在剩余尝试次数较少时提示
+        return {
+          success: false,
+          error: {
+            code: response.error?.code || 'LOGIN_ERROR',
+            message: `${response.error?.message || '邮箱或密码错误'}（还剩${remainingAttempts}次尝试机会）`,
+          },
         };
       }
 
@@ -238,6 +307,7 @@ class AuthService {
       await Promise.all([
         AsyncStorage.removeItem(AUTH_TOKEN_KEY),
         AsyncStorage.removeItem(USER_DATA_KEY),
+        AsyncStorage.removeItem(REMEMBER_ME_KEY),
       ]);
 
       this.currentUser = null;
@@ -384,8 +454,10 @@ class AuthService {
 
   /**
    * 设置认证数据
+   * @param authResponse 认证响应
+   * @param rememberMe 是否记住登录状态
    */
-  private async setAuthData(authResponse: AuthResponse): Promise<void> {
+  private async setAuthData(authResponse: AuthResponse, rememberMe: boolean = false): Promise<void> {
     try {
       await Promise.all([
         AsyncStorage.setItem(AUTH_TOKEN_KEY, authResponse.token),
@@ -393,6 +465,7 @@ class AuthService {
           USER_DATA_KEY,
           JSON.stringify(authResponse.user)
         ),
+        AsyncStorage.setItem(REMEMBER_ME_KEY, JSON.stringify(rememberMe)),
       ]);
 
       this.currentUser = authResponse.user;
@@ -423,10 +496,12 @@ class AuthService {
    *
    * 注意：这是客户端临时方案。生产环境应使用服务器返回的JWT令牌。
    * 服务器应验证所有请求的令牌并检查其有效性。
+   * @param user 用户信息
+   * @param tokenExpiry 令牌过期时间（毫秒）
    */
-  private generateToken(user: User): string {
+  private generateToken(user: User, tokenExpiry: number): string {
     const now = Date.now();
-    const expiry = now + TOKEN_CONFIG.EXPIRY_MS;
+    const expiry = now + tokenExpiry;
 
     // 令牌数据：包含用户信息和过期时间
     const tokenData = {
@@ -527,6 +602,115 @@ class AuthService {
     }
 
     return true;
+  }
+
+  /**
+   * 获取失败登录尝试的存储键
+   */
+  private getFailedAttemptsKey(email: string): string {
+    // 使用哈希邮箱作为键，避免直接存储邮箱地址
+    // 标准化为小写以保持与登录流程一致
+    const normalizedEmail = email.toLowerCase();
+    const hash = this.generateSignature(normalizedEmail);
+    return `@math_learning_failed_attempts_${hash}`;
+  }
+
+  /**
+   * 获取失败登录尝试数据
+   */
+  private async getFailedAttempts(email: string): Promise<FailedAttempt | null> {
+    try {
+      const key = this.getFailedAttemptsKey(email);
+      const data = await AsyncStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('[AuthService] Failed to get failed attempts:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 记录失败的登录尝试 (AC7)
+   */
+  private async recordFailedAttempt(email: string): Promise<FailedAttempt> {
+    const now = Date.now();
+    const existing = await this.getFailedAttempts(email);
+    const key = this.getFailedAttemptsKey(email);
+
+    let attemptData: FailedAttempt;
+
+    if (!existing) {
+      // 首次失败尝试
+      attemptData = {
+        count: 1,
+        lastAttempt: now,
+      };
+    } else {
+      // 检查是否在时间窗口内
+      const timeSinceLastAttempt = now - existing.lastAttempt;
+
+      if (timeSinceLastAttempt > FAILED_LOGIN_CONFIG.ATTEMPT_WINDOW_MS) {
+        // 超出时间窗口，重置计数
+        attemptData = {
+          count: 1,
+          lastAttempt: now,
+        };
+      } else {
+        // 在时间窗口内，增加计数
+        attemptData = {
+          count: existing.count + 1,
+          lastAttempt: now,
+        };
+
+        // 检查是否需要锁定账户
+        if (attemptData.count >= FAILED_LOGIN_CONFIG.MAX_ATTEMPTS) {
+          attemptData.lockedUntil = now + FAILED_LOGIN_CONFIG.LOCKOUT_DURATION_MS;
+          console.warn(
+            `[AuthService] Account locked due to ${attemptData.count} failed attempts`
+          );
+        }
+      }
+    }
+
+    await AsyncStorage.setItem(key, JSON.stringify(attemptData));
+    return attemptData;
+  }
+
+  /**
+   * 清除失败的登录尝试记录（成功登录后调用）
+   */
+  private async clearFailedAttempts(email: string): Promise<void> {
+    try {
+      const key = this.getFailedAttemptsKey(email);
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.error('[AuthService] Failed to clear failed attempts:', error);
+    }
+  }
+
+  /**
+   * 检查账户是否被锁定 (AC7)
+   */
+  private async isAccountLocked(email: string): Promise<{locked: boolean; error?: string}> {
+    const attemptData = await this.getFailedAttempts(email);
+    const now = Date.now();
+
+    if (!attemptData || !attemptData.lockedUntil) {
+      return {locked: false};
+    }
+
+    if (now < attemptData.lockedUntil) {
+      // 账户仍被锁定
+      const remainingMinutes = Math.ceil((attemptData.lockedUntil - now) / 60000);
+      return {
+        locked: true,
+        error: `账户已临时锁定，请${remainingMinutes}分钟后再试或联系客服`,
+      };
+    } else {
+      // 锁定期已过，清除记录
+      await this.clearFailedAttempts(email);
+      return {locked: false};
+    }
   }
 
   /**

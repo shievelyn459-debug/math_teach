@@ -764,6 +764,84 @@ export const exportApi = {
   },
 };
 
+// 密码重置API (Story 1-3)
+export const passwordResetApi = {
+  /**
+   * 请求密码重置
+   * AC1: 用户可以从登录屏幕通过提供注册邮箱请求重置
+   * AC2: 系统验证邮箱并发送重置链接
+   * AC3: 无论邮箱是否存在都显示相同消息（防止邮箱枚举）
+   * AC8: 邮件发送在5秒内完成
+   */
+  requestReset: async (data: {email: string; token: string}): Promise<ApiResponse<{success: boolean}>> => {
+    try {
+      return await requestWithRetry<{success: boolean}>(
+        '/auth/password-reset/request',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+        5000, // 5秒超时（AC8: 邮件发送在5秒内完成）
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 5000,
+          backoffMultiplier: 2,
+        }
+      );
+    } catch (error) {
+      safeLogError('passwordResetApi', error);
+
+      // AC3: 无论邮箱是否存在，都返回相同的成功消息以防止邮箱枚举
+      // 在实际错误情况下，我们仍然返回成功消息
+      // 但会在日志中记录实际错误用于调试
+      console.warn('[passwordResetApi] Request reset error (hidden from user for security):', error);
+
+      return {
+        success: true,
+        data: {success: true},
+        message: '如果该邮箱已注册，您将收到密码重置链接',
+      };
+    }
+  },
+
+  /**
+   * 确认密码重置
+   * AC4: 重置链接1小时后过期
+   * AC5: 用户可以使用重置链接/令牌设置新密码
+   * AC6: 新密码必须符合安全要求（8+字符，字母+数字）
+   * AC7: 成功重置后，用户可以使用新密码登录
+   * AC8: 密码更新在3秒内完成
+   */
+  confirmReset: async (data: {token: string; newPassword: string}): Promise<ApiResponse<{success: boolean}>> => {
+    try {
+      return await requestWithRetry<{success: boolean}>(
+        '/auth/password-reset/confirm',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+        3000, // 3秒超时（AC8: 密码更新在3秒内完成）
+        {
+          maxRetries: 2,
+          initialDelay: 1000,
+          maxDelay: 3000,
+          backoffMultiplier: 2,
+        }
+      );
+    } catch (error) {
+      safeLogError('passwordResetApi', error);
+      return {
+        success: false,
+        error: {
+          code: 'RESET_CONFIRM_FAILED',
+          message: '密码重置失败，请重新申请重置链接',
+        },
+      };
+    }
+  },
+};
+
 // 知识点讲解API (Story 3-2)
 export const explanationApi = {
   /**
@@ -907,4 +985,5 @@ export default {
   study: studyApi,
   export: exportApi,
   explanation: explanationApi,
+  passwordReset: passwordResetApi,
 };
