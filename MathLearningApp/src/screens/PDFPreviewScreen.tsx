@@ -200,6 +200,37 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           {savedFilePath}
         </Text>
       )}
+      {fileSize > 0 && (
+        <Text style={styles.successFileSize}>
+          文件大小: {pdfService.getFormattedFileSize(fileSize)}
+        </Text>
+      )}
+
+      {/* 操作按钮 */}
+      <PDFActionButtons
+        onShare={handleShare}
+        onPrint={handlePrint}
+        onOpen={handleOpen}
+        onViewAll={handleViewAll}
+        sharing={sharing}
+        printing={printing}
+        opening={opening}
+        showViewAll={true}
+      />
+
+      {/* 操作错误显示 */}
+      {actionError && (
+        <View style={styles.actionErrorContainer}>
+          <Text style={styles.actionErrorText}>{actionError}</Text>
+          <TouchableOpacity
+            style={styles.dismissErrorButton}
+            onPress={() => setActionError(null)}>
+            <Text style={styles.dismissErrorButtonText}>关闭</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 底部导航按钮 */}
       <View style={styles.successButtonContainer}>
         <TouchableOpacity
           style={[styles.successButton, styles.primaryButton]}
@@ -211,6 +242,8 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress={() => {
             setShowSuccess(false);
             setSavedFilePath(null);
+            setFileSize(0);
+            setActionError(null);
           }}>
           <Text style={styles.secondaryButtonText}>生成更多</Text>
         </TouchableOpacity>
