@@ -12,6 +12,7 @@ import ProcessingProgress from '../components/ProcessingProgress';
 import KnowledgePointTag from '../components/KnowledgePointTag';
 import HelpDialog from '../components/HelpDialog';
 import OnboardingTour from '../components/OnboardingTour';
+import CountdownTimer from '../components/CountdownTimer';
 import {preferencesService} from '../services/preferencesService';
 import {performanceTracker, WARNING_THRESHOLD} from '../services/performanceTracker';
 import {feedbackManager} from '../services/feedbackManager';
@@ -576,6 +577,17 @@ const CameraScreen = () => {
         warningThreshold={WARNING_THRESHOLD}
       />
 
+      {/* Story 5-3: 30秒倒计时 */}
+      {showProcessingProgress && performanceMetrics && (
+        <View style={styles.countdownContainer}>
+          <CountdownTimer
+            totalTime={30}
+            remainingTime={Math.max(0, 30 - performanceTracker.getElapsedTime() / 1000)}
+            elapsedTime={performanceTracker.getElapsedTime() / 1000}
+          />
+        </View>
+      )}
+
       {/* 处理时间过长警告 */}
       {showWarning && !showProcessingProgress && (
         <Modal visible={showWarning} transparent animationType="fade">
@@ -627,6 +639,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+  },
+  // Story 5-3: 倒计时容器样式
+  countdownContainer: {
+    position: 'absolute',
+    top: 80,
+    right: 20,
+    zIndex: 1000,
   },
   header: {
     fontSize: 20,

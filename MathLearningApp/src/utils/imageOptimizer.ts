@@ -1,15 +1,18 @@
 /**
  * 图片优化工具
  * 用于压缩和优化上传的图片
+ * Story 5-3: 增强性能优化
  */
 
 import {ImageManipulator} from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system';
 
 export interface ImageOptimizationOptions {
   maxWidth?: number;
   maxHeight?: number;
   quality?: number; // 0-1
   format?: 'jpeg' | 'png';
+  removeExif?: boolean; // Story 5-3: 移除EXIF数据
 }
 
 export interface OptimizedImageResult {
@@ -20,36 +23,52 @@ export interface OptimizedImageResult {
   compressionRatio: number; // 原始大小 / 优化后大小
 }
 
-// 默认优化配置
-const DEFAULT_OPTIONS: ImageOptimizationOptions = {
+// Story 5-3: 性能优化配置
+const PERFORMANCE_OPTIONS: ImageOptimizationOptions = {
   maxWidth: 1920, // 最大宽度
   maxHeight: 1080, // 最大高度
-  quality: 0.85, // JPEG 质量
+  quality: 0.75, // Story 5-3: 更激进的压缩
   format: 'jpeg',
+  removeExif: true, // Story 5-3: 移除EXIF减少文件大小
 };
 
-// 目标文件大小（约 500KB）
-const TARGET_SIZE_BYTES = 500 * 1024;
+const DEFAULT_OPTIONS: ImageOptimizationOptions = {
+  maxWidth: 1920,
+  maxHeight: 1080,
+  quality: 0.85,
+  format: 'jpeg',
+  removeExif: false,
+};
+
+// Story 5-3: 目标上传时间 < 3秒，对应约 300KB
+const TARGET_SIZE_BYTES = 300 * 1024;
+const FAST_TARGET_SIZE_BYTES = 200 * 1024; // 更激进的优化
 
 class ImageOptimizer {
   /**
    * 优化图片
+   * Story 5-3: 增强性能优化
    */
   async optimizeImage(
     imageUri: string,
-    options: ImageOptimizationOptions = DEFAULT_OPTIONS
+    options: ImageOptimizationOptions = DEFAULT_OPTIONS,
+    performanceMode: boolean = false // Story 5-3: 性能模式
   ): Promise<OptimizedImageResult> {
     try {
-      const mergedOptions = {...DEFAULT_OPTIONS, ...options};
+      // Story 5-3: 性能模式使用更激进的优化
+      const mergedOptions = performanceMode
+        ? {...PERFORMANCE_OPTIONS, ...options}
+        : {...DEFAULT_OPTIONS, ...options};
 
       // 获取原始图片信息
       const originalInfo = await this.getImageInfo(imageUri);
       const originalSize = originalInfo.size || 0;
+      const targetSize = performanceMode ? FAST_TARGET_SIZE_BYTES : TARGET_SIZE_BYTES;
 
       console.log(`[ImageOptimizer] Original image: ${originalInfo.width}x${originalInfo.height}, size: ${this.formatBytes(originalSize)}`);
 
-      // 如果图片已经很小，直接返回
-      if (originalSize <= TARGET_SIZE_BYTES && originalInfo.width <= mergedOptions.maxWidth!) {
+      // 如果图片已经足够小，直接返回
+      if (originalSize <= targetSize && originalInfo.width <= mergedOptions.maxWidth!) {
         console.log('[ImageOptimizer] Image already optimized, skipping compression');
         return {
           uri: imageUri,
@@ -67,15 +86,28 @@ class ImageOptimizer {
         1
       );
 
-      // 如果需要缩放
+      // 构建操作列表
+      const actions: ImageManipulator.Action[] = [];
+
+      // 缩放
+      if (scale < 1) {
+        actions.push({resize: {width: Math.round(originalInfo.width * scale)}});
+      }
+
+      // Story 5-3: 移除EXIF数据（通过重新保存实现）
+      if (mergedOptions.removeExif) {
+        // EXIF会在重新保存时自动移除
+      }
+
       let resultUri = imageUri;
       let resultWidth = originalInfo.width;
       let resultHeight = originalInfo.height;
 
-      if (scale < 1) {
+      // 执行优化
+      if (actions.length > 0 || mergedOptions.removeExif) {
         const manipulatorResult = await ImageManipulator.manipulateAsync(
           imageUri,
-          [{resize: {width: Math.round(originalInfo.width * scale)}}],
+          actions,
           {
             compress: mergedOptions.quality!,
             format: mergedOptions.format === 'jpeg' ? ImageManipulator.SaveFormat.JPEG : ImageManipulator.SaveFormat.PNG,
@@ -117,6 +149,13 @@ class ImageOptimizer {
   }
 
   /**
+   * Story 5-3: 快速优化（性能优先）
+   */
+  async optimizeForPerformance(imageUri: string): Promise<OptimizedImageResult> {
+    return this.optimizeImage(imageUri, PERFORMANCE_OPTIONS, true);
+  }
+
+  /**
    * 批量优化图片
    */
   async optimizeImages(
@@ -149,12 +188,19 @@ class ImageOptimizer {
   }
 
   /**
-   * 获取文件大小
+   * Story 5-3: 获取文件大小（真实实现）
    */
   private async getFileSize(uri: string): Promise<number> {
-    // 在 React Native 中，可以使用 FileSystem.getInfoAsync
-    // 这里简化处理
-    return 300 * 1024; // 假设 300KB
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      if (fileInfo.exists && fileInfo.size) {
+        return fileInfo.size;
+      }
+    } catch (error) {
+      console.error('[ImageOptimizer] Failed to get file size:', error);
+    }
+    // 降级：返回估算值
+    return FAST_TARGET_SIZE_BYTES;
   }
 
   /**
