@@ -18,6 +18,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import SetNewPasswordScreen from './src/screens/SetNewPasswordScreen';
 import PDFPreviewScreen from './src/screens/PDFPreviewScreen';
+import PDFListScreen from './src/screens/PDFListScreen';
 import GeneratedQuestionsList from './src/screens/GeneratedQuestionsList';
 
 // 导入认证服务
@@ -196,6 +197,14 @@ function AuthNavigator() {
         component={PDFPreviewScreen}
         options={{
           title: 'PDF 预览',
+          headerBackTitle: '返回',
+        }}
+      />
+      <Stack.Screen
+        name="PDFList"
+        component={PDFListScreen}
+        options={{
+          title: '我的 PDF',
           headerBackTitle: '返回',
         }}
       />

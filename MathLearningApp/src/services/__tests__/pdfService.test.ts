@@ -28,6 +28,8 @@ jest.mock('react-native-fs', () => ({
   mkdir: jest.fn(),
   copyFile: jest.fn(),
   unlink: jest.fn(),
+  readDir: jest.fn(),
+  stat: jest.fn(),
 }));
 
 // Mock Platform and Permissions
@@ -296,6 +298,96 @@ describe('pdfService', () => {
     it('should return true for iOS (no permission needed)', async () => {
       const result = await pdfService.checkStoragePermissions();
       expect(result).toBe(true);
+    });
+  });
+
+  describe('getFormattedFileSize', () => {
+    it('should format bytes correctly', () => {
+      expect(pdfService.getFormattedFileSize(0)).toBe('0 B');
+      expect(pdfService.getFormattedFileSize(512)).toBe('512 B');
+      expect(pdfService.getFormattedFileSize(1024)).toBe('1.0 KB');
+      expect(pdfService.getFormattedFileSize(1536)).toBe('1.5 KB');
+      expect(pdfService.getFormattedFileSize(1048576)).toBe('1.0 MB');
+      expect(pdfService.getFormattedFileSize(2097152)).toBe('2.0 MB');
+    });
+  });
+
+  describe('getSavedPDFs', () => {
+    const RNFS = require('react-native-fs');
+
+    it('should return list of PDF files', async () => {
+      const mockFiles = [
+        { name: 'test1.pdf', path: '/mock/test1.pdf', size: 1024, ctime: Date.now(), mtime: Date.now() },
+        { name: 'test2.pdf', path: '/mock/test2.pdf', size: 2048, ctime: Date.now(), mtime: Date.now() },
+      ];
+
+      RNFS.exists = jest.fn().mockResolvedValue(true);
+      RNFS.readDir = jest.fn().mockResolvedValue(mockFiles);
+
+      const result = await pdfService.getSavedPDFs();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe('test1.pdf');
+      expect(result[1].name).toBe('test2.pdf');
+    });
+
+    it('should filter out non-PDF files', async () => {
+      const mockFiles = [
+        { name: 'test.pdf', path: '/mock/test.pdf', size: 1024 },
+        { name: 'image.jpg', path: '/mock/image.jpg', size: 2048 },
+        { name: '.hidden.pdf', path: '/mock/.hidden.pdf', size: 512 },
+      ];
+
+      RNFS.exists = jest.fn().mockResolvedValue(true);
+      RNFS.readDir = jest.fn().mockResolvedValue(mockFiles);
+
+      const result = await pdfService.getSavedPDFs();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('test.pdf');
+    });
+
+    it('should handle non-existent directory gracefully', async () => {
+      RNFS.exists = jest.fn().mockResolvedValue(false);
+
+      const result = await pdfService.getSavedPDFs();
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should sort by modified date, newest first', async () => {
+      const now = Date.now();
+      const mockFiles = [
+        { name: 'old.pdf', path: '/mock/old.pdf', size: 1024, ctime: now - 100000, mtime: now - 100000 },
+        { name: 'new.pdf', path: '/mock/new.pdf', size: 2048, ctime: now, mtime: now },
+      ];
+
+      RNFS.exists = jest.fn().mockResolvedValue(true);
+      RNFS.readDir = jest.fn().mockResolvedValue(mockFiles);
+
+      const result = await pdfService.getSavedPDFs();
+
+      expect(result[0].name).toBe('new.pdf');
+      expect(result[1].name).toBe('old.pdf');
+    });
+  });
+
+  describe('deletePDF', () => {
+    const RNFS = require('react-native-fs');
+
+    it('should delete existing PDF file', async () => {
+      RNFS.exists = jest.fn().mockResolvedValue(true);
+      RNFS.unlink = jest.fn().mockResolvedValue(undefined);
+
+      await pdfService.deletePDF('/mock/test.pdf');
+
+      expect(RNFS.unlink).toHaveBeenCalledWith('/mock/test.pdf');
+    });
+
+    it('should throw error for non-existent file', async () => {
+      RNFS.exists = jest.fn().mockResolvedValue(false);
+
+      await expect(pdfService.deletePDF('/mock/nonexistent.pdf')).rejects.toThrow('文件不存在');
     });
   });
 });
