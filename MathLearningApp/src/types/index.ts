@@ -126,3 +126,23 @@ export {
   PARENT_FRIENDLY_LANGUAGE_GUIDELINES,
   CONTENT_STYLE_GUIDE,
 } from './explanation';
+
+// PDF 导出相关类型
+export interface PDFMetadata {
+  title: string;
+  date: string;
+  difficulty: Difficulty;
+  filename?: string;
+}
+
+export interface PDFGenerationResult {
+  filePath: string;
+  pageCount: number;
+  fileSize: number;
+  questionCount: number;
+}
+
+export interface PDFSaveOptions {
+  filename?: string;
+  showPreview?: boolean;
+}

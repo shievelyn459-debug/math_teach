@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'react-native',
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-native-community|react-native-camera|@react-navigation|react-native-paper|react-native-vector-icons|@react-native-async-storage)/)',
+    'node_modules/(?!(react-native|@react-native|@react-native-community|react-native-camera|@react-navigation|react-native-paper|react-native-vector-icons|@react-native-async-storage|react-native-pdf-lib|react-native-fs)/)',
   ],
   setupFiles: ['./node_modules/react-native/jest/setup.js', './jest.setup.js'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],

@@ -1,0 +1,372 @@
+import React, {useState, useRef} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Platform,
+} from 'react-native';
+import { Pdf } from 'react-native-pdf';
+import { StackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
+import { PDFDocument } from 'react-native-pdf-lib';
+
+import FilenameDialog from '../components/FilenameDialog';
+import { pdfService } from '../services/pdfService';
+import { Difficulty } from '../types';
+
+interface RouteParams {
+  pdfPath: string;
+  questionCount: number;
+  difficulty: Difficulty;
+}
+
+type NavigationProp = StackNavigationProp<any, 'PDFPreview'>;
+
+interface Props {
+  route: RouteProp<{ params: RouteParams }, 'PDFPreview'>;
+  navigation: NavigationProp;
+}
+
+const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { pdfPath, questionCount, difficulty } = route.params;
+  const [isLoading, setIsLoading] = useState(false);
+  const [showFilenameDialog, setShowFilenameDialog] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [savedFilePath, setSavedFilePath] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pdfLoadFailed, setPdfLoadFailed] = useState(false);
+
+  // 生成默认文件名
+  const generateDefaultFilename = (): string => {
+    const date = new Date().toISOString().split('T')[0];
+    const difficultyLabel = pdfService.getDifficultyLabel(difficulty);
+    return `一年级数学练习_${difficultyLabel}_${date}.pdf`;
+  };
+
+  // 处理保存按钮
+  const handleSavePress = async () => {
+    setError(null);
+
+    // 检查权限
+    const hasPermission = await pdfService.checkStoragePermissions();
+    if (!hasPermission) {
+      const granted = await pdfService.requestStoragePermissions();
+      if (!granted) {
+        setError('需要存储权限才能保存 PDF 文件');
+        return;
+      }
+    }
+
+    setShowFilenameDialog(true);
+  };
+
+  // 处理文件名确认
+  const handleFilenameConfirm = async (filename: string) => {
+    setShowFilenameDialog(false);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 保存 PDF
+      const savedPath = await pdfService.savePDF(pdfPath, filename);
+      setSavedFilePath(savedPath);
+      setShowSuccess(true);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '保存失败，请重试';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 处理取消
+  const handleCancel = () => {
+    setShowFilenameDialog(false);
+    setError(null);
+  };
+
+  // 处理完成
+  const handleDone = () => {
+    setShowSuccess(false);
+    navigation.goBack();
+  };
+
+  // 处理重试
+  const handleRetry = () => {
+    setError(null);
+    setShowFilenameDialog(true);
+  };
+
+  // 处理加载完成
+  const handleLoadComplete = (numberOfPages: number) => {
+    console.log(`PDF loaded with ${numberOfPages} pages`);
+  };
+
+  // 处理加载错误
+  const handleLoadError = (error: Error) => {
+    console.error('PDF load error:', error);
+    setError('无法预览 PDF 文件');
+    setPdfLoadFailed(true);
+  };
+
+  // 成功界面
+  const renderSuccess = () => (
+    <View style={styles.successContainer}>
+      <Text style={styles.successIcon}>✓</Text>
+      <Text style={styles.successTitle}>PDF 已保存</Text>
+      {savedFilePath && (
+        <Text style={styles.successPath} numberOfLines={2}>
+          {savedFilePath}
+        </Text>
+      )}
+      <View style={styles.successButtonContainer}>
+        <TouchableOpacity
+          style={[styles.successButton, styles.primaryButton]}
+          onPress={handleDone}>
+          <Text style={styles.primaryButtonText}>完成</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.successButton, styles.secondaryButton]}
+          onPress={() => {
+            setShowSuccess(false);
+            setSavedFilePath(null);
+          }}>
+          <Text style={styles.secondaryButtonText}>生成更多</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // 错误界面
+  const renderError = () => (
+    <View style={styles.errorContainer}>
+      <Text style={styles.errorIcon}>!</Text>
+      <Text style={styles.errorTitle}>出错了</Text>
+      <Text style={styles.errorMessage}>{error}</Text>
+      <View style={styles.errorButtonContainer}>
+        <TouchableOpacity
+          style={[styles.errorButton, styles.retryButton]}
+          onPress={handleRetry}>
+          <Text style={styles.retryButtonText}>重试</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.errorButton, styles.cancelButton]}
+          onPress={handleDone}>
+          <Text style={styles.cancelButtonText}>取消</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // 主界面
+  const renderContent = () => (
+    <>
+      <Pdf
+        source={{ uri: `file://${pdfPath}` }}
+        style={styles.pdf}
+        onLoadComplete={handleLoadComplete}
+        onError={handleLoadError}
+        trustAllCerts={false}
+        enablePaging
+        page={1}
+        horizontal
+      />
+
+      {/* 底部按钮栏 */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[styles.button, styles.cancelButton]}
+          onPress={handleDone}>
+          <Text style={styles.cancelButtonText}>取消</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, (isLoading || pdfLoadFailed) ? styles.buttonDisabled : styles.saveButton]}
+          onPress={handleSavePress}
+          disabled={isLoading || pdfLoadFailed}>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>保存 PDF</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* 头部信息 */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>PDF 预览</Text>
+        <Text style={styles.headerInfo}>
+          {questionCount} 题 · {pdfService.getDifficultyLabel(difficulty)}
+        </Text>
+      </View>
+
+      {/* 内容区域 */}
+      {showSuccess ? renderSuccess() : error ? renderError() : renderContent()}
+
+      {/* 文件名对话框 */}
+      <FilenameDialog
+        visible={showFilenameDialog}
+        defaultFilename={generateDefaultFilename()}
+        onConfirm={handleFilenameConfirm}
+        onCancel={handleCancel}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    padding: 16,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerInfo: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  pdf: {
+    flex: 1,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  saveButton: {
+    backgroundColor: '#2196f3',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  successIcon: {
+    fontSize: 64,
+    color: '#4caf50',
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  successPath: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  successButtonContainer: {
+    width: '100%',
+    gap: 12,
+  },
+  successButton: {
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#2196f3',
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    backgroundColor: '#f5f5f5',
+  },
+  secondaryButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  errorIcon: {
+    fontSize: 64,
+    color: '#f44336',
+    marginBottom: 16,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  errorButtonContainer: {
+    width: '100%',
+    gap: 12,
+  },
+  errorButton: {
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#f44336',
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+export default PDFPreviewScreen;

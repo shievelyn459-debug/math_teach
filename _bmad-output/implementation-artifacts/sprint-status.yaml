@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-19
-last_updated: 2026-03-23T15:30:00
+last_updated: 2026-03-23T16:00:00
 project: mytodo
 project_key: NOKEY
 tracking_system: file-system
@@ -68,7 +68,7 @@ development_status:
 
   epic-4: in-progress
   4-1-generate-similar-questions: done
-  4-2-export-questions-to-pdf: review
+  4-2-export-questions-to-pdf: done
   4-3-download-print-pdf: ready-for-dev
   4-4-tablet-optimized-ui: backlog
   epic-4-retrospective: optional

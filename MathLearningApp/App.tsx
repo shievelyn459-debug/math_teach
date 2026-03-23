@@ -15,6 +15,10 @@ import ExplainScreen from './src/screens/ExplainScreen';
 import {ExplanationScreen} from './src/screens/ExplanationScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import SetNewPasswordScreen from './src/screens/SetNewPasswordScreen';
+import PDFPreviewScreen from './src/screens/PDFPreviewScreen';
+import GeneratedQuestionsList from './src/screens/GeneratedQuestionsList';
 
 // 导入认证服务
 import {authService} from './src/services/authService';
@@ -146,6 +150,16 @@ function AuthNavigator() {
             component={RegisterScreen}
             options={{title: '注册'}}
           />
+          <Stack.Screen
+            name="ForgotPassword"
+            component={ForgotPasswordScreen}
+            options={{title: '忘记密码'}}
+          />
+          <Stack.Screen
+            name="SetNewPassword"
+            component={SetNewPasswordScreen}
+            options={{title: '设置新密码'}}
+          />
         </>
       )}
 
@@ -166,6 +180,22 @@ function AuthNavigator() {
         component={ExplanationScreen}
         options={{
           title: '知识点讲解',
+          headerBackTitle: '返回',
+        }}
+      />
+      <Stack.Screen
+        name="GeneratedQuestionsList"
+        component={GeneratedQuestionsList}
+        options={{
+          title: '练习题',
+          headerBackTitle: '返回',
+        }}
+      />
+      <Stack.Screen
+        name="PDFPreview"
+        component={PDFPreviewScreen}
+        options={{
+          title: 'PDF 预览',
           headerBackTitle: '返回',
         }}
       />

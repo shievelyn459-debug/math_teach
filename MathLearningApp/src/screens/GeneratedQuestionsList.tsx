@@ -9,8 +9,9 @@ import {
   Alert,
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/native-stack';
-import {Question, Difficulty, QuestionType} from '../types';
+import {Question, Difficulty, QuestionType, PDFMetadata} from '../types';
 import {questionGenerationService} from '../services/questionGenerationService';
+import {pdfService} from '../services/pdfService';
 import QuantitySelector from '../components/QuantitySelector';
 import {preferencesService} from '../services/preferencesService';
 
@@ -44,6 +45,8 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
   const [expandedQuestionId, setExpandedQuestionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   // 使用 ref 来跟踪组件挂载状态和 interval
   const isMountedRef = useRef(true);
@@ -201,6 +204,41 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
     setExpandedQuestionId(prev => (prev === questionId ? null : questionId));
   };
 
+  const handleExportPDF = async () => {
+    if (questions.length === 0) {
+      Alert.alert('提示', '请先生成题目');
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+    setPdfError(null);
+
+    try {
+      const metadata: PDFMetadata = {
+        title: '一年级数学练习题',
+        date: new Date().toISOString().split('T')[0],
+        difficulty: baseQuestion.difficulty,
+      };
+
+      const pdfPath = await pdfService.generateQuestionsPDF(questions, metadata);
+
+      // 导航到 PDF 预览界面
+      navigation.navigate('PDFPreview', {
+        pdfPath,
+        questionCount: questions.length,
+        difficulty: baseQuestion.difficulty,
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '生成 PDF 失败';
+      setPdfError(errorMessage);
+      Alert.alert('生成失败', errorMessage, [
+        { text: '确定', onPress: () => setPdfError(null) },
+      ]);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   const renderQuestion = (question: Question, index: number) => {
     const isExpanded = expandedQuestionId === question.id;
 
@@ -279,6 +317,16 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
             onPress={handleRegenerate}>
             <Text style={styles.headerButtonText}>↻</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleExportPDF}
+            disabled={isGeneratingPDF || questions.length === 0}>
+            {isGeneratingPDF ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.headerButtonText}>PDF</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -289,6 +337,18 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => generateQuestions()}>
+            <Text style={styles.retryButtonText}>重试</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* PDF Error Message */}
+      {pdfError && (
+        <View style={styles.pdfErrorContainer}>
+          <Text style={styles.pdfErrorText}>{pdfError}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={handleExportPDF}>
             <Text style={styles.retryButtonText}>重试</Text>
           </TouchableOpacity>
         </View>
@@ -390,6 +450,20 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: 'white',
     fontWeight: '600',
+  },
+  pdfErrorContainer: {
+    margin: 16,
+    marginTop: 0,
+    padding: 16,
+    backgroundColor: '#fff3e0',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffb74d',
+  },
+  pdfErrorText: {
+    color: '#e65100',
+    fontSize: 14,
+    marginBottom: 12,
   },
   scrollContainer: {
     flex: 1,
