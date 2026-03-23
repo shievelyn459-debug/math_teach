@@ -3,7 +3,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {recognitionCache, CacheEntry} from '../services/recognitionCache';
+import {recognitionCache, CacheEntry} from '../recognitionCache';
 import {RecognitionResult, QuestionType} from '../../types';
 
 // Mock AsyncStorage
@@ -16,12 +16,14 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 // Mock crypto-js
 jest.mock('crypto-js', () => ({
-  sha256: jest.fn(() => 'mock-hash-12345'),
+  sha256: jest.fn((input: string) => `mock-hash-${input.substring(input.length - 10)}`),
 }));
 
 describe('RecognitionCache', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    // Completely reset cache state for testing
+    await recognitionCache._resetForTest();
   });
 
   const mockRecognitionResult: RecognitionResult = {

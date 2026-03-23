@@ -67,31 +67,33 @@ class ImageOptimizer {
 
       console.log(`[ImageOptimizer] Original image: ${originalInfo.width}x${originalInfo.height}, size: ${this.formatBytes(originalSize)}`);
 
+      // PATCH-M4: Optional chaining on imageInfo properties
+      const originalWidth = originalInfo.width || 1920;
+      const originalHeight = originalInfo.height || 1080;
+
       // 如果图片已经足够小，直接返回
-      if (originalSize <= targetSize && originalInfo.width <= mergedOptions.maxWidth!) {
+      if (originalSize <= targetSize && originalWidth <= mergedOptions.maxWidth!) {
         console.log('[ImageOptimizer] Image already optimized, skipping compression');
         return {
           uri: imageUri,
-          width: originalInfo.width,
-          height: originalInfo.height,
+          width: originalWidth,
+          height: originalHeight,
           size: originalSize,
           compressionRatio: 1,
         };
       }
 
-      // 计算缩放比例
-      const scale = Math.min(
-        mergedOptions.maxWidth! / originalInfo.width,
-        mergedOptions.maxHeight! / originalInfo.height,
-        1
-      );
+      // PATCH-M5: Guard against negative scale
+      const scaleX = mergedOptions.maxWidth! / originalWidth;
+      const scaleY = mergedOptions.maxHeight! / originalHeight;
+      const scale = Math.min(Math.max(scaleX, 0), Math.max(scaleY, 0), 1);
 
       // 构建操作列表
       const actions: ImageManipulator.Action[] = [];
 
       // 缩放
-      if (scale < 1) {
-        actions.push({resize: {width: Math.round(originalInfo.width * scale)}});
+      if (scale < 1 && scale > 0) {
+        actions.push({resize: {width: Math.round(originalWidth * scale)}});
       }
 
       // Story 5-3: 移除EXIF数据（通过重新保存实现）
@@ -100,8 +102,8 @@ class ImageOptimizer {
       }
 
       let resultUri = imageUri;
-      let resultWidth = originalInfo.width;
-      let resultHeight = originalInfo.height;
+      let resultWidth = originalWidth;
+      let resultHeight = originalHeight;
 
       // 执行优化
       if (actions.length > 0 || mergedOptions.removeExif) {
@@ -136,15 +138,26 @@ class ImageOptimizer {
       };
     } catch (error) {
       console.error('[ImageOptimizer] Optimization failed:', error);
-      // 失败时返回原始图片
-      const info = await this.getImageInfo(imageUri);
-      return {
-        uri: imageUri,
-        width: info.width,
-        height: info.height,
-        size: info.size || 0,
-        compressionRatio: 1,
-      };
+      // PATCH-M6: Failed optimization returns consistent data
+      try {
+        const info = await this.getImageInfo(imageUri);
+        return {
+          uri: imageUri,
+          width: info.width || 1920,
+          height: info.height || 1080,
+          size: info.size || 0,
+          compressionRatio: 1,
+        };
+      } catch {
+        // Last resort fallback
+        return {
+          uri: imageUri,
+          width: 1920,
+          height: 1080,
+          size: 0,
+          compressionRatio: 1,
+        };
+      }
     }
   }
 
@@ -205,21 +218,27 @@ class ImageOptimizer {
 
   /**
    * 格式化字节大小
+   * PATCH-H12: Handle Math.log(0) causing -Infinity
    */
   private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0 || bytes < 0) return '0 B';
 
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    // PATCH-H12: Guard against log(0) or log of negative number
+    const i = bytes > 0 ? Math.floor(Math.log(bytes) / Math.log(k)) : 0;
 
-    return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+    return `${(bytes / Math.pow(k, Math.max(0, i))).toFixed(2)} ${sizes[Math.max(0, Math.min(i, sizes.length - 1))]}`;
   }
 
   /**
    * 估算优化质量（基于目标大小）
+   * PATCH-M7: Guard against division by zero
    */
   calculateOptimalQuality(originalSize: number, targetSize: number = TARGET_SIZE_BYTES): number {
+    // PATCH-M7: Guard against division by zero
+    if (originalSize <= 0) return 0.75;
+
     // 简单的线性估算
     const ratio = targetSize / originalSize;
     return Math.min(Math.max(Math.sqrt(ratio), 0.5), 1);

@@ -1,10 +1,12 @@
 /**
  * Story 5-2: 反馈管理器
+ * Story 5-4: 集成焦虑减少的语气指南
  * 提供一致的用户反馈体验
  */
 
 import {Alert, ToastAndroid, Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {rewriteErrorMessage, enhanceSuccessMessage} from '../utils/toneGuidelines';
 
 const PREFERENCES_KEY = 'feedback_preferences';
 
@@ -204,29 +206,31 @@ class FeedbackManager {
 
   /**
    * 显示网络错误
+   * Story 5-4: 使用支持性语气
    * @param onRetry 重试回调
    */
   showNetworkError(onRetry?: () => void): void {
+    const friendlyMessage = '💫 网络休息中，稍等片刻就好。您的数据已安全保存。';
     this.showErrorDialog(
-      '网络连接失败',
-      '请检查网络设置后重试。您的数据已保存，不会丢失。',
+      '没关系',
+      friendlyMessage,
       onRetry ? [
-        {text: '取消', style: 'cancel'},
-        {text: '重试', onPress: onRetry},
-      ] : [{text: '确定', style: 'default'}]
+        {text: '稍后再说', style: 'cancel'},
+        {text: '好的，重试', onPress: onRetry},
+      ] : [{text: '我知道了', style: 'default'}]
     );
   }
 
   /**
    * 显示验证错误
+   * Story 5-4: 使用支持性语气
    * @param field 字段名称
    * @param message 错误消息
    */
   showValidationError(field: string, message: string): void {
-    this.showErrorDialog(
-      `${field}格式不正确`,
-      message
-    );
+    const friendlyTitle = '🌿 让我们检查一下';
+    const friendlyMessage = `${field}可能需要调整一下。${message}`;
+    this.showErrorDialog(friendlyTitle, friendlyMessage);
   }
 
   /**

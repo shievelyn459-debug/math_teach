@@ -6,7 +6,6 @@
 import React, {useEffect, useState, useRef} from 'react';
 import {View, StyleSheet, Animated} from 'react-native';
 import {Text, useTheme} from 'react-native-paper';
-import {CircularProgress} from 'react-native-circular-progress';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 interface CountdownTimerProps {
@@ -51,12 +50,13 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
   strokeWidth = 6,
 }) => {
   const theme = useTheme();
-  const progress = remainingTime / totalTime;
+  // PATCH-C1: Guard against division by zero and NaN
+  const progress = totalTime > 0 ? Math.max(0, Math.min(1, remainingTime / totalTime)) : 0;
   const color = getCountdownColor(remainingTime, theme);
 
   const [message, setMessage] = useState('');
-  const [prevRemaining, setPrevRemaining] = useState(remainingTime);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const prevRemainingRef = useRef(remainingTime);
 
   // 更新消息
   useEffect(() => {
@@ -66,8 +66,9 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
   }, [remainingTime]);
 
   // 剩余时间变化时的脉冲动画
+  // PATCH-H1: Remove prevRemaining from deps to prevent infinite loop
   useEffect(() => {
-    if (prevRemaining !== remainingTime) {
+    if (prevRemainingRef.current !== remainingTime) {
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.1,
@@ -81,9 +82,9 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
         }),
       ]).start();
 
-      setPrevRemaining(remainingTime);
+      prevRemainingRef.current = remainingTime;
     }
-  }, [remainingTime, prevRemaining]);
+  }, [remainingTime, pulseAnim]);
 
   // 格式化时间显示
   const formatTime = (seconds: number): string => {
@@ -93,23 +94,13 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
 
   return (
     <View style={styles.container}>
-      <Animated.View style={{transform: [{scale: pulseAnim}]}}>
-        <CircularProgress
-          size={size}
-          width={strokeWidth}
-          fill={theme.colors.surface}
-          tintColor={color}
-          rotation={0}
-          progress={progress}
-          backgroundColor="#e0e0e0"
-          linecap="round">
-          <View style={styles.content}>
-            <Text style={[styles.timeText, {color}]}>
-              {formatTime(remainingTime)}
-            </Text>
-            <Text style={styles.unitText}>秒</Text>
-          </View>
-        </CircularProgress>
+      <Animated.View style={[styles.circleContainer, {transform: [{scale: pulseAnim}], borderColor: color}]}>
+        <View style={styles.content}>
+          <Text style={[styles.timeText, {color}]}>
+            {formatTime(remainingTime)}
+          </Text>
+          <Text style={styles.unitText}>秒</Text>
+        </View>
       </Animated.View>
 
       {message ? (
@@ -124,6 +115,15 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circleContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 6,
+    backgroundColor: '#f5f5f5',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -169,47 +169,63 @@ export const useCountdown = (
   const [remaining, setRemaining] = useState(totalTime);
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isRunning) {
+      // PATCH-C3: Single cleanup point
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      startTimeRef.current = null;
       return;
     }
 
-    const startTime = Date.now();
-    const targetRemaining = remaining;
+    // Initialize start time
+    if (startTimeRef.current === null) {
+      startTimeRef.current = Date.now();
+    }
 
     intervalRef.current = setInterval(() => {
       const now = Date.now();
-      const newElapsed = elapsed + (now - startTime) / 1000;
-      const newRemaining = Math.max(0, totalTime - newElapsed);
+      if (startTimeRef.current === null) return;
 
-      setElapsed(newElapsed);
-      setRemaining(newRemaining);
+      // PATCH-C2: Functional update to fix stale closure
+      setElapsed(prevElapsed => {
+        const newElapsed = prevElapsed + 0.1; // Fixed 100ms interval
+        const newRemaining = Math.max(0, totalTime - newElapsed);
 
-      if (newRemaining <= 0) {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
+        setRemaining(newRemaining);
+
+        if (newRemaining <= 0) {
+          // Cleanup
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          startTimeRef.current = null;
+          onComplete?.();
         }
-        onComplete?.();
-      }
+
+        return newElapsed;
+      });
     }, 100);
 
     return () => {
+      // PATCH-C3: Single cleanup in return
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      startTimeRef.current = null;
     };
-  }, [isRunning]);
+  }, [isRunning, totalTime, onComplete]);
 
   const reset = () => {
     setRemaining(totalTime);
     setElapsed(0);
+    startTimeRef.current = null;
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
