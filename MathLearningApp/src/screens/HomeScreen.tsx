@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image} from 'react-native';
 import {Card, Title, Paragraph, Button} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {generationHistoryService} from '../services/generationHistoryService';
@@ -10,6 +10,7 @@ import HelpDialog from '../components/HelpDialog';
 import OnboardingTour from '../components/OnboardingTour';
 import CelebrationOverlay from '../components/CelebrationOverlay';
 import {checkTourCompleted} from '../components/OnboardingTour';
+import {launchImageLibrary} from 'react-native-image-picker';
 
 // PATCH-017: 提取魔法数字为常量
 const MAX_RECENT_ITEMS = 5;
@@ -21,6 +22,7 @@ const HomeScreen = ({navigation}: any) => {
   const [showTour, setShowTour] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationMessage, setCelebrationMessage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   // 追踪timeout用于清理
   const tourTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -108,6 +110,51 @@ const HomeScreen = ({navigation}: any) => {
     await loadRecentGenerations();
   };
 
+  /**
+   * 从相册选择图片进行识别
+   */
+  const handleUploadImage = async () => {
+    try {
+      setIsUploading(true);
+
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+        includeBase64: true,
+        quality: 0.8,
+      });
+
+      if (result.didCancel) {
+        console.log('[HomeScreen] User cancelled image picker');
+        setIsUploading(false);
+        return;
+      }
+
+      if (result.errorCode) {
+        console.error('[HomeScreen] ImagePicker error:', result.errorMessage);
+        Alert.alert('错误', result.errorMessage || '选择图片失败');
+        setIsUploading(false);
+        return;
+      }
+
+      if (result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        console.log('[HomeScreen] Image selected:', asset.uri);
+
+        // 导航到相机界面，传递选中的图片URI
+        navigation.navigate('Camera', {
+          selectedImageUri: asset.uri,
+          selectedImageBase64: asset.base64,
+        });
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('错误', '选择图片失败，请重试');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   // 当屏幕获得焦点时刷新数据（从其他页面返回时）
   useEffect(() => {
     // PATCH-007: 添加导航空值检查
@@ -138,14 +185,39 @@ const HomeScreen = ({navigation}: any) => {
         </View>
       </View>
 
-      <Card style={styles.card} onPress={() => navigation?.navigate('Camera')}>
-        <Card.Content>
-          <Title style={styles.cardTitle}>📸 拍照上传题目</Title>
-          <Paragraph>
-            拍摄孩子的数学作业题目，系统将自动识别并生成同类型题目
-          </Paragraph>
-        </Card.Content>
-      </Card>
+      {/* 功能入口区域 - 两个并排卡片 */}
+      <View style={styles.actionCardsContainer}>
+        <Card style={styles.actionCard} onPress={() => navigation?.navigate('Camera')}>
+          <View style={styles.actionCardContent}>
+            <View style={styles.actionIconContainer}>
+              <Icon name="camera-alt" size={36} color="#007bff" />
+            </View>
+            <Title style={styles.actionCardTitle}>拍照上传</Title>
+            <Paragraph style={styles.actionCardText}>
+              拍摄题目自动识别
+            </Paragraph>
+          </View>
+        </Card>
+
+        <Card
+          style={[styles.actionCard, isUploading && styles.actionCardDisabled]}
+          onPress={handleUploadImage}
+          disabled={isUploading}>
+          <View style={styles.actionCardContent}>
+            <View style={styles.actionIconContainer}>
+              {isUploading ? (
+                <ActivityIndicator size={36} color="#28a745" />
+              ) : (
+                <Icon name="photo-library" size={36} color="#28a745" />
+              )}
+            </View>
+            <Title style={styles.actionCardTitle}>上传图片</Title>
+            <Paragraph style={styles.actionCardText}>
+              从相册选择识别
+            </Paragraph>
+          </View>
+        </Card>
+      </View>
 
       {/* 最近练习部分 */}
       <Card style={styles.card}>
@@ -271,6 +343,47 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     marginBottom: 10,
+  },
+  // 功能卡片容器
+  actionCardsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  actionCard: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderRadius: 12,
+    elevation: 4,
+  },
+  actionCardDisabled: {
+    opacity: 0.6,
+  },
+  actionCardContent: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  actionIconContainer: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#f0f8ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  actionCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  actionCardText: {
+    fontSize: 13,
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 4,
   },
   emptyText: {
     fontSize: 14,

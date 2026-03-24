@@ -147,7 +147,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
   return (
     <View style={styles.container}>
       <Text style={[styles.label, {color: theme.colors.primary}]}>{label}</Text>
-      <View style={[styles.input, styles.passwordContainer, error ? styles.inputError : {}, {borderColor: error ? theme.colors.error : '#ddd'}]}>
+      <View style={[styles.passwordContainer, error ? styles.inputError : {}, {borderColor: error ? theme.colors.error : '#ddd'}]}>
         <TextInput
           testID={testID}
           style={styles.passwordInput}
@@ -158,13 +158,14 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           autoCorrect={false}
+          zIndex={1}
         />
+        <Text
+          style={[styles.toggleButton, {color: theme.colors.primary}]}
+          onPress={togglePasswordVisibility}>
+          {secureTextEntry ? '👁️' : '🙈'}
+        </Text>
       </View>
-      <Text
-        style={[styles.toggleButton, {color: theme.colors.primary}]}
-        onPress={togglePasswordVisibility}>
-        {secureTextEntry ? '显示' : '隐藏'}
-      </Text>
       {error && <Text style={[styles.errorText, {color: theme.colors.error}]}>{error}</Text>}
     </View>
   );
@@ -174,14 +175,17 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
     position: 'relative',
+    zIndex: 1,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
+    zIndex: 1,
   },
   inputWrapper: {
     position: 'relative',
+    zIndex: 1,
   },
   input: {
     borderWidth: 1,
@@ -190,31 +194,40 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     backgroundColor: '#fff',
-    paddingRight: 40, // 为状态图标留出空间
+    paddingRight: 45, // 为状态图标留出空间
+    zIndex: 1,
   },
   inputError: {
     borderWidth: 2,
+    zIndex: 1,
   },
   inputValid: {
     borderWidth: 1,
+    zIndex: 1,
   },
   inputDisabled: {
     backgroundColor: '#f5f5f5',
     color: '#999',
+    zIndex: 1,
   },
   rightContainer: {
     position: 'absolute',
     right: 12,
-    top: 36,
+    top: 12,
+    height: 46,
+    justifyContent: 'center',
+    zIndex: 2,
   },
   statusIconContainer: {
     position: 'absolute',
     right: 12,
     top: 12,
-    width: 24,
-    height: 24,
+    width: 30,
+    height: 46,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 2,
+    pointerEvents: 'none', // 关键：让点击穿透到输入框
   },
   successIcon: {
     fontSize: 18,
@@ -233,13 +246,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 6,
+    zIndex: 1,
   },
   errorText: {
     flex: 1,
     fontSize: 12,
+    zIndex: 1,
   },
   clearErrorButton: {
     padding: 4,
+    zIndex: 2,
   },
   clearErrorText: {
     fontSize: 14,
@@ -248,15 +264,24 @@ const styles = StyleSheet.create({
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    zIndex: 1,
   },
   passwordInput: {
     flex: 1,
     fontSize: 16,
+    padding: 0,
+    zIndex: 1,
   },
   toggleButton: {
     fontSize: 14,
     fontWeight: '600',
-    textAlign: 'right',
-    marginTop: 4,
+    marginLeft: 8,
+    color: '#007bff',
+    zIndex: 2,
   },
 });
