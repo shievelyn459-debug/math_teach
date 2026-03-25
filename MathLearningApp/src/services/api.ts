@@ -20,7 +20,20 @@ import {aiService} from './ai';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Story 6-3: 导入新的MySQL版childApi
-export { childApi } from './childApi';
+import { childApi } from './childApi';
+export { childApi };
+
+// Story 6-4: 导入StudyDataRepository（静态导入以便测试）
+import { studyDataRepository as _studyDataRepository } from './mysql/StudyDataRepository';
+
+// Story 6-4: 导入activeChildService（静态导入以便测试）
+import { activeChildService as _activeChildService } from './activeChildService';
+
+// Story 6-4: Code Review Fix - 导入mutex防止并发写入冲突
+import { studyRecordMutex } from '../utils/mutex';
+
+// Story 6-4: Code Review Fix - 导入离线队列服务
+import { offlineStudyQueue } from './offlineStudyQueue';
 
 /**
  * 类型守卫：检查API响应是否成功
@@ -909,82 +922,199 @@ export const questionApi = {
     request(`/questions/${id}`, {method: 'DELETE'}),
 };
 
-// 学习记录API（本地存储版本）
+// 学习记录API（Story 6-4: MySQL主存储 + AsyncStorage缓存版本）
 export const studyApi = {
   /**
-   * 记录学习行为（本地存储）
+   * 记录学习行为（MySQL主存储 + AsyncStorage缓存）
+   *
+   * Story 6-4 AC2: studyApi集成MySQL
+   * - MySQL主存储：保证数据持久化和多设备同步
+   * - AsyncStorage缓存：离线降级和快速访问
+   * - 双模式架构：MySQL不可用时降级到AsyncStorage
+   *
+   * Code Review Fixes:
+   * - 使用mutex防止并发写入导致的竞态条件
+   * - JSON.parse错误处理防止应用崩溃
+   * - userId空值验证
+   * - 返回syncStatus指示数据是否已同步到MySQL
    */
   recordStudy: async (data: {
     questionId: string;
     action: 'upload' | 'practice' | 'review';
     duration?: number;
     correct?: boolean;
+    questionType?: string;
+    difficulty?: string;
   }) => {
-    try {
-      // 获取活跃孩子ID
-      const { activeChildService } = await import('./activeChildService');
-      await activeChildService.waitForInitialization();
-      const activeChildId = activeChildService.getActiveChildId();
+    // Code Review Fix: 使用mutex防止并发写入竞态条件
+    return studyRecordMutex.runExclusive(async () => {
+      try {
+        // 获取活跃孩子ID
+        await _activeChildService.waitForInitialization();
+        const activeChildId = _activeChildService.getActiveChildId();
 
-      if (!activeChildId) {
+        if (!activeChildId) {
+          return {
+            success: false,
+            error: {
+              code: 'NO_ACTIVE_CHILD',
+              message: '请先选择一个孩子',
+            },
+          };
+        }
+
+        // 获取当前用户
+        const userResponse = await userApi.getProfile();
+        if (!userResponse.success || !userResponse.data) {
+          return {
+            success: false,
+            error: {
+              code: 'NO_USER',
+              message: '用户未登录',
+            },
+          };
+        }
+
+        // Code Review Fix: userId空值验证
+        const userId = userResponse.data?.id;
+        if (!userId) {
+          return {
+            success: false,
+            error: {
+              code: 'INVALID_USER_ID',
+              message: '无效的用户ID',
+            },
+          };
+        }
+
+        const recordId = `record_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Story 6-4: 尝试写入MySQL（双模式架构）
+        let mysqlSuccess = false;
+        try {
+          await _studyDataRepository.create({
+            recordId,
+            childId: activeChildId,
+            parentId: userId,
+            questionId: data.questionId,
+            action: data.action,
+            duration: data.duration,
+            correct: data.correct,
+            questionType: data.questionType,
+            difficulty: data.difficulty,
+          });
+          mysqlSuccess = true;
+          console.log('[studyApi] Record saved to MySQL:', recordId);
+        } catch (mysqlError) {
+          console.warn('[studyApi] MySQL unavailable, enqueuing for later sync:', mysqlError);
+          // Code Review Fix: 将记录加入离线队列
+          try {
+            await offlineStudyQueue.enqueue({
+              recordId,
+              childId: activeChildId,
+              parentId: userId,
+              questionId: data.questionId,
+              action: data.action,
+              duration: data.duration,
+              correct: data.correct,
+              questionType: data.questionType,
+              difficulty: data.difficulty,
+            });
+          } catch (queueError) {
+            console.error('[studyApi] Failed to enqueue record:', queueError);
+          }
+        }
+
+        // 更新AsyncStorage缓存（无论MySQL是否成功）
+        const storageKey = `@study_records_${activeChildId}`;
+        const existingData = await AsyncStorage.getItem(storageKey);
+
+        // Code Review Fix: JSON.parse错误处理
+        let records: any[] = [];
+        if (existingData) {
+          try {
+            records = JSON.parse(existingData);
+          } catch (parseError) {
+            console.warn('[studyApi] Corrupted cache data, resetting:', parseError);
+            records = [];
+          }
+        }
+
+        const newRecord = {
+          id: recordId,
+          childId: activeChildId,
+          userId,
+          questionId: data.questionId,
+          action: data.action,
+          duration: data.duration,
+          correct: data.correct,
+          questionType: data.questionType,
+          difficulty: data.difficulty,
+          timestamp: new Date().toISOString(),
+          mysqlSynced: mysqlSuccess, // 标记是否已同步到MySQL
+        };
+
+        records.push(newRecord);
+        // 限制缓存大小
+        if (records.length > 1000) {
+          records.splice(0, records.length - 1000);
+        }
+
+        await AsyncStorage.setItem(storageKey, JSON.stringify(records));
+
+        // Code Review Fix: 返回syncStatus状态，不要在MySQL失败时返回success
+        if (!mysqlSuccess) {
+          return {
+            success: false,
+            error: {
+              code: 'MYSQL_UNAVAILABLE',
+              message: '数据已缓存本地，但暂时无法同步到服务器。将在网络恢复后自动同步。',
+            },
+            data: {
+              syncStatus: 'LOCAL_ONLY',
+              recordId,
+            },
+          };
+        }
+
+        return {
+          success: true,
+          data: {
+            syncStatus: 'SYNCED',
+            recordId,
+          },
+        };
+      } catch (error) {
+        console.error('[studyApi] Failed to record study:', error);
         return {
           success: false,
           error: {
-            code: 'NO_ACTIVE_CHILD',
-            message: '请先选择一个孩子',
+            code: 'RECORD_STUDY_ERROR',
+            message: '记录学习行为失败',
           },
         };
       }
-
-      // 获取现有学习记录
-      const storageKey = `@study_records_${activeChildId}`;
-      const existingData = await AsyncStorage.getItem(storageKey);
-      const records: any[] = existingData ? JSON.parse(existingData) : [];
-
-      // 创建新记录
-      const newRecord = {
-        id: generateUUID(),
-        childId: activeChildId,
-        questionId: data.questionId,
-        action: data.action,
-        duration: data.duration,
-        correct: data.correct,
-        timestamp: new Date().toISOString(),
-      };
-
-      // 添加记录（最多保留1000条）
-      records.push(newRecord);
-      if (records.length > 1000) {
-        records.splice(0, records.length - 1000);
-      }
-
-      await AsyncStorage.setItem(storageKey, JSON.stringify(records));
-
-      return {
-        success: true,
-        data: undefined,
-      };
-    } catch (error) {
-      console.error('[studyApi] Failed to record study:', error);
-      return {
-        success: false,
-        error: {
-          code: 'RECORD_STUDY_ERROR',
-          message: '记录学习行为失败',
-        },
-      };
-    }
+    });
   },
 
   /**
-   * 获取学习统计（本地计算）
+   * 获取学习统计（MySQL统计 + 缓存优化）
+   *
+   * Story 6-4 AC2: studyApi集成MySQL
+   * - 优先从MySQL获取统计数据（准确且完整）
+   * - MySQL不可用时从AsyncStorage缓存获取
+   * - 获取最近7天活动记录
+   *
+   * Code Review Fixes:
+   * - JSON.parse错误处理
+   * - 时区规范化（使用UTC）
+   * - 修复AsyncStorage模式下的averageDuration未定义问题
    */
   getStatistics: async () => {
     try {
       // 获取活跃孩子ID
-      const { activeChildService } = await import('./activeChildService');
-      await activeChildService.waitForInitialization();
-      const activeChildId = activeChildService.getActiveChildId();
+      await _activeChildService.waitForInitialization();
+      const activeChildId = _activeChildService.getActiveChildId();
 
       if (!activeChildId) {
         return {
@@ -996,62 +1126,133 @@ export const studyApi = {
         };
       }
 
-      // 获取学习记录
-      const storageKey = `@study_records_${activeChildId}`;
-      const data = await AsyncStorage.getItem(storageKey);
+      // Story 6-4: 尝试从MySQL获取统计（双模式架构）
+      let statsFromMySQL = false;
+      let stats = {
+        totalQuestions: 0,
+        correctCount: 0,
+        uploadCount: 0,
+        practiceCount: 0,
+        reviewCount: 0,
+        accuracy: 0,
+        averageDuration: 0,
+      };
 
-      if (!data) {
-        return {
-          success: true,
-          data: {
-            totalQuestions: 0,
-            correctCount: 0,
-            uploadCount: 0,
-            practiceCount: 0,
-            reviewCount: 0,
-            accuracy: 0,
-            averageDuration: 0,
-            recentActivity: [],
-          },
-        };
+      try {
+        stats = await _studyDataRepository.getStatistics(activeChildId);
+        statsFromMySQL = true;
+        console.log('[studyApi] Statistics from MySQL');
+      } catch (mysqlError) {
+        console.warn('[studyApi] MySQL unavailable, using AsyncStorage cache:', mysqlError);
       }
 
-      const records: any[] = JSON.parse(data);
+      // 如果MySQL不可用，从AsyncStorage获取统计
+      if (!statsFromMySQL) {
+        const storageKey = `@study_records_${activeChildId}`;
+        const data = await AsyncStorage.getItem(storageKey);
 
-      // 计算统计数据
-      const uploadRecords = records.filter(r => r.action === 'upload');
-      const practiceRecords = records.filter(r => r.action === 'practice');
-      const reviewRecords = records.filter(r => r.action === 'review');
+        if (data) {
+          // Code Review Fix: JSON.parse错误处理
+          let records: any[] = [];
+          try {
+            records = JSON.parse(data);
+          } catch (parseError) {
+            console.warn('[studyApi] Corrupted cache data, resetting:', parseError);
+            records = [];
+          }
 
-      const correctRecords = practiceRecords.filter(r => r.correct === true);
-      const totalPracticeRecords = practiceRecords.length;
+          const uploadRecords = records.filter((r: any) => r.action === 'upload');
+          const practiceRecords = records.filter((r: any) => r.action === 'practice');
+          const reviewRecords = records.filter((r: any) => r.action === 'review');
 
-      const accuracy = totalPracticeRecords > 0
-        ? (correctRecords.length / totalPracticeRecords) * 100
-        : 0;
+          const correctRecords = practiceRecords.filter((r: any) => r.correct === true);
+          const totalPracticeRecords = practiceRecords.length;
 
-      const totalDuration = records.reduce((sum, r) => sum + (r.duration || 0), 0);
-      const averageDuration = records.length > 0 ? totalDuration / records.length : 0;
+          const accuracy = totalPracticeRecords > 0
+            ? (correctRecords.length / totalPracticeRecords)
+            : 0;
 
-      // 获取最近7天的活动
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          // Code Review Fix: 只计算练习记录的平均时长
+          const totalDuration = practiceRecords.reduce((sum: number, r: any) => sum + (r.duration || 0), 0);
+          const averageDuration = totalPracticeRecords > 0
+            ? totalDuration / totalPracticeRecords
+            : 0;
 
-      const recentActivity = records
-        .filter(r => new Date(r.timestamp) >= sevenDaysAgo)
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 10);
+          stats = {
+            totalQuestions: records.length,
+            correctCount: correctRecords.length,
+            uploadCount: uploadRecords.length,
+            practiceCount: practiceRecords.length,
+            reviewCount: reviewRecords.length,
+            accuracy,
+            averageDuration,
+          };
+        }
+      }
+
+      // 获取最近活动（优先MySQL，降级AsyncStorage）
+      let recentActivity: any[] = [];
+      // Code Review Fix: 时区规范化 - 使用UTC时间
+      const now = new Date();
+      const sevenDaysAgo = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() - 7
+      ));
+      const utcNow = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate()
+      ));
+
+      try {
+        if (statsFromMySQL) {
+          const recentRecords = await _studyDataRepository.findByTimeRange(
+            activeChildId,
+            sevenDaysAgo,
+            utcNow
+          );
+          recentActivity = recentRecords.slice(0, 10).map(r => ({
+            id: r.recordId,
+            questionId: r.questionId,
+            action: r.action,
+            duration: r.duration,
+            correct: r.correct,
+            timestamp: r.timestamp.toISOString(),
+          }));
+        }
+      } catch (mysqlError) {
+        console.warn('[studyApi] Failed to get recent activity from MySQL:', mysqlError);
+      }
+
+      // 如果MySQL失败或不可用，从AsyncStorage获取最近活动
+      if (recentActivity.length === 0) {
+        const storageKey = `@study_records_${activeChildId}`;
+        const data = await AsyncStorage.getItem(storageKey);
+
+        if (data) {
+          // Code Review Fix: JSON.parse错误处理
+          let records: any[] = [];
+          try {
+            records = JSON.parse(data);
+          } catch (parseError) {
+            console.warn('[studyApi] Corrupted cache data, resetting:', parseError);
+            records = [];
+          }
+
+          recentActivity = records
+            .filter((r: any) => new Date(r.timestamp) >= sevenDaysAgo)
+            .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 10);
+        }
+      }
 
       return {
         success: true,
         data: {
-          totalQuestions: records.length,
-          correctCount: correctRecords.length,
-          uploadCount: uploadRecords.length,
-          practiceCount: practiceRecords.length,
-          reviewCount: reviewRecords.length,
-          accuracy: Math.round(accuracy * 100) / 100,
-          averageDuration: Math.round(averageDuration),
+          ...stats,
+          accuracy: Math.round(stats.accuracy * 10000) / 100, // 转换为百分比
+          averageDuration: Math.round(stats.averageDuration),
           recentActivity,
         },
       };
@@ -1062,6 +1263,54 @@ export const studyApi = {
         error: {
           code: 'GET_STATISTICS_ERROR',
           message: '获取学习统计失败',
+        },
+      };
+    }
+  },
+
+  /**
+   * 同步离线队列中的记录到MySQL
+   *
+   * Story 6-4 Code Review Fix: 离线队列机制
+   */
+  syncQueue: async () => {
+    try {
+      const result = await offlineStudyQueue.syncQueue();
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.error('[studyApi] Failed to sync queue:', error);
+      return {
+        success: false,
+        error: {
+          code: 'SYNC_QUEUE_ERROR',
+          message: '同步队列失败',
+        },
+      };
+    }
+  },
+
+  /**
+   * 获取离线队列大小
+   *
+   * Story 6-4 Code Review Fix: 离线队列机制
+   */
+  getQueueSize: async () => {
+    try {
+      const size = await offlineStudyQueue.getQueueSize();
+      return {
+        success: true,
+        data: { size },
+      };
+    } catch (error) {
+      console.error('[studyApi] Failed to get queue size:', error);
+      return {
+        success: false,
+        error: {
+          code: 'GET_QUEUE_SIZE_ERROR',
+          message: '获取队列大小失败',
         },
       };
     }
