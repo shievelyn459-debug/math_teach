@@ -83,6 +83,6 @@ development_status:
   epic-6: in-progress
   6-1-mysql-infrastructure-setup: review
   6-2-user-data-mysql-storage: review
-  6-3-child-data-mysql-storage: in-progress
+  6-3-child-data-mysql-storage: review
   6-4-study-record-mysql-storage: backlog
   6-5-offline-sync-conflict-resolution: backlog
