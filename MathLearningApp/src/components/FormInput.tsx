@@ -73,7 +73,6 @@ export const FormInput: React.FC<FormInputProps> = ({
             styles.input,
             error ? styles.inputError : {},
             disabled ? styles.inputDisabled : {},
-            valid && value.length > 0 ? styles.inputValid : {},
             {borderColor: getBorderColor()},
           ]}
           value={value}
@@ -86,19 +85,22 @@ export const FormInput: React.FC<FormInputProps> = ({
           autoCorrect={autoCorrect}
           editable={!disabled}
           maxLength={maxLength}
+          // 确保TextInput不会被其他元素遮挡
+          importantForAccessibility="auto"
         />
-        {right && <View style={styles.rightContainer}>{right}</View>}
-        {/* 验证状态图标 */}
-        {!error && value.length > 0 && showSuccessIcon && (
-          <View style={styles.statusIconContainer}>
-            {validating ? (
-              <Text style={styles.validatingText}>验证中...</Text>
-            ) : valid ? (
-              <Text style={styles.successIcon}>✓</Text>
-            ) : null}
-          </View>
+        {/* 验证状态图标 - 移到输入框外部，不影响输入 */}
+        {!error && value.length > 0 && showSuccessIcon && !right && (
+          <Text style={styles.externalStatusIcon}>
+            {validating ? '⏳' : valid ? '✓' : ''}
+          </Text>
         )}
       </View>
+      {/* 自定义右侧内容 */}
+      {right && (
+        <View style={styles.externalRight}>
+          {right}
+        </View>
+      )}
       {/* 内联错误消息 */}
       {error && (
         <View style={styles.errorContainer}>
@@ -147,10 +149,15 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
   return (
     <View style={styles.container}>
       <Text style={[styles.label, {color: theme.colors.primary}]}>{label}</Text>
-      <View style={[styles.passwordContainer, error ? styles.inputError : {}, {borderColor: error ? theme.colors.error : '#ddd'}]}>
+      <View style={styles.inputRow}>
         <TextInput
           testID={testID}
-          style={styles.passwordInput}
+          style={[
+            styles.input,
+            styles.passwordInput,
+            error ? styles.inputError : {},
+            {borderColor: error ? theme.colors.error : '#ddd'},
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -158,13 +165,16 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           autoCorrect={false}
-          zIndex={1}
+          importantForAccessibility="auto"
         />
-        <Text
-          style={[styles.toggleButton, {color: theme.colors.primary}]}
-          onPress={togglePasswordVisibility}>
-          {secureTextEntry ? '👁️' : '🙈'}
-        </Text>
+        <TouchableOpacity
+          onPress={togglePasswordVisibility}
+          style={styles.toggleButton}
+          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+          <Text style={[styles.toggleButtonText, {color: theme.colors.primary}]}>
+            {secureTextEntry ? '👁️' : '🙈'}
+          </Text>
+        </TouchableOpacity>
       </View>
       {error && <Text style={[styles.errorText, {color: theme.colors.error}]}>{error}</Text>}
     </View>
@@ -174,18 +184,14 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
-    position: 'relative',
-    zIndex: 1,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
-    zIndex: 1,
   },
   inputWrapper: {
     position: 'relative',
-    zIndex: 1,
   },
   input: {
     borderWidth: 1,
@@ -194,49 +200,27 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     backgroundColor: '#fff',
-    paddingRight: 45, // 为状态图标留出空间
-    zIndex: 1,
+    minHeight: 46,
   },
   inputError: {
     borderWidth: 2,
-    zIndex: 1,
-  },
-  inputValid: {
-    borderWidth: 1,
-    zIndex: 1,
+    borderColor: '#d32f2f',
   },
   inputDisabled: {
     backgroundColor: '#f5f5f5',
     color: '#999',
-    zIndex: 1,
   },
-  rightContainer: {
+  externalStatusIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 14,
+    fontSize: 16,
+  },
+  externalRight: {
     position: 'absolute',
     right: 12,
     top: 12,
-    height: 46,
-    justifyContent: 'center',
     zIndex: 2,
-  },
-  statusIconContainer: {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    width: 30,
-    height: 46,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-    pointerEvents: 'none', // 关键：让点击穿透到输入框
-  },
-  successIcon: {
-    fontSize: 18,
-    color: '#4caf50',
-    fontWeight: 'bold',
-  },
-  validatingText: {
-    fontSize: 10,
-    color: '#999',
   },
   errorContainer: {
     flexDirection: 'row',
@@ -246,42 +230,40 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 6,
-    zIndex: 1,
   },
   errorText: {
     flex: 1,
     fontSize: 12,
-    zIndex: 1,
   },
   clearErrorButton: {
     padding: 4,
-    zIndex: 2,
   },
   clearErrorText: {
     fontSize: 14,
     fontWeight: 'bold',
   },
-  passwordContainer: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    zIndex: 1,
+    paddingRight: 8,
   },
   passwordInput: {
     flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     fontSize: 16,
-    padding: 0,
-    zIndex: 1,
+    minHeight: 46,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
   toggleButton: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-    color: '#007bff',
-    zIndex: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
+  toggleButtonText: {
+    fontSize: 20,
   },
 });
