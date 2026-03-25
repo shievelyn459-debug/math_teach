@@ -7,7 +7,7 @@ import {
   KNOWLEDGE_POINTS_DATABASE,
   getFallbackKnowledgePoint,
 } from '../database/knowledgePoints';
-import {AsyncStorage} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * 知识点识别服务
@@ -43,6 +43,28 @@ export class KnowledgePointService {
       KnowledgePointService.instance = new KnowledgePointService();
     }
     return KnowledgePointService.instance;
+  }
+
+  // 静态方法包装器，用于支持测试中的静态调用方式
+  static async recognizeKnowledgePoints(questionText: string) {
+    return KnowledgePointService.getInstance().recognizeKnowledgePoints(questionText);
+  }
+
+  static getKnowledgePointById(id: string) {
+    return KnowledgePointService.getInstance().getKnowledgePointById(id);
+  }
+
+  static getAllKnowledgePoints() {
+    return KnowledgePointService.getInstance().getAllKnowledgePoints();
+  }
+
+  static async submitKnowledgePointFeedback(feedback: {
+    originalKnowledgePointId: string;
+    correctedKnowledgePointId: string;
+    questionText: string;
+    timestamp: Date;
+  }) {
+    return KnowledgePointService.getInstance().submitKnowledgePointFeedback(feedback);
   }
 
   /**
@@ -148,7 +170,9 @@ export class KnowledgePointService {
 
     // 检查每个关键词
     kp.keywords.forEach(keyword => {
-      if (text.includes(keyword.toLowerCase())) {
+      const lowerKeyword = keyword.toLowerCase();
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes(lowerKeyword)) {
         matchedKeywords.push(keyword);
         matchScore += 1;
       }
@@ -173,7 +197,7 @@ export class KnowledgePointService {
       text.includes('×') ||
       text.includes('÷');
     if (hasCoreSymbol && matchedKeywords.length >= 1) {
-      confidence = Math.min(confidence + 0.2, 1.0);
+      confidence = Math.min(confidence + 0.5, 1.0); // 提高到0.5，让运算符优先
     }
 
     // AC3改进：检查是否存在子知识点匹配，如果存在则降低父知识点置信度
@@ -456,5 +480,6 @@ export class KnowledgePointService {
   }
 }
 
-// 导出单例实例
+// 导出类和单例实例
+export {KnowledgePointService};
 export default KnowledgePointService.getInstance();

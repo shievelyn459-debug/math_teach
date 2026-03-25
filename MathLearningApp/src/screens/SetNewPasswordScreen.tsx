@@ -10,7 +10,7 @@ import {
 import {Button, Card, useTheme} from 'react-native-paper';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 
-import {PasswordInput} from '../components/PasswordInput';
+import {PasswordInput} from '../components/FormInput';
 import {passwordResetService} from '../services/passwordResetService';
 
 type SetNewPasswordScreenProps = NativeStackScreenProps<any, 'SetNewPassword'>;

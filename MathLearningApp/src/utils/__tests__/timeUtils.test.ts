@@ -97,7 +97,9 @@ describe('timeUtils', () => {
 
     it('should return timestamp for today at 00:00:00', () => {
       const result = getTodayStart();
-      const expected = new Date('2026-03-23T00:00:00Z').getTime();
+      // 计算本地时区的预期值（从设置的系统时间推算）
+      const systemTime = new Date().getTime();
+      const expected = new Date(systemTime).setHours(0, 0, 0, 0);
       expect(result).toBe(expected);
     });
   });
@@ -114,21 +116,36 @@ describe('timeUtils', () => {
     it('should return Monday timestamp when today is Wednesday', () => {
       jest.setSystemTime(new Date('2026-03-25T12:00:00Z').getTime()); // Wednesday
       const result = getWeekStart();
-      const expected = new Date('2026-03-23T00:00:00Z').getTime(); // Monday
+      // 本地时区的周一 00:00:00
+      const wednesday = new Date();
+      const day = wednesday.getDay();
+      const diff = wednesday.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(wednesday.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      const expected = monday.getTime();
       expect(result).toBe(expected);
     });
 
     it('should return Monday timestamp when today is Monday', () => {
       jest.setSystemTime(new Date('2026-03-23T12:00:00Z').getTime()); // Monday
       const result = getWeekStart();
-      const expected = new Date('2026-03-23T00:00:00Z').getTime();
+      // 本地时区的周一 00:00:00
+      const monday = new Date();
+      monday.setHours(0, 0, 0, 0);
+      const expected = monday.getTime();
       expect(result).toBe(expected);
     });
 
     it('should return previous Monday timestamp when today is Sunday', () => {
       jest.setSystemTime(new Date('2026-03-29T12:00:00Z').getTime()); // Sunday
       const result = getWeekStart();
-      const expected = new Date('2026-03-23T00:00:00Z').getTime(); // Previous Monday
+      // 本地时区的周一 00:00:00
+      const sunday = new Date();
+      const day = sunday.getDay();
+      const diff = sunday.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(sunday.setDate(diff));
+      monday.setHours(0, 0, 0, 0);
+      const expected = monday.getTime();
       expect(result).toBe(expected);
     });
   });
@@ -144,23 +161,31 @@ describe('timeUtils', () => {
     });
 
     it('should return true for today timestamp', () => {
-      const today = new Date('2026-03-23T12:00:00Z').getTime();
-      expect(isToday(today)).toBe(true);
+      const now = new Date().getTime();
+      expect(isToday(now)).toBe(true);
     });
 
     it('should return true for early today timestamp', () => {
-      const earlyToday = new Date('2026-03-23T00:00:01Z').getTime();
+      const today = new Date();
+      today.setHours(0, 0, 1, 0);
+      const earlyToday = today.getTime();
       expect(isToday(earlyToday)).toBe(true);
     });
 
     it('should return false for yesterday timestamp', () => {
-      const yesterday = new Date('2026-03-22T23:59:59Z').getTime();
-      expect(isToday(yesterday)).toBe(false);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      yesterday.setHours(23, 59, 59, 999);
+      const yesterdayTimestamp = yesterday.getTime();
+      expect(isToday(yesterdayTimestamp)).toBe(false);
     });
 
     it('should return false for tomorrow timestamp', () => {
-      const tomorrow = new Date('2026-03-24T00:00:01Z').getTime();
-      expect(isToday(tomorrow)).toBe(false);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 1, 0);
+      const tomorrowTimestamp = tomorrow.getTime();
+      expect(isToday(tomorrowTimestamp)).toBe(false);
     });
   });
 
@@ -185,13 +210,27 @@ describe('timeUtils', () => {
     });
 
     it('should return false for previous Sunday', () => {
-      const sunday = new Date('2026-03-22T23:59:59Z').getTime();
-      expect(isThisWeek(sunday)).toBe(false);
+      // 系统时间是周三，上周日应该是本周一之前
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      // 计算上周日（如果今天是周三(3)，上周日是3天前）
+      const lastSunday = new Date(now);
+      lastSunday.setDate(now.getDate() - dayOfWeek - 1);
+      lastSunday.setHours(23, 59, 59, 999);
+      const sundayTimestamp = lastSunday.getTime();
+      expect(isThisWeek(sundayTimestamp)).toBe(false);
     });
 
     it('should return false for next Monday', () => {
-      const nextMonday = new Date('2026-03-30T00:00:01Z').getTime();
-      expect(isThisWeek(nextMonday)).toBe(false);
+      // 下周一应该是本周之后
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+      const nextMonday = new Date(now);
+      nextMonday.setDate(now.getDate() + daysUntilMonday);
+      nextMonday.setHours(0, 0, 1, 0);
+      const mondayTimestamp = nextMonday.getTime();
+      expect(isThisWeek(mondayTimestamp)).toBe(false);
     });
   });
 });

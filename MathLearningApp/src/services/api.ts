@@ -293,7 +293,7 @@ function redactSensitiveData(obj: any): any {
   const redacted: any = {};
   for (const [key, value] of Object.entries(obj)) {
     const lowerKey = key.toLowerCase();
-    const isSensitive = SENSITIVE_FIELDS.some(field => lowerKey.includes(field));
+    const isSensitive = SENSITIVE_FIELDS.some(field => lowerKey.includes(field.toLowerCase()));
 
     if (isSensitive) {
       redacted[key] = '[REDACTED]';
@@ -1542,6 +1542,13 @@ export const explanationApi = {
       };
     }
   },
+};
+
+// Export internal testing utilities for security testing
+export const __testing__ = {
+  redactSensitiveData,
+  safeLogError,
+  requestWithRetry,
 };
 
 export default {

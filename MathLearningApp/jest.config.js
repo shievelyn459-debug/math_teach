@@ -1,7 +1,11 @@
 module.exports = {
   preset: 'react-native',
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['module:metro-react-native-babel-preset'] }],
+  },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-native-community|react-native-camera|@react-navigation|react-native-paper|react-native-vector-icons|@react-native-async-storage|react-native-pdf-lib|react-native-fs|react-native-share|expo-print|expo-file-system|expo-asset)/)',
+    // Transform all React Native and related packages
+    'node_modules/(?!(?:react-native|@react-native|@react-native-community|@react-navigation|react-native-camera|react-native-paper|react-native-vector-icons|@react-native-async-storage|react-native-pdf-lib|react-native-fs|react-native-share|expo-|@expo|react-native-gesture-handler|react-native-reanimated|react-native-screens|react-native-safe-area-context|react-native-blob-util|react-native-config|react-native-elements|react-native-image-picker|react-native-permissions|react-native-snap-carousel|react-native-tesseract-ocr)/)',
   ],
   setupFiles: ['./node_modules/react-native/jest/setup.js', './jest.setup.js'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],

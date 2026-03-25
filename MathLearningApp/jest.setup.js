@@ -80,3 +80,67 @@ jest.mock('@react-native-community/netinfo', () => ({
   addEventListener: jest.fn(() => jest.fn()),
   removeEventListener: jest.fn(),
 }));
+
+// Mock expo-crypto
+jest.mock('expo-crypto', () => ({
+  digestStringAsync: jest.fn((algorithm, value) =>
+    Promise.resolve(`mocked-${algorithm}-${value}`)
+  ),
+  getRandomBytesAsync: jest.fn(() => Promise.resolve(new Uint8Array([1, 2, 3]))),
+}));
+
+// Mock expo-file-system
+jest.mock('expo-file-system', () => ({
+  documentDirectory: '/mock/document/',
+  cacheDirectory: '/mock/cache/',
+  readAsStringAsync: jest.fn(),
+  writeAsStringAsync: jest.fn(),
+  deleteAsync: jest.fn(),
+  makeDirectoryAsync: jest.fn(),
+  getDocumentAsync: jest.fn(),
+}));
+
+// Mock expo-print
+jest.mock('expo-print', () => ({
+  printToFileAsync: jest.fn(() => Promise.resolve({ uri: '/mock/print.pdf' })),
+}));
+
+// Mock expo-image-manipulator
+jest.mock('expo-image-manipulator', () => ({
+  manipulateAsync: jest.fn(() => Promise.resolve({
+    uri: '/mock/manipulated.png',
+    width: 100,
+    height: 100,
+  })),
+}));
+
+// Mock react-native-config
+jest.mock('react-native-config', () => ({
+  API_BASE_URL: 'http://mock-api.example.com',
+  MYSQL_HOST: 'localhost',
+  MYSQL_DATABASE: 'test_db',
+}));
+
+// Mock react-native-blob-util
+jest.mock('react-native-blob-util', () => ({
+  fetch: jest.fn(),
+  fs: {
+    dirs: {
+      DocumentDir: '/mock/documents',
+      CacheDir: '/mock/cache',
+    },
+    exists: jest.fn(),
+    mkdir: jest.fn(),
+    unlink: jest.fn(),
+  },
+}));
+
+// Mock SettingsManager TurboModule
+jest.mock('react-native/Libraries/Settings/NativeSettingsManager', () => ({
+  getConstants: () => ({
+    settingsTheme: 'light',
+  }),
+}));
+
+// Mock react-native-pdf
+jest.mock('react-native-pdf', () => 'PDF');

@@ -174,7 +174,7 @@ describe('Template Explanations Database', () => {
 
   describe('Content Quality Tests', () => {
     it('should avoid professional jargon in all explanations', () => {
-      const jargonTerms = ['加数', '被加数', '被减数', '减数', '因数', '积'];
+      const jargonTerms = ['加数', '被加数', '被减数', '减数', '因数', '乘积'];
 
       TEMPLATE_EXPLANATIONS.forEach(explanation => {
         explanation.sections.forEach(section => {

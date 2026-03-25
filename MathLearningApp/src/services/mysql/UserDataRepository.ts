@@ -1,4 +1,5 @@
 import {prisma, transaction} from './prismaClient';
+import {Prisma} from '@prisma/client';
 import {User as PrismaUser} from '@prisma/client';
 import {User} from '../../types';
 import {validateEmail, validatePhone} from '../../utils/validationUtils';
@@ -138,12 +139,6 @@ export class UserDataRepository {
       updateData.difficulty = data.difficulty;
     }
 
-    // 修复P1-8: 检查用户是否存在
-    const exists = await this.existsByUserId(userId);
-    if (!exists) {
-      throw new UserNotFoundError(userId);
-    }
-
     const user = await prisma.user.update({
       where: {userId},
       data: updateData,
@@ -192,19 +187,37 @@ export class UserDataRepository {
 
   /**
    * 记录失败登录尝试（增加计数器）
+   * 修复P1-6: 添加整数溢出检查
    * @param userId 用户ID
    * @returns 更新后的失败尝试次数
    */
   async incrementFailedAttempts(userId: string): Promise<number> {
-    const user = await prisma.user.update({
-      where: {userId},
-      data: {
-        failedLoginAttempts: {increment: 1},
-      },
-      select: {failedLoginAttempts: true},
-    });
+    const MAX_ATTEMPTS = 2147483647; // Max safe integer for signed 32-bit
 
-    return user.failedLoginAttempts;
+    try {
+      const user = await prisma.user.update({
+        where: {userId},
+        data: {
+          failedLoginAttempts: {increment: 1},
+        },
+        select: {failedLoginAttempts: true},
+      });
+
+      // 修复P1-6: 检查是否接近最大值
+      if (user.failedLoginAttempts >= MAX_ATTEMPTS - 1) {
+        // 接近最大值，锁定账户
+        await this.lockAccount(userId);
+        logger.warn('UserDataRepository', `Failed attempts counter at max value, locking account`);
+      }
+
+      return user.failedLoginAttempts;
+    } catch (error: any) {
+      // 处理Prisma错误
+      if (error.code === 'P2025') {
+        throw new UserNotFoundError(userId);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -288,6 +301,7 @@ export class UserDataRepository {
 
   /**
    * 将Prisma User映射到Application User
+   * 修复P1-7: 添加email的空值检查
    * @param prismaUser Prisma User对象
    * @returns Application User对象
    */
@@ -295,7 +309,8 @@ export class UserDataRepository {
     return {
       id: prismaUser.userId,
       name: prismaUser.name || '',
-      email: prismaUser.email,
+      // 修复P1-7: 添加email的空值安全处理
+      email: prismaUser.email || '',
       phone: prismaUser.phone || undefined,
       avatar: undefined, // Prisma暂不支持avatar字段
       createdAt: prismaUser.createdAt,

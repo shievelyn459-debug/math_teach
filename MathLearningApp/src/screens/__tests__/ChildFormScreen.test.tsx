@@ -19,11 +19,44 @@ jest.mock('../../services/api', () => ({
   },
 }));
 
+jest.mock('../../services/activeChildService', () => {
+  const {Grade} = require('../../types');
+  return {
+    activeChildService: {
+      waitForInitialization: jest.fn().mockResolvedValue(undefined),
+      getActiveChildId: jest.fn().mockReturnValue('child-1'),
+      getActiveChild: jest.fn().mockReturnValue({
+        id: 'child-1',
+        parentId: 'user-1',
+        name: '小明',
+        grade: Grade.GRADE_3,
+        birthday: new Date('2016-05-15'),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+      getAllGrades: jest.fn().mockReturnValue([
+        Grade.GRADE_1,
+        Grade.GRADE_2,
+        Grade.GRADE_3,
+        Grade.GRADE_4,
+        Grade.GRADE_5,
+        Grade.GRADE_6,
+      ]),
+    },
+  };
+});
+
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: jest.fn(),
     goBack: jest.fn(),
   }),
+}));
+
+jest.mock('react-native', () => ({
+  Alert: {
+    alert: jest.fn(),
+  },
 }));
 
 describe('ChildFormScreen', () => {

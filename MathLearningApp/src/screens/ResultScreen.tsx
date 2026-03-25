@@ -133,7 +133,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({
           <Text style={styles.resultLabel}>难度等级：</Text>
           <Text style={styles.resultValue}>{difficulty}</Text>
         </View>
-        <View style={styles.resultRow}>
+        <View style={styles.resultRow} testID="confidence-display">
           <Text style={styles.resultLabel}>识别置信度：</Text>
           <Text style={styles.resultValue}>
             {Math.round(recognitionResult.confidence * 100)}%

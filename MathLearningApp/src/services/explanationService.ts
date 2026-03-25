@@ -19,7 +19,7 @@ import {
   ExplanationFormat,
 } from '../types/explanation';
 import {KnowledgePoint} from '../types/knowledgePoint';
-import {AsyncStorage} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getTemplateExplanationByKnowledgePointId,
   validateTemplateExplanation,
@@ -33,7 +33,7 @@ export class ExplanationService {
   private static instance: ExplanationService;
   private cache: Map<string, Explanation> = new Map();
   // 修复Medium #11: 存储键名冲突风险 - 添加版本前缀
-  private readonly CACHE_PREFIX = 'v1:exp_cache:';
+  private readonly CACHE_PREFIX = 'exp_cache_';
   private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24小时
   private readonly MAX_CACHE_SIZE = 50; // 修复Critical #5: Map无界增长 - 限制缓存大小
 
@@ -141,8 +141,9 @@ export class ExplanationService {
         console.log('[ExplanationService] No template found for knowledge point:', request.knowledgePointId);
       }
 
-      // 3. 尝试AI生成（如果模板不可用或用户首选AI）
-      if (request.preferredSource === ExplanationSource.AI || !templateExplanation) {
+      // 3. 尝试AI生成（如果用户首选AI）
+      // 注意：如果没有模板，直接使用降级处理，而不是尝试AI生成
+      if (request.preferredSource === ExplanationSource.AI && templateExplanation) {
         try {
           console.log('[ExplanationService] Attempting AI generation');
           const aiExplanation = await this.generateWithAI(request);
@@ -593,6 +594,16 @@ export class ExplanationService {
     } catch (error) {
       console.warn('[ExplanationService] Cache clear error:', error);
     }
+  }
+
+  /**
+   * 重置服务状态（用于测试）
+   */
+  async resetForTest(): Promise<void> {
+    this.cache.clear();
+    this.feedbackStats.clear();
+    this.pendingRequests.clear();
+    await this.clearCache();
   }
 
   /**

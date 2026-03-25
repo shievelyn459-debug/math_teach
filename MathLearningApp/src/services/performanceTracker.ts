@@ -35,12 +35,15 @@ export interface PerformanceMetrics {
 }
 
 // 每个阶段的时间预算（毫秒）
-export const STAGE_TIMEOUTS = {
-  [ProcessingStage.UPLOADING]: 5000, // 5秒
-  [ProcessingStage.RECOGNIZING]: 8000, // 8秒
-  [ProcessingStage.CORRECTION]: Infinity, // 用户控制，无超时
-  [ProcessingStage.DIFFICULTY_SELECTION]: Infinity, // 用户控制，无超时
-  [ProcessingStage.GENERATING]: 12000, // 12秒
+export const STAGE_TIMEOUTS: Record<string, number> = {
+  idle: 0,
+  uploading: 5000, // 5秒
+  recognizing: 8000, // 8秒
+  correction: Infinity, // 用户控制，无超时
+  difficulty_selection: Infinity, // 用户控制，无超时
+  generating: 12000, // 12秒
+  completed: 0,
+  error: 0,
 };
 
 // 警告阈值（毫秒）

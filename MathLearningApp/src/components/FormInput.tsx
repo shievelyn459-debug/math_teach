@@ -91,7 +91,7 @@ export const FormInput: React.FC<FormInputProps> = ({
         {/* 验证状态图标 - 移到输入框外部，不影响输入 */}
         {!error && value.length > 0 && showSuccessIcon && !right && (
           <Text style={styles.externalStatusIcon}>
-            {validating ? '⏳' : valid ? '✓' : ''}
+            {validating ? '验证中...' : valid ? '✓' : ''}
           </Text>
         )}
       </View>
@@ -172,7 +172,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           style={styles.toggleButton}
           hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
           <Text style={[styles.toggleButtonText, {color: theme.colors.primary}]}>
-            {secureTextEntry ? '👁️' : '🙈'}
+            {secureTextEntry ? '显示' : '隐藏'}
           </Text>
         </TouchableOpacity>
       </View>

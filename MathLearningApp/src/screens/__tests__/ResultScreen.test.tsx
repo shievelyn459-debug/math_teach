@@ -1,5 +1,5 @@
 import React from 'react';
-import {render, fireEvent, waitFor} from '@testing-library/react-native';
+import {render, fireEvent, waitFor, getAllByText} from '@testing-library/react-native';
 import ResultScreen from '../ResultScreen';
 import {RecognitionResult} from '../../types';
 import {QuestionType, Difficulty} from '../../types';
@@ -85,7 +85,7 @@ describe('ResultScreen', () => {
   });
 
   it('应该显示置信度 (AC: 4)', () => {
-    const {getByText} = render(
+    const {getByTestId, getAllByText} = render(
       <ResultScreen
         recognitionResult={mockRecognitionResult}
         isLoading={false}
@@ -94,7 +94,11 @@ describe('ResultScreen', () => {
       />
     );
 
-    expect(getByText('85%')).toBeTruthy();
+    // 验证置信度显示元素存在
+    expect(getByTestId('confidence-display')).toBeTruthy();
+    // 验证置信度值显示（有多个85%，至少有一个在结果区域）
+    const confidence85Elements = getAllByText('85%');
+    expect(confidence85Elements.length).toBeGreaterThanOrEqual(1);
   });
 
   it('点击知识点应该导航到详细讲解 (AC: 6)', () => {

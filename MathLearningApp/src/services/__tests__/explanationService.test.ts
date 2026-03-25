@@ -4,6 +4,20 @@
  * Task 2 & 7: Implement AI-powered explanation generation and comprehensive tests
  */
 
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: jest.fn() as jest.Mock,
+    setItem: jest.fn() as jest.Mock,
+    multiRemove: jest.fn() as jest.Mock,
+    getAllKeys: jest.fn() as jest.Mock,
+    removeItem: jest.fn() as jest.Mock,
+  },
+  __esModule: true,
+}));
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import {
   ExplanationService,
   getExplanationService,
@@ -14,23 +28,13 @@ import {
   ExplanationFeedback,
   ExplanationSectionType,
 } from '../../types/explanation';
-import {AsyncStorage} from 'react-native';
-
-// Mock AsyncStorage
-jest.mock('react-native', () => ({
-  AsyncStorage: {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    multiRemove: jest.fn(),
-    getAllKeys: jest.fn(),
-  },
-}));
 
 describe('ExplanationService', () => {
   let service: ExplanationService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     service = ExplanationService.getInstance();
+    await service.resetForTest();
     jest.clearAllMocks();
   });
 

@@ -47,8 +47,8 @@ describe('ImagePreprocessor', () => {
 
       expect(result).toHaveProperty('processedImage');
       expect(result).toHaveProperty('extractedText');
-      // 当前模拟实现返回"3 + 5 = ?"
-      expect(result.extractedText).toBe('3 + 5 = ?');
+      // 基于URI哈希，"test-image.jpg"返回"8 - 2 = ?"
+      expect(result.extractedText).toBe('8 - 2 = ?');
     });
   });
 

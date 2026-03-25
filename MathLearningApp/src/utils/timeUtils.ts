@@ -101,7 +101,9 @@ export const getWeekStart = (): number => {
  * @returns 是否为今天
  */
 export const isToday = (timestamp: number): boolean => {
-  return timestamp >= getTodayStart();
+  const todayStart = getTodayStart();
+  const tomorrowStart = todayStart + 24 * 60 * 60 * 1000;
+  return timestamp >= todayStart && timestamp < tomorrowStart;
 };
 
 /**
@@ -110,5 +112,8 @@ export const isToday = (timestamp: number): boolean => {
  * @returns 是否为本周
  */
 export const isThisWeek = (timestamp: number): boolean => {
-  return timestamp >= getWeekStart();
+  const weekStart = getWeekStart();
+  // 计算下周开始（7天后）
+  const nextWeekStart = weekStart + 7 * 24 * 60 * 60 * 1000;
+  return timestamp >= weekStart && timestamp < nextWeekStart;
 };

@@ -69,61 +69,60 @@ const DifficultySelector: React.FC<DifficultySelectorProps> = ({
             </View>
           )}
 
-          {isLoading ? (
+          {isLoading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#2196f3" />
               <Text style={styles.loadingText}>加载偏好设置中...</Text>
             </View>
-          ) : (
-            DIFFICULTY_LEVELS.map((levelObj) => {
-              const isRecommended = levelObj.level === recommendedDifficulty;
-              const isSelected = levelObj.level === currentDifficulty;
-
-              return (
-                <TouchableOpacity
-                  key={levelObj.level}
-                  testID={`difficulty-option-${levelObj.level}`}
-                  style={[
-                    styles.difficultyOption,
-                    isSelected && styles.difficultyOptionSelected,
-                  ]}
-                  onPress={() => onSelect(levelObj.level)}
-                  disabled={isLoading}>
-                  {isRecommended && !isSelected && (
-                    <View style={styles.recommendationTag}>
-                      <Text style={styles.recommendationTagText}>推荐</Text>
-                    </View>
-                  )}
-                  <View style={styles.difficultyHeader}>
-                    <Text
-                      style={[
-                        styles.difficultyLabel,
-                        isSelected && styles.difficultyLabelSelected,
-                      ]}>
-                      {levelObj.label}
-                    </Text>
-                    {isSelected && (
-                      <Text style={styles.selectedCheck}>✓</Text>
-                    )}
-                  </View>
-                  <Text
-                    style={[
-                      styles.difficultyDescription,
-                      isSelected && styles.difficultyDescriptionSelected,
-                    ]}>
-                    {levelObj.description}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.difficultyDetail,
-                      isSelected && styles.difficultyDetailSelected,
-                    ]}>
-                    {levelObj.detail}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
           )}
+          {DIFFICULTY_LEVELS.map((levelObj) => {
+            const isRecommended = levelObj.level === recommendedDifficulty;
+            const isSelected = levelObj.level === currentDifficulty;
+
+            return (
+              <TouchableOpacity
+                key={levelObj.level}
+                testID={`difficulty-option-${levelObj.level}`}
+                style={[
+                  styles.difficultyOption,
+                  isSelected && styles.difficultyOptionSelected,
+                ]}
+                onPress={() => onSelect(levelObj.level)}
+                disabled={isLoading}>
+                {isRecommended && !isSelected && (
+                  <View style={styles.recommendationTag}>
+                    <Text style={styles.recommendationTagText}>推荐</Text>
+                  </View>
+                )}
+                <View style={styles.difficultyHeader}>
+                  <Text
+                    style={[
+                      styles.difficultyLabel,
+                      isSelected && styles.difficultyLabelSelected,
+                    ]}>
+                    {levelObj.label}
+                  </Text>
+                  {isSelected && (
+                    <Text style={styles.selectedCheck}>✓</Text>
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.difficultyDescription,
+                    isSelected && styles.difficultyDescriptionSelected,
+                  ]}>
+                  {levelObj.description}
+                </Text>
+                <Text
+                  style={[
+                    styles.difficultyDetail,
+                    isSelected && styles.difficultyDetailSelected,
+                  ]}>
+                  {levelObj.detail}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
 
           <TouchableOpacity
             style={styles.cancelButton}
