@@ -115,6 +115,7 @@ const HomeScreen = ({navigation}: any) => {
    */
   const handleUploadImage = async () => {
     try {
+      console.log('[HomeScreen] Upload image button pressed');
       setIsUploading(true);
 
       const result = await launchImageLibrary({
@@ -122,7 +123,10 @@ const HomeScreen = ({navigation}: any) => {
         selectionLimit: 1,
         includeBase64: true,
         quality: 0.8,
+        presentationStyle: 'pageSheet',
       });
+
+      console.log('[HomeScreen] Image picker result:', result);
 
       if (result.didCancel) {
         console.log('[HomeScreen] User cancelled image picker');
@@ -148,7 +152,7 @@ const HomeScreen = ({navigation}: any) => {
         });
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      console.error('[HomeScreen] Error picking image:', error);
       Alert.alert('错误', '选择图片失败，请重试');
     } finally {
       setIsUploading(false);
@@ -187,36 +191,38 @@ const HomeScreen = ({navigation}: any) => {
 
       {/* 功能入口区域 - 两个并排卡片 */}
       <View style={styles.actionCardsContainer}>
-        <Card style={styles.actionCard} onPress={() => navigation?.navigate('Camera')}>
+        {/* 左侧：拍照上传 */}
+        <TouchableOpacity
+          style={styles.actionCardLeft}
+          onPress={() => navigation?.navigate('Camera')}
+          activeOpacity={0.9}>
           <View style={styles.actionCardContent}>
-            <View style={styles.actionIconContainer}>
-              <Icon name="camera-alt" size={36} color="#007bff" />
+            <View style={styles.actionIconContainerLeft}>
+              <Icon name="camera-alt" size={32} color="#2196F3" />
             </View>
-            <Title style={styles.actionCardTitle}>拍照上传</Title>
-            <Paragraph style={styles.actionCardText}>
-              拍摄题目自动识别
-            </Paragraph>
+            <Text style={styles.actionCardTitleLeft}>拍照上传</Text>
+            <Text style={styles.actionCardTextLeft}>拍摄题目自动识别</Text>
           </View>
-        </Card>
+        </TouchableOpacity>
 
-        <Card
-          style={[styles.actionCard, isUploading && styles.actionCardDisabled]}
+        {/* 右侧：上传图片 */}
+        <TouchableOpacity
+          style={[styles.actionCardRight, isUploading && styles.actionCardDisabled]}
           onPress={handleUploadImage}
-          disabled={isUploading}>
+          disabled={isUploading}
+          activeOpacity={0.9}>
           <View style={styles.actionCardContent}>
-            <View style={styles.actionIconContainer}>
+            <View style={styles.actionIconContainerRight}>
               {isUploading ? (
-                <ActivityIndicator size={36} color="#28a745" />
+                <ActivityIndicator size={28} color="#4CAF50" />
               ) : (
-                <Icon name="photo-library" size={36} color="#28a745" />
+                <Icon name="photo-library" size={32} color="#4CAF50" />
               )}
             </View>
-            <Title style={styles.actionCardTitle}>上传图片</Title>
-            <Paragraph style={styles.actionCardText}>
-              从相册选择识别
-            </Paragraph>
+            <Text style={styles.actionCardTitleRight}>上传图片</Text>
+            <Text style={styles.actionCardTextRight}>从相册选择识别</Text>
           </View>
-        </Card>
+        </TouchableOpacity>
       </View>
 
       {/* 最近练习部分 */}
@@ -349,40 +355,103 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
-    marginTop: 10,
-    marginBottom: 5,
+    marginTop: 15,
+    marginBottom: 10,
+    gap: 10,
   },
-  actionCard: {
+  // 左侧拍照上传卡片
+  actionCardLeft: {
     flex: 1,
-    marginHorizontal: 5,
-    borderRadius: 12,
-    elevation: 4,
+    height: 140,
+    borderRadius: 16,
+    backgroundColor: '#E3F2FD',
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  // 右侧上传图片卡片
+  actionCardRight: {
+    flex: 1,
+    height: 140,
+    borderRadius: 16,
+    backgroundColor: '#E8F5E9',
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   actionCardDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   actionCardContent: {
     alignItems: 'center',
     paddingVertical: 20,
+    flex: 1,
+    justifyContent: 'center',
   },
-  actionIconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#f0f8ff',
+  // 左侧图标容器
+  actionIconContainerLeft: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  actionCardTitle: {
-    fontSize: 16,
+  // 右侧图标容器
+  actionIconContainerRight: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  // 左侧标题
+  actionCardTitleLeft: {
+    fontSize: 17,
     fontWeight: 'bold',
+    color: '#1565C0',
+    marginTop: 12,
     textAlign: 'center',
   },
-  actionCardText: {
-    fontSize: 13,
+  // 右侧标题
+  actionCardTitleRight: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+    marginTop: 12,
     textAlign: 'center',
-    color: '#666',
+  },
+  // 左侧说明文字
+  actionCardTextLeft: {
+    fontSize: 13,
+    color: '#546E7A',
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  // 右侧说明文字
+  actionCardTextRight: {
+    fontSize: 13,
+    color: '#546E7A',
+    textAlign: 'center',
     marginTop: 4,
   },
   emptyText: {
