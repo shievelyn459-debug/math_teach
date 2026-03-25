@@ -16,6 +16,11 @@ import {
 import {KnowledgePointService} from './knowledgePointService';
 import {getExplanationService} from './explanationService';
 import {ExplanationSource} from '../types/explanation';
+import {aiService} from './ai';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Story 6-3: 导入新的MySQL版childApi
+export { childApi } from './childApi';
 
 /**
  * 类型守卫：检查API响应是否成功
@@ -47,6 +52,53 @@ export function getApiDataOrThrow<T>(response: ApiResponse<T>): T {
 // API基础配置
 const API_BASE_URL = 'https://api.math-learning.com/v1';
 const DEFAULT_TIMEOUT = 30000; // 默认30秒超时
+
+/**
+ * 将图片URI转换为base64格式
+ * 使用expo-file-system以支持React Native文件系统
+ */
+async function uriToBase64(uri: string): Promise<string> {
+  try {
+    console.log('[uriToBase64] Converting URI to base64:', uri);
+
+    // 动态导入FileSystem以避免在非React Native环境中的问题
+    const FileSystem = await import('expo-file-system');
+
+    // 检查文件是否存在
+    const fileInfo = await FileSystem.FileSystem.getInfoAsync(uri);
+    console.log('[uriToBase64] File exists:', fileInfo.exists);
+    if (fileInfo.exists && fileInfo.size) {
+      console.log('[uriToBase64] File size:', fileInfo.size, 'bytes');
+    }
+
+    // 读取文件并转换为base64
+    const base64 = await FileSystem.FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.FileSystem.EncodingType.Base64,
+    });
+
+    console.log('[uriToBase64] Base64 string length:', base64.length);
+    console.log('[uriToBase64] Base64 preview (first 100 chars):', base64.substring(0, 100));
+
+    // 确定图片类型（默认jpeg）
+    let imageType = 'jpeg';
+    if (uri.includes('.png')) {
+      imageType = 'png';
+    } else if (uri.includes('.gif')) {
+      imageType = 'gif';
+    } else if (uri.includes('.webp')) {
+      imageType = 'webp';
+    }
+
+    // 构建data URL
+    const dataUrl = `data:image/${imageType};base64,${base64}`;
+    console.log('[uriToBase64] Conversion successful, data URL length:', dataUrl.length);
+
+    return dataUrl;
+  } catch (error) {
+    console.error('[uriToBase64] Failed to convert URI to base64:', error);
+    throw new Error(`Image conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
 
 // Story 1-5: 孩子管理API超时配置
 const CHILD_API_TIMEOUT = 3000; // 3秒超时 (AC9)
@@ -482,36 +534,40 @@ function getKnowledgePoint(questionType: QuestionType): string {
 }
 
 export const recognitionApi = {
-  // 上传图片并识别题目（带重试）
+  /**
+   * 上传图片并识别题目（使用百度OCR）
+   */
   recognizeQuestion: async (imageUri: string): Promise<ApiResponse<RecognitionResult>> => {
     try {
       // 使用图片优化器压缩图片
       const { imageOptimizer } = await import('../utils/imageOptimizer');
-      const optimized = await imageOptimizer.optimizeImage(imageUri);
+      const optimized = await imageOptimizer.optimizeImage(imageUri, undefined, true);
 
-      console.log(`[API] Uploading optimized image: ${optimized.uri}`);
+      console.log(`[API] Optimized image for OCR: ${optimized.uri}`);
 
-      const formData = new FormData();
-      formData.append('image', {
-        uri: optimized.uri,
-        type: 'image/jpeg',
-        name: 'question.jpg',
-      } as any);
+      // 转换为base64
+      const base64Data = await uriToBase64(optimized.uri);
 
-      const response = await requestWithRetry<RecognitionResult>(
-        '/questions/recognize',
-        {
-          method: 'POST',
-          body: formData,
-        },
-        STAGE_TIMEOUTS.UPLOAD,
-        {
-          ...DEFAULT_RETRY_CONFIG,
-          maxRetries: 2,
-        }
-      );
+      // 使用AI服务进行OCR识别
+      const ocrResult = await aiService.recognizeQuestion(base64Data);
 
-      return response;
+      // 获取知识点
+      const kpService = KnowledgePointService.getInstance();
+      const kpResult = await kpService.recognizeKnowledgePoints(ocrResult.extractedText);
+
+      const recognitionResult: RecognitionResult = {
+        questionType: ocrResult.questionType as QuestionType,
+        difficulty: mapConfidenceToDifficulty(ocrResult.confidence),
+        confidence: ocrResult.confidence,
+        knowledgePoint: kpResult.primaryKnowledgePoint.knowledgePoint.name,
+        knowledgePoints: kpResult,
+        extractedText: ocrResult.extractedText
+      };
+
+      return {
+        success: true,
+        data: recognitionResult
+      };
     } catch (error) {
       console.error('[API] Recognize question failed:', error);
       return {
@@ -524,60 +580,44 @@ export const recognitionApi = {
     }
   },
 
-  // 识别题目类型（本地处理，带超时）
+  /**
+   * 识别题目类型（使用百度OCR + 知识点识别）
+   */
   recognizeQuestionType: async (imageUri: string, onProgress?: ProgressCallback): Promise<ApiResponse<RecognitionResult>> => {
     try {
-      // 报告开始
       onProgress?.('recognizing', 0);
 
-      // 导入OCR服务
-      const { OCRService } = await import('./ocrService');
+      // 使用图片优化器压缩图片
+      const { imageOptimizer } = await import('../utils/imageOptimizer');
+      const optimized = await imageOptimizer.optimizeImage(imageUri, undefined, true);
 
-      // 处理图像并识别题目类型（带超时）
-      const resultPromise = OCRService.processImage(imageUri, {
-        enhance: true,
-        checkQuality: true
-      });
+      onProgress?.('recognizing', 20);
 
-      // 添加超时
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('识别超时')), STAGE_TIMEOUTS.RECOGNITION);
-      });
+      // 转换为base64
+      const base64Data = await uriToBase64(optimized.uri);
 
-      const result = await Promise.race([resultPromise, timeoutPromise]) as any;
+      // 使用AI服务进行OCR识别
+      const ocrResult = await aiService.recognizeQuestion(base64Data);
 
-      // 报告进度
-      onProgress?.('recognizing', 50);
+      onProgress?.('recognizing', 60);
 
-      // 验证提取的文本
-      const validation = OCRService.validateExtractedText(result.extractedText);
-
-      if (!validation.isValid) {
-        console.warn('Text validation issues:', validation.issues);
-      }
-
-      const recognitionResult: RecognitionResult = {
-        questionType: result.questionType,
-        difficulty: mapConfidenceToDifficulty(result.confidence),
-        confidence: result.confidence,
-        knowledgePoint: getKnowledgePoint(result.questionType),
-        extractedText: result.extractedText
-      };
-
-      // 识别知识点 (Story 3-1: AC 1, 5)
-      // 添加独立的超时保护，确保知识点识别在5秒内完成
+      // 识别知识点
       const kpService = KnowledgePointService.getInstance();
-      const kpPromise = kpService.recognizeKnowledgePoints(result.extractedText);
+      const kpPromise = kpService.recognizeKnowledgePoints(ocrResult.extractedText);
       const kpTimeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('知识点识别超时')), STAGE_TIMEOUTS.KNOWLEDGE_POINT);
       });
-
       const kpResult = await Promise.race([kpPromise, kpTimeoutPromise]) as any;
-      recognitionResult.knowledgePoints = kpResult;
-      // 更新knowledgePoint字段为主知识点名称
-      recognitionResult.knowledgePoint = kpResult.primaryKnowledgePoint.knowledgePoint.name;
 
-      // 报告完成
+      const recognitionResult: RecognitionResult = {
+        questionType: ocrResult.questionType as QuestionType,
+        difficulty: mapConfidenceToDifficulty(ocrResult.confidence),
+        confidence: ocrResult.confidence,
+        knowledgePoint: kpResult.primaryKnowledgePoint.knowledgePoint.name,
+        knowledgePoints: kpResult,
+        extractedText: ocrResult.extractedText
+      };
+
       onProgress?.('recognizing', 100);
 
       return {
@@ -719,16 +759,124 @@ export const recognitionApi = {
 
 // 题目生成API
 export const generationApi = {
-  // 生成同类型题目
-  generateQuestions: (request: GenerateRequest): Promise<ApiResponse<GenerateResult>> =>
-    request<GenerateResult>('/questions/generate', {
-      method: 'POST',
-      body: JSON.stringify(request)
-    }),
+  /**
+   * 生成同类型题目（使用DeepSeek）
+   */
+  generateQuestions: async (request: GenerateRequest): Promise<ApiResponse<GenerateResult>> => {
+    try {
+      console.log('[generationApi] Generating questions with request:', request);
 
-  // 获取知识点相关题目
-  getQuestionsByKnowledgePoint: (knowledgePoint: string, count: number = 10) =>
-    request<Question[]>(`/questions?knowledgePoint=${knowledgePoint}&count=${count}`),
+      // 获取活跃孩子的年级
+      const { activeChildService } = await import('./activeChildService');
+      await activeChildService.waitForInitialization();
+      const activeChild = activeChildService.getActiveChild();
+      const grade = activeChild?.grade || Grade.GRADE_1;
+
+      // 使用AI服务生成题目
+      // 默认生成5道题，如果没有指定数量
+      const count = request.count || 5;
+      const difficulty = request.difficulty || Difficulty.MEDIUM;
+
+      // 假设题目类型来自某个存储或配置
+      // 这里使用默认值，实际应从request或其他地方获取
+      const questionType = QuestionType.ADDITION; // 默认值
+
+      const generatedQuestions = await aiService.generateQuestions(
+        questionType,
+        difficulty,
+        count,
+        grade
+      );
+
+      // 转换为Question格式
+      const questions: Question[] = generatedQuestions.map((q, index) => ({
+        id: `generated_${Date.now()}_${index}`,
+        title: `题目 ${index + 1}`,
+        content: q.question,
+        type: questionType,
+        difficulty: difficulty,
+        grade: parseInt(grade) || 1,
+        knowledgePoint: getKnowledgePoint(questionType),
+        explanation: q.explanation,
+        answer: q.answer,
+        createdAt: new Date(),
+        userId: 'local', // 本地生成的题目
+      }));
+
+      return {
+        success: true,
+        data: {
+          questions,
+          totalTime: 0, // 本地生成，无网络时间
+        },
+      };
+    } catch (error) {
+      console.error('[generationApi] Failed to generate questions:', error);
+      return {
+        success: false,
+        error: {
+          code: 'GENERATION_FAILED',
+          message: error instanceof Error ? error.message : 'Failed to generate questions',
+        },
+      };
+    }
+  },
+
+  /**
+   * 获取知识点相关题目（使用DeepSeek生成）
+   */
+  getQuestionsByKnowledgePoint: async (knowledgePoint: string, count: number = 10) => {
+    // 使用AI服务生成相关题目
+    try {
+      const { activeChildService } = await import('./activeChildService');
+      await activeChildService.waitForInitialization();
+      const activeChild = activeChildService.getActiveChild();
+      const grade = activeChild?.grade || Grade.GRADE_1;
+
+      // 根据知识点判断题目类型
+      let questionType = QuestionType.ADDITION;
+      if (knowledgePoint.includes('减')) {
+        questionType = QuestionType.SUBTRACTION;
+      } else if (knowledgePoint.includes('应用') || knowledgePoint.includes('问题')) {
+        questionType = QuestionType.WORD_PROBLEM;
+      }
+
+      const generatedQuestions = await aiService.generateQuestions(
+        questionType,
+        Difficulty.MEDIUM,
+        count,
+        grade
+      );
+
+      const questions: Question[] = generatedQuestions.map((q, index) => ({
+        id: `kp_${Date.now()}_${index}`,
+        title: `题目 ${index + 1}`,
+        content: q.question,
+        type: questionType,
+        difficulty: Difficulty.MEDIUM,
+        grade: parseInt(grade) || 1,
+        knowledgePoint: knowledgePoint,
+        explanation: q.explanation,
+        answer: q.answer,
+        createdAt: new Date(),
+        userId: 'local',
+      }));
+
+      return {
+        success: true,
+        data: questions,
+      };
+    } catch (error) {
+      console.error('[generationApi] Failed to get questions by knowledge point:', error);
+      return {
+        success: false,
+        error: {
+          code: 'GET_QUESTIONS_FAILED',
+          message: error instanceof Error ? error.message : 'Failed to get questions',
+        },
+      };
+    }
+  },
 };
 
 // 题目管理API
@@ -761,23 +909,163 @@ export const questionApi = {
     request(`/questions/${id}`, {method: 'DELETE'}),
 };
 
-// 学习记录API
+// 学习记录API（本地存储版本）
 export const studyApi = {
-  // 记录学习行为
-  recordStudy: (data: {
+  /**
+   * 记录学习行为（本地存储）
+   */
+  recordStudy: async (data: {
     questionId: string;
     action: 'upload' | 'practice' | 'review';
     duration?: number;
     correct?: boolean;
-  }) =>
-    request('/study/records', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+  }) => {
+    try {
+      // 获取活跃孩子ID
+      const { activeChildService } = await import('./activeChildService');
+      await activeChildService.waitForInitialization();
+      const activeChildId = activeChildService.getActiveChildId();
 
-  // 获取学习统计
-  getStatistics: () =>
-    request('/study/statistics'),
+      if (!activeChildId) {
+        return {
+          success: false,
+          error: {
+            code: 'NO_ACTIVE_CHILD',
+            message: '请先选择一个孩子',
+          },
+        };
+      }
+
+      // 获取现有学习记录
+      const storageKey = `@study_records_${activeChildId}`;
+      const existingData = await AsyncStorage.getItem(storageKey);
+      const records: any[] = existingData ? JSON.parse(existingData) : [];
+
+      // 创建新记录
+      const newRecord = {
+        id: generateUUID(),
+        childId: activeChildId,
+        questionId: data.questionId,
+        action: data.action,
+        duration: data.duration,
+        correct: data.correct,
+        timestamp: new Date().toISOString(),
+      };
+
+      // 添加记录（最多保留1000条）
+      records.push(newRecord);
+      if (records.length > 1000) {
+        records.splice(0, records.length - 1000);
+      }
+
+      await AsyncStorage.setItem(storageKey, JSON.stringify(records));
+
+      return {
+        success: true,
+        data: undefined,
+      };
+    } catch (error) {
+      console.error('[studyApi] Failed to record study:', error);
+      return {
+        success: false,
+        error: {
+          code: 'RECORD_STUDY_ERROR',
+          message: '记录学习行为失败',
+        },
+      };
+    }
+  },
+
+  /**
+   * 获取学习统计（本地计算）
+   */
+  getStatistics: async () => {
+    try {
+      // 获取活跃孩子ID
+      const { activeChildService } = await import('./activeChildService');
+      await activeChildService.waitForInitialization();
+      const activeChildId = activeChildService.getActiveChildId();
+
+      if (!activeChildId) {
+        return {
+          success: false,
+          error: {
+            code: 'NO_ACTIVE_CHILD',
+            message: '请先选择一个孩子',
+          },
+        };
+      }
+
+      // 获取学习记录
+      const storageKey = `@study_records_${activeChildId}`;
+      const data = await AsyncStorage.getItem(storageKey);
+
+      if (!data) {
+        return {
+          success: true,
+          data: {
+            totalQuestions: 0,
+            correctCount: 0,
+            uploadCount: 0,
+            practiceCount: 0,
+            reviewCount: 0,
+            accuracy: 0,
+            averageDuration: 0,
+            recentActivity: [],
+          },
+        };
+      }
+
+      const records: any[] = JSON.parse(data);
+
+      // 计算统计数据
+      const uploadRecords = records.filter(r => r.action === 'upload');
+      const practiceRecords = records.filter(r => r.action === 'practice');
+      const reviewRecords = records.filter(r => r.action === 'review');
+
+      const correctRecords = practiceRecords.filter(r => r.correct === true);
+      const totalPracticeRecords = practiceRecords.length;
+
+      const accuracy = totalPracticeRecords > 0
+        ? (correctRecords.length / totalPracticeRecords) * 100
+        : 0;
+
+      const totalDuration = records.reduce((sum, r) => sum + (r.duration || 0), 0);
+      const averageDuration = records.length > 0 ? totalDuration / records.length : 0;
+
+      // 获取最近7天的活动
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const recentActivity = records
+        .filter(r => new Date(r.timestamp) >= sevenDaysAgo)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 10);
+
+      return {
+        success: true,
+        data: {
+          totalQuestions: records.length,
+          correctCount: correctRecords.length,
+          uploadCount: uploadRecords.length,
+          practiceCount: practiceRecords.length,
+          reviewCount: reviewRecords.length,
+          accuracy: Math.round(accuracy * 100) / 100,
+          averageDuration: Math.round(averageDuration),
+          recentActivity,
+        },
+      };
+    } catch (error) {
+      console.error('[studyApi] Failed to get statistics:', error);
+      return {
+        success: false,
+        error: {
+          code: 'GET_STATISTICS_ERROR',
+          message: '获取学习统计失败',
+        },
+      };
+    }
+  },
 };
 
 // 导出API
@@ -1001,273 +1289,6 @@ export const explanationApi = {
         error: {
           code: 'STATS_FETCH_FAILED',
           message: error instanceof Error ? error.message : 'Failed to fetch feedback stats',
-        },
-      };
-    }
-  },
-};
-
-// Story 1-5: 孩子管理API
-// 孩子姓名验证函数
-const validateChildName = (name: string): {isValid: boolean; error?: string} => {
-  const trimmedName = name.trim();
-  if (trimmedName.length === 0) {
-    return {isValid: false, error: '孩子姓名不能为空'};
-  }
-  if (trimmedName.length < 2) {
-    return {isValid: false, error: '孩子姓名至少需要2个字符'};
-  }
-  if (trimmedName.length > 50) {
-    return {isValid: false, error: '孩子姓名不能超过50个字符'};
-  }
-  return {isValid: true};
-};
-
-// 孩子年级验证函数
-const validateChildGrade = (grade: Grade): {isValid: boolean; error?: string} => {
-  const validGrades = [
-    Grade.GRADE_1,
-    Grade.GRADE_2,
-    Grade.GRADE_3,
-    Grade.GRADE_4,
-    Grade.GRADE_5,
-    Grade.GRADE_6,
-  ];
-  if (!validGrades.includes(grade)) {
-    return {isValid: false, error: '年级必须在1-6之间'};
-  }
-  return {isValid: true};
-};
-
-// 孩子生日验证函数
-const validateChildBirthday = (birthday?: Date): {isValid: boolean; error?: string} => {
-  if (!birthday) {
-    return {isValid: true}; // 生日是可选的
-  }
-
-  // 验证是否为有效的 Date 对象
-  if (isNaN(birthday.getTime())) {
-    return {isValid: false, error: '生日格式无效'};
-  }
-
-  const now = new Date();
-  if (birthday > now) {
-    return {isValid: false, error: '生日不能是未来日期'};
-  }
-
-  // 计算年龄：5-12岁之间适合小学1-6年级
-  const ageInMs = now.getTime() - birthday.getTime();
-  const ageInYears = ageInMs / (1000 * 60 * 60 * 24 * 365.25);
-
-  if (ageInYears < 5) {
-    return {isValid: false, error: '孩子年龄应至少5岁'};
-  }
-  if (ageInYears > 12) {
-    return {isValid: false, error: '孩子年龄应不超过12岁'};
-  }
-
-  return {isValid: true};
-};
-
-export const childApi = {
-  /**
-   * 获取当前用户的所有孩子
-   * Story 1-5 AC1, AC3: 用户可以查看所有孩子
-   */
-  getChildren: async (): Promise<ApiResponse<Child[]>> => {
-    try {
-      return await requestWithRetry<Child[]>(
-        '/children',
-        {},
-        CHILD_API_TIMEOUT, // 3秒超时 (AC9)
-        {
-          maxRetries: 2,
-          initialDelay: 1000,
-          maxDelay: 3000,
-          backoffMultiplier: 2,
-        }
-      );
-    } catch (error) {
-      safeLogError('childApi', error);
-      return {
-        success: false,
-        error: {
-          code: 'GET_CHILDREN_ERROR',
-          message: '获取孩子列表失败',
-        },
-      };
-    }
-  },
-
-  /**
-   * 添加新孩子
-   * Story 1-5 AC1, AC2, AC7: 用户可以添加孩子，包含姓名、年级（必填）和生日（可选）
-   */
-  addChild: async (childData: ChildCreateRequest): Promise<ApiResponse<Child>> => {
-    try {
-      // 客户端验证
-      const nameValidation = validateChildName(childData.name);
-      if (!nameValidation.isValid) {
-        return {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: nameValidation.error!,
-          },
-        };
-      }
-
-      const gradeValidation = validateChildGrade(childData.grade);
-      if (!gradeValidation.isValid) {
-        return {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: gradeValidation.error!,
-          },
-        };
-      }
-
-      const birthdayValidation = validateChildBirthday(childData.birthday);
-      if (!birthdayValidation.isValid) {
-        return {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: birthdayValidation.error!,
-          },
-        };
-      }
-
-      // 调用API
-      return await requestWithRetry<Child>(
-        '/children',
-        {
-          method: 'POST',
-          body: JSON.stringify(childData),
-        },
-        3000, // 3秒超时 (AC9)
-        {
-          maxRetries: 2,
-          initialDelay: 1000,
-          maxDelay: 3000,
-          backoffMultiplier: 2,
-        }
-      );
-    } catch (error) {
-      safeLogError('childApi', error);
-      return {
-        success: false,
-        error: {
-          code: 'ADD_CHILD_ERROR',
-          message: '添加孩子失败',
-        },
-      };
-    }
-  },
-
-  /**
-   * 更新孩子信息
-   * Story 1-5 AC4: 用户可以编辑孩子信息
-   */
-  updateChild: async (
-    childId: string,
-    updates: ChildUpdateRequest
-  ): Promise<ApiResponse<Child>> => {
-    try {
-      // 客户端验证（只验证提供的字段）
-      if (updates.name !== undefined) {
-        const nameValidation = validateChildName(updates.name);
-        if (!nameValidation.isValid) {
-          return {
-            success: false,
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: nameValidation.error!,
-            },
-          };
-        }
-      }
-
-      if (updates.grade !== undefined) {
-        const gradeValidation = validateChildGrade(updates.grade);
-        if (!gradeValidation.isValid) {
-          return {
-            success: false,
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: gradeValidation.error!,
-            },
-          };
-        }
-      }
-
-      if (updates.birthday !== undefined) {
-        const birthdayValidation = validateChildBirthday(updates.birthday);
-        if (!birthdayValidation.isValid) {
-          return {
-            success: false,
-            error: {
-              code: 'VALIDATION_ERROR',
-              message: birthdayValidation.error!,
-            },
-          };
-        }
-      }
-
-      // 调用API
-      return await requestWithRetry<Child>(
-        `/children/${childId}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify(updates),
-        },
-        3000, // 3秒超时 (AC9)
-        {
-          maxRetries: 2,
-          initialDelay: 1000,
-          maxDelay: 3000,
-          backoffMultiplier: 2,
-        }
-      );
-    } catch (error) {
-      safeLogError('childApi', error);
-      return {
-        success: false,
-        error: {
-          code: 'UPDATE_CHILD_ERROR',
-          message: '更新孩子信息失败',
-        },
-      };
-    }
-  },
-
-  /**
-   * 删除孩子
-   * Story 1-5 AC5: 用户可以删除孩子（需要确认）
-   */
-  deleteChild: async (childId: string): Promise<ApiResponse<void>> => {
-    try {
-      return await requestWithRetry<void>(
-        `/children/${childId}`,
-        {
-          method: 'DELETE',
-        },
-        3000, // 3秒超时 (AC9)
-        {
-          maxRetries: 2,
-          initialDelay: 1000,
-          maxDelay: 3000,
-          backoffMultiplier: 2,
-        }
-      );
-    } catch (error) {
-      safeLogError('childApi', error);
-      return {
-        success: false,
-        error: {
-          code: 'DELETE_CHILD_ERROR',
-          message: '删除孩子失败',
         },
       };
     }
