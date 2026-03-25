@@ -153,6 +153,10 @@ export interface ApiResponse<T> {
     code: string;
     message: string;
   };
+  /** 存储模式指示器 (P0-3修复) */
+  storageMode?: 'mysql' | 'local';
+  /** 警告信息 (降级时提醒用户) (P0-3修复) */
+  warning?: string;
 }
 
 // 导出性能跟踪类型

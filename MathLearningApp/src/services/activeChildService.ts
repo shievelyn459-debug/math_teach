@@ -1,16 +1,21 @@
 /**
  * Story 1-5: Active Child Service
- * Manages the active child selection and persistence
+ * Story 6-3: MySQL Integration (P0-4 fix)
+ *
+ * Manages the active child selection and persistence.
+ * - UI state (selected child ID) stored in AsyncStorage (device-specific)
+ * - Child data fetched from MySQL for freshness
+ * - Validates selected child still exists in MySQL
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Child, Grade} from '../types';
+import {getChildren} from './childApi';
 
 /**
- * 存储键
+ * 存储键 - 仅存储活跃孩子ID（UI状态）
  */
 const ACTIVE_CHILD_ID_KEY = '@math_learning_active_child_id';
-const ACTIVE_CHILD_DATA_KEY = '@math_learning_active_child_data';
 
 /**
  * 活跃孩子变化监听器类型
@@ -20,10 +25,13 @@ type ActiveChildListener = (child: Child | null) => void;
 /**
  * 活跃孩子服务类
  * 负责活跃孩子的选择、持久化和通知
+ *
+ * P0-4修复: 集成MySQL，确保活跃孩子数据新鲜
  */
 class ActiveChildService {
   private static instance: ActiveChildService;
   private activeChild: Child | null = null;
+  private activeChildId: string | null = null;
   private listeners: ActiveChildListener[] = [];
   private initPromise: Promise<void> | null = null;
 
@@ -52,28 +60,69 @@ class ActiveChildService {
   }
 
   /**
-   * 初始化：从AsyncStorage恢复活跃孩子
+   * 初始化：从AsyncStorage恢复活跃孩子ID，并从MySQL获取最新数据
+   * P0-4修复: 不再从AsyncStorage读取缓存数据，改为从MySQL获取
    */
   private async initialize(): Promise<void> {
     try {
-      const childData = await AsyncStorage.getItem(ACTIVE_CHILD_DATA_KEY);
-      if (childData) {
-        const parsed = JSON.parse(childData);
-        // 将日期字符串转换回 Date 对象
-        if (parsed.birthday) {
-          parsed.birthday = new Date(parsed.birthday);
+      const childId = await AsyncStorage.getItem(ACTIVE_CHILD_ID_KEY);
+      if (childId) {
+        // P0-4: 从MySQL获取最新数据，验证孩子是否还存在
+        const response = await getChildren();
+        if (response.success && response.data) {
+          const child = response.data.find(c => c.id === childId);
+          if (child) {
+            // 孩子仍然存在，使用MySQL中的最新数据
+            this.activeChildId = childId;
+            this.activeChild = child;
+            console.log('[ActiveChildService] Active child restored from MySQL:', child.name);
+          } else {
+            // 孩子已被删除，清除本地状态
+            await this.clearActiveChild();
+            console.warn('[ActiveChildService] Previously active child no longer exists in MySQL');
+          }
+        } else {
+          // MySQL查询失败，但保留ID（可能离线状态）
+          this.activeChildId = childId;
+          console.warn('[ActiveChildService] MySQL unavailable, keeping child ID for later validation');
         }
-        if (parsed.createdAt) {
-          parsed.createdAt = new Date(parsed.createdAt);
-        }
-        if (parsed.updatedAt) {
-          parsed.updatedAt = new Date(parsed.updatedAt);
-        }
-        this.activeChild = parsed;
       }
     } catch (error) {
       console.error('[ActiveChildService] Failed to initialize:', error);
       this.activeChild = null;
+      this.activeChildId = null;
+    }
+  }
+
+  /**
+   * 刷新活跃孩子数据（从MySQL获取最新数据）
+   * P0-4新增: 用于主动刷新活跃孩子数据
+   */
+  async refreshActiveChild(): Promise<void> {
+    if (!this.activeChildId) {
+      return;
+    }
+
+    try {
+      const response = await getChildren();
+      if (response.success && response.data) {
+        const child = response.data.find(c => c.id === this.activeChildId);
+        if (child) {
+          const oldChild = this.activeChild;
+          this.activeChild = child;
+          // 只有数据真正变化时才通知监听器
+          if (JSON.stringify(oldChild) !== JSON.stringify(child)) {
+            this.notifyListeners(child);
+            console.log('[ActiveChildService] Active child refreshed from MySQL');
+          }
+        } else {
+          // 孩子已被删除
+          await this.clearActiveChild();
+          console.warn('[ActiveChildService] Active child was deleted, cleared');
+        }
+      }
+    } catch (error) {
+      console.error('[ActiveChildService] Failed to refresh active child:', error);
     }
   }
 
@@ -88,7 +137,7 @@ class ActiveChildService {
    * 获取活跃孩子的ID
    */
   getActiveChildId(): string | null {
-    return this.activeChild?.id || null;
+    return this.activeChildId || this.activeChild?.id || null;
   }
 
   /**
@@ -101,7 +150,7 @@ class ActiveChildService {
 
   /**
    * 设置活跃孩子
-   * @param child 要设置为活跃的孩子
+   * @param child 要设置为活跃的孩子（必须是从MySQL获取的最新数据）
    * @param availableChildren 所有可用孩子列表（用于验证）
    */
   async setActiveChild(
@@ -126,12 +175,10 @@ class ActiveChildService {
         }
       }
 
-      // 保存到AsyncStorage
-      await Promise.all([
-        AsyncStorage.setItem(ACTIVE_CHILD_ID_KEY, child.id),
-        AsyncStorage.setItem(ACTIVE_CHILD_DATA_KEY, JSON.stringify(child)),
-      ]);
+      // P0-4修复: 只存储ID到AsyncStorage，不再存储完整数据
+      await AsyncStorage.setItem(ACTIVE_CHILD_ID_KEY, child.id);
 
+      this.activeChildId = child.id;
       this.activeChild = child;
       this.notifyListeners(child);
 
@@ -151,11 +198,9 @@ class ActiveChildService {
    */
   async clearActiveChild(): Promise<void> {
     try {
-      await Promise.all([
-        AsyncStorage.removeItem(ACTIVE_CHILD_ID_KEY),
-        AsyncStorage.removeItem(ACTIVE_CHILD_DATA_KEY),
-      ]);
+      await AsyncStorage.removeItem(ACTIVE_CHILD_ID_KEY);
 
+      this.activeChildId = null;
       this.activeChild = null;
       this.notifyListeners(null);
 
@@ -177,7 +222,7 @@ class ActiveChildService {
     remainingChildren: Child[]
   ): Promise<Child | null> {
     // 如果删除的不是活跃孩子，无需处理
-    if (this.activeChild?.id !== deletedChildId) {
+    if (this.activeChildId !== deletedChildId && this.activeChild?.id !== deletedChildId) {
       return this.activeChild;
     }
 

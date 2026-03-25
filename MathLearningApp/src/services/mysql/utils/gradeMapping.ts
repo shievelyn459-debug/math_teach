@@ -35,28 +35,34 @@ const FROM_PRISMA_MAP: Record<string, Grade> = {
 
 /**
  * 将Application Grade转换为Prisma Grade
+ * P3-2修复: 不在错误消息中暴露原始输入值
  *
  * @param grade Application层Grade枚举
  * @returns Prisma层Grade字符串
+ * @throws {Error} 当grade值无效时抛出错误
  */
 export function toPrismaGrade(grade: Grade): string {
   const prismaGrade = TO_PRISMA_MAP[grade];
   if (!prismaGrade) {
-    throw new Error(`Invalid grade value: ${grade}`);
+    // P3-2: 不暴露原始输入值，只提示类型错误
+    throw new Error('Invalid grade: must be a valid Grade enum value (GRADE_1 through GRADE_6)');
   }
   return prismaGrade;
 }
 
 /**
  * 将Prisma Grade转换为Application Grade
+ * P3-2修复: 不在错误消息中暴露原始输入值
  *
  * @param prismaGrade Prisma层Grade字符串
  * @returns Application层Grade枚举
+ * @throws {Error} 当prismaGrade值无效时抛出错误
  */
 export function fromPrismaGrade(prismaGrade: string): Grade {
   const grade = FROM_PRISMA_MAP[prismaGrade];
   if (!grade) {
-    throw new Error(`Invalid Prisma grade value: ${prismaGrade}`);
+    // P3-2: 不暴露原始输入值，只提示类型错误
+    throw new Error('Invalid Prisma grade: must be a valid Chinese grade name (一年级 through 六年级)');
   }
   return grade;
 }

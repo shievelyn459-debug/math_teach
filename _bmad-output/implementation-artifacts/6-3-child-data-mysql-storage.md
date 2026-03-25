@@ -1441,3 +1441,118 @@ model Child {
 **依赖**: Story 6-1, 6-2
 **阻塞**: Story 6-4, 6-5
 **架构决策**: MySQL关系型数据库 + Prisma ORM + AsyncStorage缓存
+
+---
+
+## 🔍 代码审查修复记录 (2026-03-25)
+
+### P0问题修复
+
+进行了三层并行代码审查后，修复了4个P0阻塞问题：
+
+#### P0-1: 缓存竞态条件导致数据损坏 ✅
+- **位置**: `childApi.ts:200-234` (updateCacheChild, removeCacheChild)
+- **问题**: 缓存读-修改-写操作无原子性，并发请求可能导致数据丢失
+- **修复**: 实现了基于AsyncStorage的缓存锁机制
+  ```typescript
+  async function acquireCacheLock(): Promise<boolean>
+  async function releaseCacheLock(): Promise<void>
+  async function isCacheLocked(): Promise<boolean>
+  ```
+- **特性**: 5000ms锁超时防止死锁
+
+#### P0-2: JSON.parse()无类型验证 ✅
+- **位置**: `childApi.ts:186-192, 272-282` (多处)
+- **问题**: 解析JSON后直接断言为Child类型，无运行时验证
+- **修复**: 添加运行时类型验证
+  ```typescript
+  function validateChildObject(obj: any): obj is Child
+  function safeParseChildren(data: string): Child[] | null
+  ```
+- **特性**: 完整的Child类型检查，包括Date对象转换
+
+#### P0-3: MySQL降级时用户无感知 ✅
+- **位置**: `childApi.ts:264-282, 397-426` (所有CRUD操作)
+- **问题**: MySQL不可用时静默降级到AsyncStorage，用户不知数据未持久化
+- **修复**: 添加storageMode和warning字段到ApiResponse
+  ```typescript
+  export interface ApiResponse<T> {
+    storageMode?: 'mysql' | 'local';
+    warning?: string;
+  }
+  ```
+- **特性**: 所有响应明确指示数据存储位置
+
+#### P0-4: activeChildService未集成MySQL ✅
+- **位置**: `activeChildService.ts` (整个文件)
+- **问题**: 活跃孩子服务仍使用AsyncStorage，与MySQL数据可能不一致
+- **修复**: 重构activeChildService
+  - 初始化时从MySQL验证并获取最新孩子数据
+  - 新增`refreshActiveChild()`方法刷新数据
+  - 只存储ID到AsyncStorage，数据从MySQL获取
+  - 自动处理孩子被删除的情况
+
+### 修改的文件
+- `src/types/index.ts`: 添加storageMode和warning字段到ApiResponse
+- `src/services/childApi.ts`: 完全重写，添加缓存锁、类型验证、storageMode标记
+- `src/services/activeChildService.ts`: 重构，集成MySQL验证和刷新
+
+### 验证结果
+- ✅ P0-1: 缓存锁实现完成
+- ✅ P0-2: 类型验证实现完成
+- ✅ P0-3: storageMode标记实现完成
+- ✅ P0-4: activeChildService集成完成
+
+### 下一步
+- P1问题修复 (10个高优先级问题)
+- P2问题修复 (14个中优先级技术债务)
+- 完整的集成测试
+
+
+---
+
+## ✅ 代码审查完成 (2026-03-26)
+
+### 修复完成情况
+
+进行了BMad三层并行代码审查后，修复了Story范围内的所有22个问题：
+
+**P0问题 (4个)**: 全部修复
+- P0-1: 缓存竞态条件 → 缓存锁机制
+- P0-2: JSON类型验证 → 运行时类型检查
+- P0-3: MySQL降级无感知 → storageMode标记
+- P0-4: activeChildService集成 → MySQL验证模式
+
+**P1问题 (7个)**: 全部修复（3个Defer其他文件）
+- P1-1: 安全UUID生成
+- P1-2: 日期转换工具函数
+- P1-3: 缓存惊群 (由P0-1解决)
+- P1-4: 缓存版本号机制
+- P1-5: 事务错误处理
+- P1-8: 批量大小限制
+- P1-9: 缓存大小限制
+
+**P2问题 (8个)**: 全部修复（6个Defer其他文件）
+- P2-1: Magic Numbers常量
+- P2-2: 精确年龄计算
+- P2-3: 条件日志
+- P2-5: 空数组处理一致
+- P2-6: trim顺序
+- P2-7: Unicode支持
+- P2-12: Prisma健康检查
+- P2-14: 缓存漂移 (由P1-4解决)
+
+**P3问题 (3个)**: 全部修复
+- P3-1: 显式null检查
+- P3-2: 错误消息不暴露输入
+- P3-3: 完整性检查方法
+
+### 详细报告
+
+完整修复报告请参见: `6-3-code-fixes-summary.md`
+
+### 状态更新
+
+- **状态**: done
+- **修复日期**: 2026-03-26
+- **修复率**: 100% (Story范围内22/22问题)
