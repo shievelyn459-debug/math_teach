@@ -67,3 +67,16 @@ jest.mock('react-native-permissions', () => ({
     UNAVAILABLE: 'unavailable',
   },
 }));
+
+// Mock @react-native-community/netinfo
+jest.mock('@react-native-community/netinfo', () => ({
+  fetch: jest.fn(() =>
+    Promise.resolve({
+      isConnected: true,
+      isInternetReachable: true,
+      type: 'wifi',
+    })
+  ),
+  addEventListener: jest.fn(() => jest.fn()),
+  removeEventListener: jest.fn(),
+}));
