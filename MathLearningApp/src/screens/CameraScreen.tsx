@@ -1146,7 +1146,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   cameraContainer: {
-    height: SCREEN_HEIGHT * 0.38,
+    height: SCREEN_HEIGHT * 0.5, // 增加到50%，提供更大的拍摄区域
     marginHorizontal: SCREEN_WIDTH * 0.03,
     marginTop: SCREEN_HEIGHT * 0.01,
     borderRadius: 12,
@@ -1166,10 +1166,10 @@ const styles = StyleSheet.create({
   },
   focusFrame: {
     position: 'absolute',
-    top: SCREEN_HEIGHT * 0.19,
-    left: SCREEN_WIDTH * 0.2,
-    width: SCREEN_WIDTH * 0.6,
-    height: SCREEN_WIDTH * 0.6,
+    top: SCREEN_HEIGHT * 0.25, // 调整位置以适应更大的相机容器
+    left: SCREEN_WIDTH * 0.1, // 从10%开始（之前是20%）
+    width: SCREEN_WIDTH * 0.8, // 增加到80%宽度（之前是60%）
+    height: SCREEN_WIDTH * 0.8, // 增加高度以匹配宽度
     borderColor: 'rgba(255,255,255,0.8)',
     borderWidth: 2,
     borderRadius: 8,
@@ -1191,7 +1191,7 @@ const styles = StyleSheet.create({
   cameraSideToolbar: {
     position: 'absolute',
     right: SCREEN_WIDTH * 0.04,
-    top: SCREEN_HEIGHT * 0.19 + (SCREEN_WIDTH * 0.6 - SCREEN_HEIGHT * 0.38) / 2,
+    top: SCREEN_HEIGHT * 0.25 + (SCREEN_WIDTH * 0.8 - SCREEN_HEIGHT * 0.5) / 2,
     gap: 12,
   },
   sideToolbarButton: {
