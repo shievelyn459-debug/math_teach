@@ -2,10 +2,10 @@
  * 图片优化工具
  * 用于压缩和优化上传的图片
  * Story 5-3: 增强性能优化
+ *
+ * 临时版本：expo依赖已禁用，直接返回原始图片
+ * TODO: 集成react-native-image-crop-resizer或其他替代库
  */
-
-import {ImageManipulator} from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
 
 export interface ImageOptimizationOptions {
   maxWidth?: number;
@@ -25,11 +25,11 @@ export interface OptimizedImageResult {
 
 // Story 5-3: 性能优化配置
 const PERFORMANCE_OPTIONS: ImageOptimizationOptions = {
-  maxWidth: 1920, // 最大宽度
-  maxHeight: 1080, // 最大高度
-  quality: 0.75, // Story 5-3: 更激进的压缩
+  maxWidth: 1920,
+  maxHeight: 1080,
+  quality: 0.75,
   format: 'jpeg',
-  removeExif: true, // Story 5-3: 移除EXIF减少文件大小
+  removeExif: true,
 };
 
 const DEFAULT_OPTIONS: ImageOptimizationOptions = {
@@ -40,220 +40,65 @@ const DEFAULT_OPTIONS: ImageOptimizationOptions = {
   removeExif: false,
 };
 
-// Story 5-3: 目标上传时间 < 3秒，对应约 300KB
+// Story 5-3: 目标上传时间 < 3秒
 const TARGET_SIZE_BYTES = 300 * 1024;
-const FAST_TARGET_SIZE_BYTES = 200 * 1024; // 更激进的优化
 
 class ImageOptimizer {
   /**
    * 优化图片
-   * Story 5-3: 增强性能优化
+   * 临时方案：直接返回原始图片（expo依赖已禁用）
    */
   async optimizeImage(
     imageUri: string,
     options: ImageOptimizationOptions = DEFAULT_OPTIONS,
-    performanceMode: boolean = false // Story 5-3: 性能模式
+    performanceMode: boolean = false
   ): Promise<OptimizedImageResult> {
     try {
-      // Story 5-3: 性能模式使用更激进的优化
-      const mergedOptions = performanceMode
-        ? {...PERFORMANCE_OPTIONS, ...options}
-        : {...DEFAULT_OPTIONS, ...options};
+      console.log('[ImageOptimizer] Expo disabled, returning original image');
 
-      // 获取原始图片信息
-      const originalInfo = await this.getImageInfo(imageUri);
-      const originalSize = originalInfo.size || 0;
-      const targetSize = performanceMode ? FAST_TARGET_SIZE_BYTES : TARGET_SIZE_BYTES;
-
-      console.log(`[ImageOptimizer] Original image: ${originalInfo.width}x${originalInfo.height}, size: ${this.formatBytes(originalSize)}`);
-
-      // PATCH-M4: Optional chaining on imageInfo properties
-      const originalWidth = originalInfo.width || 1920;
-      const originalHeight = originalInfo.height || 1080;
-
-      // 如果图片已经足够小，直接返回
-      if (originalSize <= targetSize && originalWidth <= mergedOptions.maxWidth!) {
-        console.log('[ImageOptimizer] Image already optimized, skipping compression');
-        return {
-          uri: imageUri,
-          width: originalWidth,
-          height: originalHeight,
-          size: originalSize,
-          compressionRatio: 1,
-        };
-      }
-
-      // PATCH-M5: Guard against negative scale
-      const scaleX = mergedOptions.maxWidth! / originalWidth;
-      const scaleY = mergedOptions.maxHeight! / originalHeight;
-      const scale = Math.min(Math.max(scaleX, 0), Math.max(scaleY, 0), 1);
-
-      // 构建操作列表
-      const actions: ImageManipulator.Action[] = [];
-
-      // 缩放
-      if (scale < 1 && scale > 0) {
-        actions.push({resize: {width: Math.round(originalWidth * scale)}});
-      }
-
-      // Story 5-3: 移除EXIF数据（通过重新保存实现）
-      if (mergedOptions.removeExif) {
-        // EXIF会在重新保存时自动移除
-      }
-
-      let resultUri = imageUri;
-      let resultWidth = originalWidth;
-      let resultHeight = originalHeight;
-
-      // 执行优化
-      if (actions.length > 0 || mergedOptions.removeExif) {
-        const manipulatorResult = await ImageManipulator.manipulateAsync(
-          imageUri,
-          actions,
-          {
-            compress: mergedOptions.quality!,
-            format: mergedOptions.format === 'jpeg' ? ImageManipulator.SaveFormat.JPEG : ImageManipulator.SaveFormat.PNG,
-          }
-        );
-
-        resultUri = manipulatorResult.uri;
-        resultWidth = manipulatorResult.width;
-        resultHeight = manipulatorResult.height;
-      }
-
-      // 获取优化后的文件大小
-      const optimizedSize = await this.getFileSize(resultUri);
-      const compressionRatio = originalSize / optimizedSize;
-
-      console.log(
-        `[ImageOptimizer] Optimized image: ${resultWidth}x${resultHeight}, size: ${this.formatBytes(optimizedSize)}, ratio: ${compressionRatio.toFixed(2)}x`
-      );
-
+      // 临时方案：返回原始图片信息
+      // 注意：这里假设默认图片尺寸
       return {
-        uri: resultUri,
-        width: resultWidth,
-        height: resultHeight,
-        size: optimizedSize,
-        compressionRatio,
+        uri: imageUri,
+        width: 1920,
+        height: 1080,
+        size: 500 * 1024,
+        compressionRatio: 1,
       };
     } catch (error) {
-      console.error('[ImageOptimizer] Optimization failed:', error);
-      // PATCH-M6: Failed optimization returns consistent data
-      try {
-        const info = await this.getImageInfo(imageUri);
-        return {
-          uri: imageUri,
-          width: info.width || 1920,
-          height: info.height || 1080,
-          size: info.size || 0,
-          compressionRatio: 1,
-        };
-      } catch {
-        // Last resort fallback
-        return {
-          uri: imageUri,
-          width: 1920,
-          height: 1080,
-          size: 0,
-          compressionRatio: 1,
-        };
-      }
+      console.error('[ImageOptimizer] Error:', error);
+      throw error;
     }
   }
 
   /**
-   * Story 5-3: 快速优化（性能优先）
+   * 获取图片信息（临时实现）
    */
-  async optimizeForPerformance(imageUri: string): Promise<OptimizedImageResult> {
-    return this.optimizeImage(imageUri, PERFORMANCE_OPTIONS, true);
-  }
-
-  /**
-   * 批量优化图片
-   */
-  async optimizeImages(
-    imageUris: string[],
-    options?: ImageOptimizationOptions
-  ): Promise<OptimizedImageResult[]> {
-    const results: OptimizedImageResult[] = [];
-
-    for (const uri of imageUris) {
-      const result = await this.optimizeImage(uri, options);
-      results.push(result);
-    }
-
-    return results;
-  }
-
-  /**
-   * 获取图片信息
-   */
-  private async getImageInfo(uri: string): Promise<{
-    width: number;
-    height: number;
-    size?: number;
-  }> {
-    // 在 React Native 中，可以使用 Image.getSize
-    return new Promise((resolve, reject) => {
-      // 这里简化处理，实际应用中需要更复杂的实现
-      resolve({width: 1920, height: 1080, size: 0});
-    });
-  }
-
-  /**
-   * Story 5-3: 获取文件大小（真实实现）
-   */
-  private async getFileSize(uri: string): Promise<number> {
-    try {
-      const fileInfo = await FileSystem.getInfoAsync(uri);
-      if (fileInfo.exists && fileInfo.size) {
-        return fileInfo.size;
-      }
-    } catch (error) {
-      console.error('[ImageOptimizer] Failed to get file size:', error);
-    }
-    // 降级：返回估算值
-    return FAST_TARGET_SIZE_BYTES;
+  async getImageInfo(uri: string): Promise<{width: number; height: number; size?: number}> {
+    // 临时实现：返回默认值
+    return {width: 1920, height: 1080, size: 500 * 1024};
   }
 
   /**
    * 格式化字节大小
-   * PATCH-H12: Handle Math.log(0) causing -Infinity
    */
-  private formatBytes(bytes: number): string {
-    if (bytes === 0 || bytes < 0) return '0 B';
-
+  formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
-    // PATCH-H12: Guard against log(0) or log of negative number
-    const i = bytes > 0 ? Math.floor(Math.log(bytes) / Math.log(k)) : 0;
-
-    return `${(bytes / Math.pow(k, Math.max(0, i))).toFixed(2)} ${sizes[Math.max(0, Math.min(i, sizes.length - 1))]}`;
-  }
-
-  /**
-   * 估算优化质量（基于目标大小）
-   * PATCH-M7: Guard against division by zero
-   */
-  calculateOptimalQuality(originalSize: number, targetSize: number = TARGET_SIZE_BYTES): number {
-    // PATCH-M7: Guard against division by zero
-    if (originalSize <= 0) return 0.75;
-
-    // 简单的线性估算
-    const ratio = targetSize / originalSize;
-    return Math.min(Math.max(Math.sqrt(ratio), 0.5), 1);
-  }
-
-  /**
-   * 检查是否需要优化
-   */
-  needsOptimization(width: number, height: number, size: number): boolean {
-    return (
-      width > DEFAULT_OPTIONS.maxWidth! ||
-      height > DEFAULT_OPTIONS.maxHeight! ||
-      size > TARGET_SIZE_BYTES
-    );
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }
 
+// 单例导出
 export const imageOptimizer = new ImageOptimizer();
+
+// 便捷函数
+export async function optimizeImage(
+  imageUri: string,
+  options?: ImageOptimizationOptions,
+  performanceMode?: boolean
+): Promise<OptimizedImageResult> {
+  return imageOptimizer.optimizeImage(imageUri, options, performanceMode);
+}

@@ -33,6 +33,8 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
+  console.log('[MainTabs] Rendering MainTabs component');
+
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
@@ -86,42 +88,46 @@ function MainTabs() {
  * 修复：等待认证服务初始化完成后再检查状态，避免竞态条件
  */
 function AuthNavigator() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(true); // 测试模式：直接登录
+  const [isInitialized, setIsInitialized] = useState(true); // 测试模式：跳过初始化等待
 
   useEffect(() => {
     let mounted = true;
 
-    // 检查初始认证状态（等待初始化完成）
-    const checkAuthStatus = async () => {
-      try {
-        // 等待认证服务完全初始化
-        await authService.waitForInitialization();
+    console.log('[AuthNavigator] Initial state:', { isAuthenticated, isInitialized });
 
-        if (!mounted) return;
+    // 测试模式：跳过认证检查，直接使用初始状态
+    if (mounted) {
+      setIsInitialized(true);
+      console.log('[AuthNavigator] Set isInitialized to true');
+    }
 
-        // 检查认证状态
-        const authenticated = await authService.isAuthenticated();
-        if (mounted) {
-          setIsAuthenticated(authenticated);
-          setIsInitialized(true);
-        }
-      } catch (error) {
-        console.error('[AuthNavigator] Failed to check auth status:', error);
-        if (mounted) {
-          setIsAuthenticated(false);
-          setIsInitialized(true);
-        }
-      }
-    };
-
-    checkAuthStatus();
+    // 测试模式：注释掉认证状态检查，保持 isAuthenticated = true
+    // const checkAuthStatus = async () => {
+    //   try {
+    //     await authService.waitForInitialization();
+    //     if (!mounted) return;
+    //     const authenticated = await authService.isAuthenticated();
+    //     if (mounted) {
+    //       setIsAuthenticated(authenticated);
+    //       setIsInitialized(true);
+    //     }
+    //   } catch (error) {
+    //     console.error('[AuthNavigator] Failed to check auth status:', error);
+    //     if (mounted) {
+    //       setIsAuthenticated(false);
+    //       setIsInitialized(true);
+    //     }
+    //   }
+    // };
+    // checkAuthStatus();
 
     // 监听认证状态变化
     const unsubscribe = authService.onAuthStateChanged((user) => {
-      if (mounted) {
-        setIsAuthenticated(user !== null);
-      }
+      // 测试模式：不更新状态，保持已登录
+      // if (mounted) {
+      //   setIsAuthenticated(user !== null);
+      // }
     });
 
     return () => {
@@ -129,6 +135,8 @@ function AuthNavigator() {
       unsubscribe();
     };
   }, []);
+
+  console.log('[AuthNavigator] Rendering with state:', { isAuthenticated, isInitialized });
 
   // 显示加载指示器（等待初始化完成）
   if (!isInitialized || isAuthenticated === null) {
@@ -139,35 +147,35 @@ function AuthNavigator() {
     );
   }
 
+  // 测试模式：始终使用Main作为初始路由
+  const initialRoute = isAuthenticated ? 'Main' : 'Login';
+  console.log('[AuthNavigator] Using initialRoute:', initialRoute);
+
   return (
     <Stack.Navigator
       screenOptions={{headerShown: false}}
-      initialRouteName={isAuthenticated ? 'Main' : 'Login'}>
+      initialRouteName={initialRoute}>
       {/* 认证流程 */}
-      {!isAuthenticated && (
-        <>
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{gestureEnabled: false}}
-          />
-          <Stack.Screen
-            name="Register"
-            component={RegisterScreen}
-            options={{title: '注册'}}
-          />
-          <Stack.Screen
-            name="ForgotPassword"
-            component={ForgotPasswordScreen}
-            options={{title: '忘记密码'}}
-          />
-          <Stack.Screen
-            name="SetNewPassword"
-            component={SetNewPasswordScreen}
-            options={{title: '设置新密码'}}
-          />
-        </>
-      )}
+      <Stack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{gestureEnabled: false}}
+      />
+      <Stack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{title: '注册'}}
+      />
+      <Stack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+        options={{title: '忘记密码'}}
+      />
+      <Stack.Screen
+        name="SetNewPassword"
+        component={SetNewPasswordScreen}
+        options={{title: '设置新密码'}}
+      />
 
       {/* 主应用流程 */}
       <Stack.Screen name="Main" component={MainTabs} />

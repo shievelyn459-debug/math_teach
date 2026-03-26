@@ -357,17 +357,20 @@ const sharePDF = async (filePath: string, options?: ShareOptions): Promise<void>
 // 打印 PDF 文件
 const printPDF = async (filePath: string): Promise<void> => {
   try {
-    // 动态导入 expo-print
-    const Print = require('expo-print').Print;
+    // 动态导入 expo-print (临时禁用)
+    // const Print = require('expo-print').Print;
+    //
+    // // 检查打印是否可用
+    // const isAvailable = await Print.printAvailableAsync();
+    // if (!isAvailable) {
+    //   throw new Error('打印服务不可用');
+    // }
+    //
+    // // 打开打印对话框
+    // await Print.printAsync({ uri: `file://${filePath}` });
 
-    // 检查打印是否可用
-    const isAvailable = await Print.printAvailableAsync();
-    if (!isAvailable) {
-      throw new Error('打印服务不可用');
-    }
-
-    // 打开打印对话框
-    await Print.printAsync({ uri: `file://${filePath}` });
+    // 临时方案：抛出友好提示
+    throw new Error('打印功能暂时不可用。请使用其他方式打印PDF文件。');
   } catch (error: any) {
     console.error('[pdfService] Print error:', error);
     throw new Error(`打印失败: ${error instanceof Error ? error.message : '未知错误'}`);

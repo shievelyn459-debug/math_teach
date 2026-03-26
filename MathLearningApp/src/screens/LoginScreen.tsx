@@ -19,6 +19,7 @@ type LoginScreenProps = NativeStackScreenProps<any, 'Login'>;
 
 /**
  * 用户登录屏幕
+ * 测试模式：添加日志以调试导航问题
  * Story 1-2 完整实现
  *
  * 验收标准:
@@ -33,6 +34,7 @@ type LoginScreenProps = NativeStackScreenProps<any, 'Login'>;
  * AC9: 用户可以导航到密码重置屏幕
  */
 const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
+  console.log('[LoginScreen] Rendering LoginScreen component');
   const theme = useTheme();
 
   // 表单状态
