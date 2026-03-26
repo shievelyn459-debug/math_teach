@@ -21,6 +21,7 @@ import {generationHistoryService, generateUniqueId} from '../services/generation
 import {checkTourCompleted} from '../components/OnboardingTour';
 import {recognitionCache} from '../services/recognitionCache'; // PATCH-C4: Import cache
 import {launchImageLibrary} from 'react-native-image-picker';
+import {aiService} from '../services/ai'; // Import AI service for OCR
 
 // 获取屏幕尺寸
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
@@ -1092,7 +1093,8 @@ const styles = StyleSheet.create({
   },
   // 滚动容器
   scrollContainer: {
-    flex: 1,
+    flex: 0, // 不自动扩展，根据内容确定高度
+    maxHeight: SCREEN_HEIGHT * 0.25, // 限制最大高度
   },
   // 简化版使用说明
   miniInstructionCard: {
@@ -1113,6 +1115,9 @@ const styles = StyleSheet.create({
   // 固定底部容器
   fixedBottomContainer: {
     backgroundColor: '#fff',
+    flex: 1, // 占据剩余空间
+    justifyContent: 'flex-end', // 内容对齐到底部
+    paddingBottom: 0, // 移除底部内边距，让bottomSection处理
   },
   // 顶部工具栏
   headerContainer: {
@@ -1146,7 +1151,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   cameraContainer: {
-    height: SCREEN_HEIGHT * 0.5, // 增加到50%，提供更大的拍摄区域
+    height: SCREEN_HEIGHT * 0.55, // 增加到55%，让预览区域更清晰可见
     marginHorizontal: SCREEN_WIDTH * 0.03,
     marginTop: SCREEN_HEIGHT * 0.01,
     borderRadius: 12,
@@ -1231,8 +1236,9 @@ const styles = StyleSheet.create({
   bottomSection: {
     backgroundColor: '#fff',
     paddingHorizontal: SCREEN_WIDTH * 0.04,
-    paddingVertical: SCREEN_HEIGHT * 0.015,
-    paddingBottom: SCREEN_HEIGHT * 0.025,
+    paddingVertical: SCREEN_HEIGHT * 0.02,
+    paddingBottom: SCREEN_HEIGHT * 0.18, // 增加到18%，确保按钮在Tab Bar上方可见
+    minHeight: SCREEN_HEIGHT * 0.25, // 确保最小高度
   },
   tipContainer: {
     flexDirection: 'row',
