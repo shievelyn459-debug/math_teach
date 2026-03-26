@@ -188,15 +188,26 @@ class BaiduOcrService {
       const startTime = Date.now();
       this.requestTimes.push(startTime);
 
-      // 发送请求
-      const response = await fetch(apiUrl, {
+      // 使用Promise.race实现更可靠的超时控制
+      const fetchPromise = fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: formData,
-        signal: controller.signal,
       });
+
+      // 创建超时Promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`OCR请求超时（${AI_TIMEOUTS.baiduOcr}ms），请检查网络连接`));
+        }, AI_TIMEOUTS.baiduOcr);
+      });
+
+      console.log('[BaiduOcrService] Sending OCR request with', AI_TIMEOUTS.baiduOcr, 'ms timeout');
+
+      // 等待fetch或超时
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
 
       clearTimeout(timeoutId);
       const processingTime = Date.now() - startTime;
@@ -229,12 +240,10 @@ class BaiduOcrService {
         rawResponse: data,
       };
     } catch (error: any) {
-      clearTimeout(timeoutId);
-
       // 检查是否是超时错误
-      if (error.name === 'AbortError') {
+      if (error.message && error.message.includes('超时')) {
         console.error('[BaiduOcrService] OCR request timeout after', AI_TIMEOUTS.baiduOcr, 'ms');
-        throw new Error(`OCR请求超时（${AI_TIMEOUTS.baiduOcr}ms），请检查网络连接或稍后重试`);
+        throw error; // 直接抛出超时错误
       }
 
       console.error('[BaiduOcrService] OCR recognition failed:', error);
