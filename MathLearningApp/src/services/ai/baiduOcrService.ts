@@ -182,47 +182,64 @@ class BaiduOcrService {
       const startTime = Date.now();
       this.requestTimes.push(startTime);
 
-      // 发送请求
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData,
-      });
+      // 添加超时控制（10秒超时）
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUTS.baiduOcr);
 
-      const processingTime = Date.now() - startTime;
-      console.log(`[BaiduOcrService] OCR processing time: ${processingTime}ms`);
+      console.log('[BaiduOcrService] Sending OCR request with', AI_TIMEOUTS.baiduOcr, 'ms timeout');
 
-      if (!response.ok) {
-        throw new Error(`OCR request failed: ${response.status}`);
-      }
+      try {
+        // 发送请求
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData,
+          signal: controller.signal,
+        });
 
-      const data = (await response.json()) as BaiduOcrResponse;
+        clearTimeout(timeoutId);
+        const processingTime = Date.now() - startTime;
+        console.log(`[BaiduOcrService] OCR processing time: ${processingTime}ms`);
 
-      // 检查API错误
-      if (data.error_code) {
-        throw new Error(`Baidu OCR error ${data.error_code}: ${data.error_msg}`);
-      }
+        if (!response.ok) {
+          throw new Error(`OCR request failed: ${response.status}`);
+        }
 
-      // 提取文本
-      const text = data.words_result
+        const data = (await response.json()) as BaiduOcrResponse;
+
+        // 检查API错误
+        if (data.error_code) {
+          throw new Error(`Baidu OCR error ${data.error_code}: ${data.error_msg}`);
+        }
+
+        // 提取文本
+        const text = data.words_result
         ?.map(item => item.words)
         .join('\n') || '';
 
-      // 计算置信度（基于返回的字数和识别结果数）
-      const confidence = this.calculateConfidence(data);
+        // 计算置信度（基于返回的字数和识别结果数）
+        const confidence = this.calculateConfidence(data);
 
-      console.log(`[BaiduOcrService] Recognized ${data.words_result_num || 0} text blocks, confidence: ${confidence}`);
+        console.log(`[BaiduOcrService] Recognized ${data.words_result_num || 0} text blocks, confidence: ${confidence}`);
 
-      return {
-        text,
-        confidence,
-        rawResponse: data,
-      };
-    } catch (error) {
-      console.error('[BaiduOcrService] OCR recognition failed:', error);
-      throw error;
+        return {
+          text,
+          confidence,
+          rawResponse: data,
+        };
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+
+        // 检查是否是超时错误
+        if (error.name === 'AbortError') {
+          console.error('[BaiduOcrService] OCR request timeout after', AI_TIMEOUTS.baiduOcr, 'ms');
+          throw new Error(`OCR请求超时（${AI_TIMEOUTS.baiduOcr}ms），请检查网络连接或稍后重试`);
+        }
+
+        console.error('[BaiduOcrService] OCR recognition failed:', error);
+        throw error;
     }
   }
 
