@@ -64,12 +64,15 @@ class AIService {
    */
   async recognizeQuestion(imageBase64: string): Promise<OCRResult> {
     console.log('[AIService] Starting OCR recognition...');
+    console.log('[AIService] OCR provider:', AI_PROVIDER.ocr);
+    console.log('[AIService] Baidu OCR available:', baiduOcrService.isAvailable());
 
     // 如果启用百度OCR
     if (AI_PROVIDER.ocr === 'baidu' && baiduOcrService.isAvailable()) {
       try {
+        console.log('[AIService] Using Baidu OCR API...');
         const result = await baiduOcrService.recognizeAccurateText(imageBase64);
-        console.log('[AIService] Baidu OCR successful');
+        console.log('[AIService] Baidu OCR successful, text length:', result.text.length);
 
         // 使用百度OCR的解析功能
         return baiduOcrService.parseMathQuestion(result.text);
@@ -82,9 +85,18 @@ class AIService {
       }
     }
 
-    // 降级方案
-    console.log('[AIService] Using fallback OCR');
-    return this.getFallbackOCRResult();
+    // 降级方案 - 当百度OCR不可用时
+    console.log('[AIService] Baidu OCR not available, using fallback');
+    const fallback = this.getFallbackOCRResult();
+    console.log('[AIService] Fallback result:', fallback);
+
+    // 如果返回空结果，抛出错误提示用户
+    if (fallback.confidence === 0) {
+      console.error('[AIService] OCR service not configured - API keys missing');
+      throw new Error('OCR服务未配置。请在设置中配置百度OCR API密钥，或联系管理员。');
+    }
+
+    return fallback;
   }
 
   /**
