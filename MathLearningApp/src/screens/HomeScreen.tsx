@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image} from 'react-native';
-import {Card, Title, Paragraph, Button} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert} from 'react-native';
+import {Card as PaperCard, Title, Paragraph} from 'react-native-paper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {generationHistoryService} from '../services/generationHistoryService';
 import {feedbackManager, MilestoneType} from '../services/feedbackManager';
 import {GenerationRecord} from '../types';
@@ -12,8 +12,19 @@ import CelebrationOverlay from '../components/CelebrationOverlay';
 import {checkTourCompleted} from '../components/OnboardingTour';
 import {launchImageLibrary} from 'react-native-image-picker';
 
-// PATCH-017: 提取魔法数字为常量
+// 导入设计系统和 UI 组件
+import {designSystem} from '../styles/designSystem';
+import {Card, Button, Icon, Typography, Spacer} from '../components/ui';
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
 const MAX_RECENT_ITEMS = 5;
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 const HomeScreen = ({navigation}: any) => {
   const [recentGenerations, setRecentGenerations] = useState<GenerationRecord[]>([]);
@@ -172,19 +183,30 @@ const HomeScreen = ({navigation}: any) => {
 
     return unsubscribe;
   }, [navigation]);
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
   return (
     <ScrollView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerText}>
-            <Text style={styles.title}>一年级数学学习助手</Text>
-            <Text style={styles.subtitle}>让家长轻松掌握辅导方法</Text>
+            <Typography variant="headlineMedium" color={designSystem.colors.text.inverse}>
+              一年级数学学习助手
+            </Typography>
+            <Spacer size="xs" />
+            <Typography variant="body" color={designSystem.colors.text.inverse}>
+              让家长轻松掌握辅导方法
+            </Typography>
           </View>
           <TouchableOpacity
             onPress={() => setShowHelp(true)}
             style={styles.helpButton}
             accessibilityLabel="帮助">
-            <Icon name="help-outline" size={28} color="white" />
+            <Icon name="help-outline" size="lg" color={designSystem.colors.text.inverse} />
           </TouchableOpacity>
         </View>
       </View>
@@ -198,10 +220,15 @@ const HomeScreen = ({navigation}: any) => {
           activeOpacity={0.9}>
           <View style={styles.actionCardContent}>
             <View style={styles.actionIconContainerLeft}>
-              <Icon name="camera-alt" size={32} color="#2196F3" />
+              <Icon name="camera-alt" size="lg" color={designSystem.colors.info.default} />
             </View>
-            <Text style={styles.actionCardTitleLeft}>拍照上传</Text>
-            <Text style={styles.actionCardTextLeft}>拍摄题目自动识别</Text>
+            <Typography variant="headlineSmall" color={designSystem.colors.info.dark}>
+              拍照上传
+            </Typography>
+            <Spacer size="xs" />
+            <Typography variant="caption" color={designSystem.colors.text.tertiary}>
+              拍摄题目自动识别
+            </Typography>
           </View>
         </TouchableOpacity>
 
@@ -214,74 +241,99 @@ const HomeScreen = ({navigation}: any) => {
           <View style={styles.actionCardContent}>
             <View style={styles.actionIconContainerRight}>
               {isUploading ? (
-                <ActivityIndicator size={28} color="#4CAF50" />
+                <ActivityIndicator size={28} color={designSystem.colors.success.default} />
               ) : (
-                <Icon name="photo-library" size={32} color="#4CAF50" />
+                <Icon name="photo-library" size="lg" color={designSystem.colors.success.default} />
               )}
             </View>
-            <Text style={styles.actionCardTitleRight}>上传图片</Text>
-            <Text style={styles.actionCardTextRight}>从相册选择识别</Text>
+            <Typography variant="headlineSmall" color={designSystem.colors.success.dark}>
+              上传图片
+            </Typography>
+            <Spacer size="xs" />
+            <Typography variant="caption" color={designSystem.colors.text.tertiary}>
+              从相册选择识别
+            </Typography>
           </View>
         </TouchableOpacity>
       </View>
 
       {/* 最近练习部分 */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.sectionHeader}>
-            <Title style={styles.cardTitle}>📚 最近练习</Title>
-            {recentGenerations.length > 0 && (
-              <TouchableOpacity
-                onPress={() => navigation?.navigate('QuestionList')}
-                style={styles.viewAllButton}>
-                <Text style={styles.viewAllText}>查看全部</Text>
-              </TouchableOpacity>
-            )}
+      <Card variant="elevated" padding="lg" style={styles.card}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleRow}>
+            <Icon name="menu-book" size="md" color={designSystem.colors.primary} />
+            <Spacer size="sm" direction="horizontal" />
+            <Typography variant="headlineSmall" color={designSystem.colors.text.primary}>
+              最近练习
+            </Typography>
           </View>
-
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#007bff" />
-            </View>
-          ) : recentGenerations.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📝</Text>
-              <Text style={styles.emptyTitle}>还没有练习记录</Text>
-              <Text style={styles.emptyMessage}>
-                点击上方"拍照上传题目"开始第一次练习吧！
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.recentList}>
-              {recentGenerations
-                .filter(record => record && record.id) // PATCH-016: 过滤掉没有有效 ID 的记录
-                .map(record => (
-                  <RecentPracticeCard
-                    key={record.id}
-                    record={record}
-                  />
-                ))}
-            </View>
+          {recentGenerations.length > 0 && (
+            <TouchableOpacity
+              onPress={() => navigation?.navigate('QuestionList')}
+              style={styles.viewAllButton}>
+              <Typography variant="body" color={designSystem.colors.primary}>
+                查看全部
+              </Typography>
+            </TouchableOpacity>
           )}
-        </Card.Content>
+        </View>
+
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={designSystem.colors.primary} />
+          </View>
+        ) : recentGenerations.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Icon name="edit-note" size="xl" color={designSystem.colors.text.disabled} />
+            <Spacer size="md" />
+            <Typography variant="headlineSmall" color={designSystem.colors.text.primary}>
+              还没有练习记录
+            </Typography>
+            <Spacer size="sm" />
+            <Typography variant="body" color={designSystem.colors.text.secondary} align="center">
+              点击上方"拍照上传题目"开始第一次练习吧！
+            </Typography>
+          </View>
+        ) : (
+          <View style={styles.recentList}>
+            {recentGenerations
+              .filter(record => record && record.id) // PATCH-016: 过滤掉没有有效 ID 的记录
+              .map(record => (
+                <RecentPracticeCard
+                  key={record.id}
+                  record={record}
+                />
+              ))}
+          </View>
+        )}
       </Card>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title style={styles.cardTitle}>📊 学习进度</Title>
-          <Text style={styles.emptyText}>暂无学习数据</Text>
-        </Card.Content>
+      <Card variant="outlined" padding="lg" style={styles.card}>
+        <View style={styles.sectionTitleRow}>
+          <Icon name="bar-chart" size="md" color={designSystem.colors.primary} />
+          <Spacer size="sm" direction="horizontal" />
+          <Typography variant="headlineSmall" color={designSystem.colors.text.primary}>
+            学习进度
+          </Typography>
+        </View>
+        <Spacer size="sm" />
+        <Typography variant="body" color={designSystem.colors.text.secondary} align="center">
+          暂无学习数据
+        </Typography>
       </Card>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title style={styles.cardTitle}>💡 辅导小贴士</Title>
-          <Text style={styles.tipText}>
-            • 一年级学生适合使用实物辅助理解
-            {'\n'}• 多使用生活化的例子解释数学概念
-            {'\n'}• 鼓励孩子自己动手操作
-          </Text>
-        </Card.Content>
+      <Card variant="outlined" padding="lg" style={styles.card}>
+        <View style={styles.sectionTitleRow}>
+          <Icon name="lightbulb" size="md" color={designSystem.colors.primary} />
+          <Spacer size="sm" direction="horizontal" />
+          <Typography variant="headlineSmall" color={designSystem.colors.text.primary}>
+            辅导小贴士
+          </Typography>
+        </View>
+        <Spacer size="sm" />
+        <Typography variant="body" color={designSystem.colors.text.primary}>
+          • 一年级学生适合使用实物辅助理解{'\n'}• 多使用生活化的例子解释数学概念{'\n'}• 鼓励孩子自己动手操作
+        </Typography>
       </Card>
 
       {/* 帮助对话框 */}
@@ -310,15 +362,19 @@ const HomeScreen = ({navigation}: any) => {
   );
 };
 
+// ============================================================================
+// STYLES
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   header: {
-    backgroundColor: '#007bff',
-    padding: 20,
-    paddingTop: 40,
+    backgroundColor: designSystem.colors.primary,
+    padding: designSystem.spacing.xl,
+    paddingTop: designSystem.spacing.xxxl,
   },
   headerContent: {
     flexDirection: 'row',
@@ -328,181 +384,91 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: 'white',
-    marginTop: 5,
-  },
   helpButton: {
-    padding: 8,
+    padding: designSystem.spacing.xs,
   },
   card: {
-    margin: 15,
-    borderRadius: 10,
-    elevation: 3,
-  },
-  cardTitle: {
-    fontSize: 18,
-    marginBottom: 10,
+    margin: designSystem.spacing.lg,
   },
   // 功能卡片容器
   actionCardsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    marginTop: 15,
-    marginBottom: 10,
-    gap: 10,
+    paddingHorizontal: designSystem.spacing.lg,
+    marginTop: designSystem.spacing.lg,
+    marginBottom: designSystem.spacing.md,
+    gap: designSystem.spacing.md,
   },
   // 左侧拍照上传卡片
   actionCardLeft: {
     flex: 1,
     height: 140,
-    borderRadius: 16,
-    backgroundColor: '#E3F2FD',
+    borderRadius: designSystem.borderRadius.xl,
+    backgroundColor: designSystem.colors.info.light,
     borderLeftWidth: 4,
-    borderLeftColor: '#2196F3',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    borderLeftColor: designSystem.colors.info.default,
+    ...designSystem.shadows.md,
   },
   // 右侧上传图片卡片
   actionCardRight: {
     flex: 1,
     height: 140,
-    borderRadius: 16,
-    backgroundColor: '#E8F5E9',
+    borderRadius: designSystem.borderRadius.xl,
+    backgroundColor: designSystem.colors.success.light,
     borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    borderLeftColor: designSystem.colors.success.default,
+    ...designSystem.shadows.md,
   },
   actionCardDisabled: {
     opacity: 0.5,
   },
   actionCardContent: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: designSystem.spacing.xl,
     flex: 1,
     justifyContent: 'center',
   },
-  // 左侧图标容器
+  // 图标容器
   actionIconContainerLeft: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: designSystem.colors.surface.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    ...designSystem.shadows.sm,
   },
-  // 右侧图标容器
   actionIconContainerRight: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: designSystem.colors.surface.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    ...designSystem.shadows.sm,
   },
-  // 左侧标题
-  actionCardTitleLeft: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1565C0',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  // 右侧标题
-  actionCardTitleRight: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginTop: 12,
-    textAlign: 'center',
-  },
-  // 左侧说明文字
-  actionCardTextLeft: {
-    fontSize: 13,
-    color: '#546E7A',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  // 右侧说明文字
-  actionCardTextRight: {
-    fontSize: 13,
-    color: '#546E7A',
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: 'gray',
-    textAlign: 'center',
-  },
-  tipText: {
-    fontSize: 14,
-    lineHeight: 24,
-    color: '#333',
-  },
-  // 新增样式
+  // Section 样式
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   viewAllButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: '#007bff',
-    fontWeight: '600',
+    paddingHorizontal: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.xs,
   },
   loadingContainer: {
-    paddingVertical: 20,
+    paddingVertical: designSystem.spacing.xl,
     alignItems: 'center',
   },
   emptyContainer: {
-    paddingVertical: 24,
+    paddingVertical: designSystem.spacing.xxl,
     alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 14,
-    color: '#757575',
-    textAlign: 'center',
-    lineHeight: 20,
   },
   recentList: {
     // 留空，卡片自带间距

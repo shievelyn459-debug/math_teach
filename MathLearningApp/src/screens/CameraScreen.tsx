@@ -1,9 +1,13 @@
 import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Modal, Dimensions, StatusBar, ScrollView, Image} from 'react-native';
 import {RNCamera} from 'react-native-camera';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import {Button, Card, Title} from 'react-native-paper';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import {Button as PaperButton, Card as PaperCard, Title} from 'react-native-paper';
 import {useNavigation, useRoute} from '@react-navigation/native';
+
+// 导入设计系统和 UI 组件
+import {designSystem} from '../styles/designSystem';
+import {Card, Button, Icon, Typography, Spacer} from '../components/ui';
 import {recognitionApi} from '../services/api';
 import {RecognitionResult, QuestionType, ManualCorrection, Difficulty, PerformanceMetrics, ProcessingStage, GenerationRecord, GeneratedQuestion} from '../types';
 import QuestionTypeSelector from '../components/QuestionTypeSelector';
@@ -775,7 +779,7 @@ const CameraScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2196f3" />
+      <StatusBar barStyle="light-content" backgroundColor={designSystem.colors.primary} />
 
       {/* 顶部工具栏 */}
       <View style={styles.headerContainer}>
@@ -783,23 +787,25 @@ const CameraScreen = () => {
           onPress={() => navigation.goBack()}
           style={styles.headerButton}
           accessibilityLabel="返回">
-          <Icon name="arrow-back" size={24} color="white" />
+          <Icon name="arrow-back" size="md" color={designSystem.colors.text.inverse} />
         </TouchableOpacity>
 
-        <Text style={styles.header}>拍照上传</Text>
+        <Typography variant="headlineSmall" color={designSystem.colors.text.inverse}>
+          拍照上传
+        </Typography>
 
         <View style={styles.headerRight}>
           <TouchableOpacity
             onPress={() => (navigation as any).navigate('History')}
             style={styles.headerButton}
             accessibilityLabel="历史记录">
-            <Icon name="history" size={24} color="white" />
+            <Icon name="history" size="md" color={designSystem.colors.text.inverse} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setShowHelp(true)}
             style={styles.headerButton}
             accessibilityLabel="帮助">
-            <Icon name="help-outline" size={24} color="white" />
+            <Icon name="help-outline" size="md" color={designSystem.colors.text.inverse} />
           </TouchableOpacity>
         </View>
       </View>
@@ -808,79 +814,96 @@ const CameraScreen = () => {
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {/* 使用说明 - 简化版 */}
         <View style={styles.miniInstructionCard}>
-          <Icon name="info-outline" size={16} color="#007bff" />
-          <Text style={styles.miniInstructionText}>将题目对准相机框内，确保清晰完整</Text>
+          <Icon name="info-outline" size="sm" color={designSystem.colors.info.default} />
+          <Spacer size="sm" direction="horizontal" />
+          <Typography variant="caption" color={designSystem.colors.info.dark}>
+            将题目对准相机框内，确保清晰完整
+          </Typography>
         </View>
 
       {/* 识别状态显示 */}
       {isRecognizing && (
         <View style={styles.recognitionStatus}>
-          <ActivityIndicator size="large" color="#007bff" />
-          <Text style={styles.recognitionText}>正在识别题目类型...</Text>
+          <ActivityIndicator size="large" color={designSystem.colors.info.default} />
+          <Spacer size="md" direction="horizontal" />
+          <Typography variant="body" color={designSystem.colors.text.primary}>
+            正在识别题目类型...
+          </Typography>
         </View>
       )}
 
       {error && (
-        <Card style={styles.errorCard}>
-          <Card.Content>
-            <Title style={styles.errorTitle}>识别错误</Title>
-            <Text style={styles.errorText}>{error}</Text>
-          </Card.Content>
+        <Card variant="outlined" padding="md" style={styles.errorCard}>
+          <Typography variant="headlineSmall" color={designSystem.colors.error.dark}>
+            识别错误
+          </Typography>
+          <Spacer size="xs" />
+          <Typography variant="body" color={designSystem.colors.error.dark}>
+            {error}
+          </Typography>
         </Card>
       )}
 
       {recognitionResult && (
-        <Card style={styles.resultCard}>
-          <Card.Content>
-            <Title>识别结果</Title>
-            <Text style={styles.resultText}>
-              题目类型: {getQuestionTypeLabel(recognitionResult.questionType)}
-            </Text>
-            <Text style={styles.resultText}>
-              置信度: {(recognitionResult.confidence * 100).toFixed(1)}%
-            </Text>
+        <Card variant="outlined" padding="md" style={styles.resultCard}>
+          <Typography variant="headlineSmall" color={designSystem.colors.text.primary}>
+            识别结果
+          </Typography>
+          <Spacer size="sm" />
+          <Typography variant="body" color={designSystem.colors.text.primary}>
+            题目类型: {getQuestionTypeLabel(recognitionResult.questionType)}
+          </Typography>
+          <Spacer size="xs" />
+          <Typography variant="body" color={designSystem.colors.text.primary}>
+            置信度: {(recognitionResult.confidence * 100).toFixed(1)}%
+          </Typography>
 
-            {/* Story 3-3: 知识点标签 - 支持点击导航到详细讲解 */}
-            {recognitionResult.knowledgePoints ? (
-              <View style={styles.knowledgePointContainer}>
-                <Text style={styles.resultText}>知识点:</Text>
-                <KnowledgePointTag
-                  matchResult={recognitionResult.knowledgePoints.primaryKnowledgePoint}
-                  onPress={(matchResult) =>
-                    handleKnowledgePointPress(
-                      matchResult.knowledgePoint.id,
-                      matchResult.knowledgePoint.name
-                    )
-                  }
-                />
-              </View>
-            ) : (
-              <Text style={styles.resultText}>
-                知识点: {recognitionResult.knowledgePoint}
-              </Text>
-            )}
+          {/* Story 3-3: 知识点标签 - 支持点击导航到详细讲解 */}
+          {recognitionResult.knowledgePoints ? (
+            <View style={styles.knowledgePointContainer}>
+              <Typography variant="body" color={designSystem.colors.text.primary}>
+                知识点:
+              </Typography>
+              <Spacer size="xs" direction="horizontal" />
+              <KnowledgePointTag
+                matchResult={recognitionResult.knowledgePoints.primaryKnowledgePoint}
+                onPress={(matchResult) =>
+                  handleKnowledgePointPress(
+                    matchResult.knowledgePoint.id,
+                    matchResult.knowledgePoint.name
+                  )
+                }
+              />
+            </View>
+          ) : (
+            <Typography variant="body" color={designSystem.colors.text.primary}>
+              知识点: {recognitionResult.knowledgePoint}
+            </Typography>
+          )}
 
-            {selectedDifficulty && (
-              <Text style={styles.resultText}>
-                选择难度: {getDifficultyLabel(selectedDifficulty)}
-              </Text>
-            )}
-            <Button
-              mode="outlined"
-              onPress={() => setShowManualCorrection(true)}
-              style={styles.correctionButton}
-            >
-              不对？手动修正
-            </Button>
-          </Card.Content>
+          {selectedDifficulty && (
+            <Typography variant="body" color={designSystem.colors.text.primary}>
+              选择难度: {getDifficultyLabel(selectedDifficulty)}
+            </Typography>
+          )}
+          <Spacer size="md" />
+          <Button
+            variant="outline"
+            size="md"
+            title="不对？手动修正"
+            onPress={() => setShowManualCorrection(true)}
+          />
         </Card>
       )}
 
       {/* 生成问题加载状态 */}
       {isGeneratingQuestions && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007bff" />
-          <Text style={styles.loadingText}>正在生成题目...</Text>
+          <ActivityIndicator size="large" color={designSystem.colors.info.default} />
+          <Spacer size="md" direction="horizontal" />
+          <Typography variant="body" color={designSystem.colors.info.dark}>
+            正在生成题目...
+          </Typography>
         </View>
       )}
       </ScrollView>
@@ -907,8 +930,11 @@ const CameraScreen = () => {
                   setError(null);
                   hasProcessedImageRef.current = false;
                 }}>
-                <Icon name="close" size={24} color="white" />
-                <Text style={styles.retakeButtonText}>重新选择</Text>
+                <Icon name="close" size="md" color={designSystem.colors.text.inverse} />
+                <Spacer size="sm" direction="horizontal" />
+                <Typography variant="body" color={designSystem.colors.text.inverse}>
+                  重新选择
+                </Typography>
               </TouchableOpacity>
             </View>
           </View>
@@ -930,18 +956,21 @@ const CameraScreen = () => {
 
           <View style={styles.cameraOverlay}>
             <View style={styles.focusFrame}>
-              <Icon name="crop-free" size={40} color="white" />
-              <Text style={styles.focusText}>将题目对准框内</Text>
+              <Icon name="crop-free" size="xl" color={designSystem.colors.text.inverse} />
+              <Spacer size="xs" />
+              <Typography variant="caption" color={designSystem.colors.text.inverse}>
+                将题目对准框内
+              </Typography>
             </View>
           </View>
 
           {/* 侧边工具栏 */}
           <View style={styles.cameraSideToolbar}>
             <TouchableOpacity style={styles.sideToolbarButton}>
-              <Icon name="flash-on" size={20} color="white" />
+              <Icon name="flash-on" size="md" color={designSystem.colors.text.inverse} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.sideToolbarButton}>
-              <Icon name="flip-camera-ios" size={20} color="white" />
+              <Icon name="flip-camera-ios" size="md" color={designSystem.colors.text.inverse} />
             </TouchableOpacity>
           </View>
         </View>
@@ -952,8 +981,11 @@ const CameraScreen = () => {
       <View style={styles.bottomSection}>
         {/* 功能提示 */}
         <View style={styles.tipContainer}>
-          <Icon name="info-outline" size={16} color="#666" />
-          <Text style={styles.tipText}>拍照或从相册选择数学题目</Text>
+          <Icon name="info-outline" size="sm" color={designSystem.colors.text.secondary} />
+          <Spacer size="xs" direction="horizontal" />
+          <Typography variant="caption" color={designSystem.colors.text.secondary}>
+            拍照或从相册选择数学题目
+          </Typography>
         </View>
 
         {/* 主控制按钮 */}
@@ -963,8 +995,10 @@ const CameraScreen = () => {
             style={[styles.controlButton, styles.galleryButton, (isTakingPicture || isRecognizing || preselectedImage) && styles.controlButtonDisabled]}
             onPress={pickImageFromGallery}
             disabled={isTakingPicture || isRecognizing || !!preselectedImage}>
-            <Icon name="photo-library" size={28} color="white" />
-            <Text style={styles.controlButtonText}>相册</Text>
+            <Icon name="photo-library" size="lg" color={designSystem.colors.text.inverse} />
+            <Typography variant="caption" color={designSystem.colors.text.inverse}>
+              相册
+            </Typography>
           </TouchableOpacity>
 
           {/* 中间：拍照按钮 - 当有预选图片时隐藏 */}
@@ -974,7 +1008,7 @@ const CameraScreen = () => {
               onPress={takePicture}
               disabled={isTakingPicture || isRecognizing}>
               <View style={styles.cameraButtonInner}>
-                <Icon name="camera-alt" size={32} color="white" />
+                <Icon name="camera-alt" size="lg" color={designSystem.colors.text.inverse} />
               </View>
             </TouchableOpacity>
           )}
@@ -984,20 +1018,28 @@ const CameraScreen = () => {
             style={styles.controlButton}
             onPress={() => (navigation as any).navigate('History')}
             disabled={isTakingPicture || isRecognizing}>
-            <Icon name="history" size={32} color="white" />
-            <Text style={styles.controlButtonText}>历史</Text>
+            <Icon name="history" size="lg" color={designSystem.colors.text.inverse} />
+            <Typography variant="caption" color={designSystem.colors.text.inverse}>
+              历史
+            </Typography>
           </TouchableOpacity>
         </View>
 
         {/* 快速功能按钮 */}
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.quickActionButton} onPress={() => setShowHelp(true)}>
-            <Icon name="help-outline" size={20} color="#007bff" />
-            <Text style={styles.quickActionText}>使用帮助</Text>
+            <Icon name="help-outline" size="md" color={designSystem.colors.info.default} />
+            <Spacer size="xs" direction="horizontal" />
+            <Typography variant="caption" color={designSystem.colors.info.default}>
+              使用帮助
+            </Typography>
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickActionButton}>
-            <Icon name="settings" size={20} color="#007bff" />
-            <Text style={styles.quickActionText}>设置</Text>
+            <Icon name="settings" size="md" color={designSystem.colors.info.default} />
+            <Spacer size="xs" direction="horizontal" />
+            <Typography variant="caption" color={designSystem.colors.info.default}>
+              设置
+            </Typography>
           </TouchableOpacity>
         </View>
       </View>
@@ -1044,10 +1086,14 @@ const CameraScreen = () => {
         <Modal visible={showWarning} transparent animationType="fade">
           <View style={styles.warningModalContainer}>
             <View style={styles.warningModalContent}>
-              <Text style={styles.warningTitle}>⚠️ 处理时间较长</Text>
-              <Text style={styles.warningMessage}>
+              <Typography variant="headlineSmall" color={designSystem.colors.text.primary} align="center">
+                ⚠️ 处理时间较长
+              </Typography>
+              <Spacer size="md" />
+              <Typography variant="body" color={designSystem.colors.text.secondary} align="center">
                 当前处理已超过 {WARNING_THRESHOLD / 1000} 秒，请选择：
-              </Text>
+              </Typography>
+              <Spacer size="lg" />
               <View style={styles.warningButtons}>
                 <TouchableOpacity
                   style={[styles.warningButton, styles.warningButtonCancel]}
@@ -1055,12 +1101,16 @@ const CameraScreen = () => {
                     setShowWarning(false);
                     performanceTracker.completeSession();
                   }}>
-                  <Text style={styles.warningButtonText}>取消</Text>
+                  <Typography variant="body" color={designSystem.colors.text.primary}>
+                    取消
+                  </Typography>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.warningButton, styles.warningButtonContinue]}
                   onPress={() => setShowWarning(false)}>
-                  <Text style={styles.warningButtonText}>继续等待</Text>
+                  <Typography variant="body" color={designSystem.colors.text.inverse}>
+                    继续等待
+                  </Typography>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1086,77 +1136,68 @@ const CameraScreen = () => {
   );
 };
 
+// ============================================================================
+// STYLES
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   // 滚动容器
   scrollContainer: {
-    flex: 0, // 不自动扩展，根据内容确定高度
-    maxHeight: SCREEN_HEIGHT * 0.25, // 限制最大高度
+    flex: 0,
+    maxHeight: SCREEN_HEIGHT * 0.25,
   },
   // 简化版使用说明
   miniInstructionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e3f2fd',
-    paddingVertical: SCREEN_HEIGHT * 0.012,
-    paddingHorizontal: SCREEN_WIDTH * 0.04,
-    marginVertical: SCREEN_HEIGHT * 0.01,
-    marginHorizontal: SCREEN_WIDTH * 0.03,
-    borderRadius: 8,
-  },
-  miniInstructionText: {
-    fontSize: SCREEN_WIDTH * 0.032,
-    color: '#1976d2',
-    marginLeft: 8,
+    backgroundColor: designSystem.colors.info.light,
+    paddingVertical: designSystem.spacing.sm,
+    paddingHorizontal: designSystem.spacing.lg,
+    marginVertical: designSystem.spacing.xs,
+    marginHorizontal: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.md,
   },
   // 固定底部容器
   fixedBottomContainer: {
-    backgroundColor: '#fff',
-    flex: 1, // 占据剩余空间
-    justifyContent: 'flex-end', // 内容对齐到底部
-    paddingBottom: 0, // 移除底部内边距，让bottomSection处理
+    backgroundColor: designSystem.colors.surface.primary,
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: 0,
   },
   // 顶部工具栏
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: SCREEN_WIDTH * 0.04,
-    paddingTop: StatusBar.currentHeight + 10,
-    paddingBottom: 12,
-    backgroundColor: '#2196f3',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    paddingHorizontal: designSystem.spacing.lg,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + designSystem.spacing.sm : designSystem.spacing.lg,
+    paddingBottom: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.primary,
+    ...designSystem.shadows.md,
   },
   headerButton: {
-    padding: 8,
+    padding: designSystem.spacing.xs,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  header: {
-    fontSize: SCREEN_WIDTH * 0.045,
-    fontWeight: 'bold',
-    color: 'white',
+    gap: designSystem.spacing.xs,
   },
   // 相机区域
   cameraSection: {
-    backgroundColor: '#000',
+    backgroundColor: designSystem.colors.surface.dark,
   },
   cameraContainer: {
-    height: SCREEN_HEIGHT * 0.55, // 增加到55%，让预览区域更清晰可见
-    marginHorizontal: SCREEN_WIDTH * 0.03,
-    marginTop: SCREEN_HEIGHT * 0.01,
-    borderRadius: 12,
+    height: SCREEN_HEIGHT * 0.55,
+    marginHorizontal: designSystem.spacing.md,
+    marginTop: designSystem.spacing.xs,
+    borderRadius: designSystem.borderRadius.lg,
     overflow: 'hidden',
-    backgroundColor: '#000',
+    backgroundColor: designSystem.colors.surface.dark,
   },
   preview: {
     flex: 1,
@@ -1171,33 +1212,24 @@ const styles = StyleSheet.create({
   },
   focusFrame: {
     position: 'absolute',
-    top: SCREEN_HEIGHT * 0.25, // 调整位置以适应更大的相机容器
-    left: SCREEN_WIDTH * 0.1, // 从10%开始（之前是20%）
-    width: SCREEN_WIDTH * 0.8, // 增加到80%宽度（之前是60%）
-    height: SCREEN_WIDTH * 0.8, // 增加高度以匹配宽度
+    top: SCREEN_HEIGHT * 0.25,
+    left: SCREEN_WIDTH * 0.1,
+    width: SCREEN_WIDTH * 0.8,
+    height: SCREEN_WIDTH * 0.8,
     borderColor: 'rgba(255,255,255,0.8)',
     borderWidth: 2,
-    borderRadius: 8,
+    borderRadius: designSystem.borderRadius.md,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.1)',
   },
-  focusText: {
-    color: 'white',
-    fontSize: SCREEN_WIDTH * 0.035,
-    marginTop: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
   // 侧边工具栏
   cameraSideToolbar: {
     position: 'absolute',
-    right: SCREEN_WIDTH * 0.04,
+    right: designSystem.spacing.lg,
     top: SCREEN_HEIGHT * 0.25 + (SCREEN_WIDTH * 0.8 - SCREEN_HEIGHT * 0.5) / 2,
-    gap: 12,
+    gap: designSystem.spacing.md,
   },
   sideToolbarButton: {
     width: 44,
@@ -1222,41 +1254,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.7)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-  },
-  retakeButtonText: {
-    color: 'white',
-    fontSize: 14,
-    marginLeft: 8,
-    fontWeight: '600',
+    paddingHorizontal: designSystem.spacing.lg,
+    paddingVertical: designSystem.spacing.sm,
+    borderRadius: designSystem.borderRadius.xl,
   },
   // 底部区域
   bottomSection: {
-    backgroundColor: '#fff',
-    paddingHorizontal: SCREEN_WIDTH * 0.04,
-    paddingVertical: SCREEN_HEIGHT * 0.02,
-    paddingBottom: SCREEN_HEIGHT * 0.18, // 增加到18%，确保按钮在Tab Bar上方可见
-    minHeight: SCREEN_HEIGHT * 0.25, // 确保最小高度
+    backgroundColor: designSystem.colors.surface.primary,
+    paddingHorizontal: designSystem.spacing.lg,
+    paddingVertical: designSystem.spacing.md,
+    paddingBottom: SCREEN_HEIGHT * 0.18,
+    minHeight: SCREEN_HEIGHT * 0.25,
   },
   tipContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.015,
-  },
-  tipText: {
-    fontSize: SCREEN_WIDTH * 0.032,
-    color: '#666',
-    marginLeft: 6,
+    marginBottom: designSystem.spacing.sm,
   },
   // 主控制按钮
   mainControls: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.02,
+    marginBottom: designSystem.spacing.md,
   },
   controlButton: {
     alignItems: 'center',
@@ -1264,30 +1285,21 @@ const styles = StyleSheet.create({
   controlButtonDisabled: {
     opacity: 0.5,
   },
-  controlButtonText: {
-    fontSize: SCREEN_WIDTH * 0.03,
-    color: '#fff',
-    marginTop: 3,
-  },
   // 拍照按钮
   cameraButton: {
     width: SCREEN_WIDTH * 0.19,
     height: SCREEN_WIDTH * 0.19,
     borderRadius: SCREEN_WIDTH * 0.095,
-    backgroundColor: '#007bff',
+    backgroundColor: designSystem.colors.info.default,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#007bff',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    ...designSystem.shadows.lg,
   },
   cameraButtonInner: {
     width: SCREEN_WIDTH * 0.15,
     height: SCREEN_WIDTH * 0.15,
     borderRadius: SCREEN_WIDTH * 0.075,
-    backgroundColor: '#0056b3',
+    backgroundColor: designSystem.colors.info.dark,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1296,111 +1308,72 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH * 0.15,
     height: SCREEN_WIDTH * 0.15,
     borderRadius: SCREEN_WIDTH * 0.075,
-    backgroundColor: '#28a745',
+    backgroundColor: designSystem.colors.success.default,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#28a745',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    ...designSystem.shadows.md,
   },
   // 快速操作
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingTop: SCREEN_HEIGHT * 0.015,
+    borderTopColor: designSystem.colors.border.light,
+    paddingTop: designSystem.spacing.sm,
   },
   quickActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  quickActionText: {
-    fontSize: SCREEN_WIDTH * 0.03,
-    color: '#007bff',
-  },
-  // 辅助样式
-  buttonActivity: {
-    position: 'absolute',
+    gap: designSystem.spacing.xs,
   },
   // 倒计时容器
   countdownContainer: {
     position: 'absolute',
     top: 80,
-    right: 20,
+    right: designSystem.spacing.lg,
     zIndex: 1000,
   },
-  // 辅助样式
-  instructionCard: {
-    marginHorizontal: SCREEN_WIDTH * 0.04,
-    marginTop: SCREEN_HEIGHT * 0.015,
-    borderRadius: 8,
-  },
-  instructionText: {
-    fontSize: SCREEN_WIDTH * 0.035,
-    color: '#555',
-    lineHeight: 22,
-  },
+  // 结果卡片
   resultCard: {
-    marginHorizontal: SCREEN_WIDTH * 0.04,
-    marginTop: SCREEN_HEIGHT * 0.015,
-    borderRadius: 8,
-    backgroundColor: '#e8f5e9',
-    borderColor: '#4caf50',
+    marginHorizontal: designSystem.spacing.lg,
+    marginTop: designSystem.spacing.sm,
+    borderRadius: designSystem.borderRadius.md,
+    backgroundColor: designSystem.colors.success.light,
+    borderColor: designSystem.colors.success.default,
     borderWidth: 1,
-  },
-  resultText: {
-    fontSize: SCREEN_WIDTH * 0.038,
-    color: '#333',
-    marginBottom: 6,
   },
   knowledgePointContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: designSystem.spacing.xs,
   },
+  // 识别状态
   recognitionStatus: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 15,
-    backgroundColor: '#f0f0f0',
-    marginHorizontal: 15,
-    borderRadius: 8,
-    marginTop: 10,
+    padding: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.surface.secondary,
+    marginHorizontal: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.md,
+    marginTop: designSystem.spacing.sm,
   },
-  recognitionText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: '#333',
-  },
+  // 错误卡片
   errorCard: {
-    margin: 15,
-    backgroundColor: '#ffebee',
-    borderColor: '#f44336',
+    margin: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.error.light,
+    borderColor: designSystem.colors.error.default,
     borderWidth: 1,
   },
-  errorTitle: {
-    color: '#d32f2f',
+  // 加载状态
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: designSystem.spacing.md,
   },
-  errorText: {
-    color: '#d32f2f',
-    marginTop: 5,
-  },
-  correctionButton: {
-    marginTop: 12,
-    borderColor: '#007bff',
-  },
-  loadingText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: '#1976d2',
-    fontWeight: '500',
-  },
+  // 警告模态框
   warningModalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1408,52 +1381,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   warningModalContent: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
+    padding: designSystem.spacing.xl,
     width: '85%',
     maxWidth: 350,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  warningTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 12,
-    color: '#333',
-  },
-  warningMessage: {
-    fontSize: 15,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#666',
-    lineHeight: 22,
+    ...designSystem.shadows.lg,
   },
   warningButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: designSystem.spacing.md,
   },
   warningButton: {
     flex: 1,
-    padding: 14,
-    borderRadius: 8,
+    padding: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.md,
     alignItems: 'center',
   },
   warningButtonCancel: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: designSystem.colors.surface.secondary,
   },
   warningButtonContinue: {
-    backgroundColor: '#2196f3',
-  },
-  warningButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
+    backgroundColor: designSystem.colors.primary,
   },
 });
 
