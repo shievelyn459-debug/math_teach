@@ -1,7 +1,6 @@
 import React, {useState, useRef} from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -10,16 +9,17 @@ import {
   useWindowDimensions,
   Dimensions,
 } from 'react-native';
-import { Pdf } from 'react-native-pdf';
-import { StackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
-import { PDFDocument } from 'react-native-pdf-lib';
+import {Pdf} from 'react-native-pdf';
+import {StackNavigationProp} from '@react-navigation/native-stack';
+import {RouteProp} from '@react-navigation/native';
 
 import FilenameDialog from '../components/FilenameDialog';
 import PDFActionButtons from '../components/PDFActionButtons';
-import { pdfService } from '../services/pdfService';
-import { Difficulty } from '../types';
-import { getFontSize, getScaledSpacing } from '../styles/tablet';
+import {pdfService} from '../services/pdfService';
+import {Difficulty} from '../types';
+import {getFontSize, getScaledSpacing} from '../styles/tablet';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer, Button} from '../components/ui';
 
 interface RouteParams {
   pdfPath: string;
@@ -30,13 +30,13 @@ interface RouteParams {
 type NavigationProp = StackNavigationProp<any, 'PDFPreview'>;
 
 interface Props {
-  route: RouteProp<{ params: RouteParams }, 'PDFPreview'>;
+  route: RouteProp<{params: RouteParams}, 'PDFPreview'>;
   navigation: NavigationProp;
 }
 
-const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { pdfPath, questionCount, difficulty } = route.params;
-  const { width, height } = useWindowDimensions();
+const PDFPreviewScreen: React.FC<Props> = ({route, navigation}) => {
+  const {pdfPath, questionCount, difficulty} = route.params;
+  const {width, height} = useWindowDimensions();
   const isLandscape = width > height;
 
   // Responsive font sizes
@@ -209,18 +209,40 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   // 成功界面
   const renderSuccess = () => (
     <View style={styles.successContainer}>
-      <Text style={[styles.successIcon, { fontSize: getFontSize(64, width) }]}>✓</Text>
-      <Text style={[styles.successTitle, { fontSize: successTitleFontSize }]}>PDF 已保存</Text>
+      <Icon
+        name="check-circle"
+        size="xxl"
+        color={designSystem.colors.success.main}
+      />
+      <Spacer size="lg" />
+      <Typography variant="displaySmall" align="center">
+        PDF 已保存
+      </Typography>
       {savedFilePath && (
-        <Text style={[styles.successPath, { fontSize: headerInfoFontSize }]} numberOfLines={2}>
-          {savedFilePath}
-        </Text>
+        <>
+          <Spacer size="sm" />
+          <Typography
+            variant="caption"
+            color={designSystem.colors.text.secondary}
+            align="center"
+            numberOfLines={2}>
+            {savedFilePath}
+          </Typography>
+        </>
       )}
       {fileSize > 0 && (
-        <Text style={[styles.successFileSize, { fontSize: getFontSize(12, width) }]}>
-          文件大小: {pdfService.getFormattedFileSize(fileSize)}
-        </Text>
+        <>
+          <Spacer size="xs" />
+          <Typography
+            variant="overline"
+            color={designSystem.colors.text.hint}
+            align="center">
+            文件大小: {pdfService.getFormattedFileSize(fileSize)}
+          </Typography>
+        </>
       )}
+
+      <Spacer size="xxl" />
 
       {/* 操作按钮 */}
       <PDFActionButtons
@@ -237,32 +259,46 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* 操作错误显示 */}
       {actionError && (
         <View style={styles.actionErrorContainer}>
-          <Text style={[styles.actionErrorText, { fontSize: headerInfoFontSize }]}>{actionError}</Text>
+          <Typography
+            variant="caption"
+            color={designSystem.colors.warning.dark}>
+            {actionError}
+          </Typography>
+          <Spacer size="sm" />
           <TouchableOpacity
-            style={[styles.dismissErrorButton, { minHeight: 48 }]}
+            style={[styles.dismissErrorButton, {minHeight: 48}]}
             onPress={() => setActionError(null)}>
-            <Text style={[styles.dismissErrorButtonText, { fontSize: getFontSize(12, width) }]}>关闭</Text>
+            <Typography
+              variant="caption"
+              color={designSystem.colors.text.inverse}>
+              关闭
+            </Typography>
           </TouchableOpacity>
         </View>
       )}
 
       {/* 底部导航按钮 */}
       <View style={styles.successButtonContainer}>
-        <TouchableOpacity
-          style={[styles.successButton, styles.primaryButton, { minHeight: 48 }]}
-          onPress={handleDone}>
-          <Text style={[styles.primaryButtonText, { fontSize: buttonFontSize }]}>完成</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.successButton, styles.secondaryButton, { minHeight: 48 }]}
+        <Button
+          title="完成"
+          onPress={handleDone}
+          variant="primary"
+          size="lg"
+          fullWidth
+        />
+        <Spacer size="md" />
+        <Button
+          title="生成更多"
           onPress={() => {
             setShowSuccess(false);
             setSavedFilePath(null);
             setFileSize(0);
             setActionError(null);
-          }}>
-          <Text style={[styles.secondaryButtonText, { fontSize: buttonFontSize }]}>生成更多</Text>
-        </TouchableOpacity>
+          }}
+          variant="secondary"
+          size="lg"
+          fullWidth
+        />
       </View>
     </View>
   );
@@ -270,20 +306,39 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   // 错误界面
   const renderError = () => (
     <View style={styles.errorContainer}>
-      <Text style={[styles.errorIcon, { fontSize: getFontSize(64, width) }]}>!</Text>
-      <Text style={[styles.errorTitle, { fontSize: successTitleFontSize }]}>出错了</Text>
-      <Text style={[styles.errorMessage, { fontSize: buttonFontSize }]}>{error}</Text>
+      <Icon
+        name="error"
+        size="xxl"
+        color={designSystem.colors.error.main}
+      />
+      <Spacer size="lg" />
+      <Typography variant="displaySmall" align="center">
+        出错了
+      </Typography>
+      <Spacer size="sm" />
+      <Typography
+        variant="body"
+        color={designSystem.colors.text.secondary}
+        align="center">
+        {error}
+      </Typography>
+      <Spacer size="xxl" />
       <View style={styles.errorButtonContainer}>
-        <TouchableOpacity
-          style={[styles.errorButton, styles.retryButton, { minHeight: 48 }]}
-          onPress={handleRetry}>
-          <Text style={[styles.retryButtonText, { fontSize: buttonFontSize }]}>重试</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.errorButton, styles.cancelButton, { minHeight: 48 }]}
-          onPress={handleDone}>
-          <Text style={[styles.cancelButtonText, { fontSize: buttonFontSize }]}>取消</Text>
-        </TouchableOpacity>
+        <Button
+          title="重试"
+          onPress={handleRetry}
+          variant="primary"
+          size="lg"
+          fullWidth
+        />
+        <Spacer size="md" />
+        <Button
+          title="取消"
+          onPress={handleDone}
+          variant="secondary"
+          size="lg"
+          fullWidth
+        />
       </View>
     </View>
   );
@@ -296,7 +351,7 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.landscapeContainer}>
           <View style={styles.landscapePdfContainer}>
             <Pdf
-              source={{ uri: `file://${pdfPath}` }}
+              source={{uri: `file://${pdfPath}`}}
               style={styles.landscapePdf}
               onLoadComplete={handleLoadComplete}
               onError={handleLoadError}
@@ -307,28 +362,35 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
             />
           </View>
           <View style={styles.landscapeControls}>
-            <Text style={[styles.landscapeTitle, { fontSize: successTitleFontSize }]}>
+            <Typography variant="displaySmall" style={{fontSize: successTitleFontSize}}>
               PDF 预览
-            </Text>
-            <Text style={[styles.landscapeInfo, { fontSize: headerInfoFontSize }]}>
+            </Typography>
+            <Spacer size="sm" />
+            <Typography
+              variant="caption"
+              color={designSystem.colors.text.secondary}
+              style={{fontSize: headerInfoFontSize}}>
               {questionCount} 题 · {pdfService.getDifficultyLabel(difficulty)}
-            </Text>
+            </Typography>
+            <Spacer size="xxl" />
             <View style={styles.landscapeButtonContainer}>
-              <TouchableOpacity
-                style={[styles.landscapeButton, styles.cancelButton, { minHeight: 48 }]}
-                onPress={handleDone}>
-                <Text style={[styles.cancelButtonText, { fontSize: buttonFontSize }]}>取消</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.landscapeButton, (isLoading || pdfLoadFailed) ? styles.buttonDisabled : styles.saveButton, { minHeight: 48 }]}
+              <Button
+                title="取消"
+                onPress={handleDone}
+                variant="secondary"
+                size="lg"
+                fullWidth
+              />
+              <Spacer size="md" />
+              <Button
+                title={isLoading ? '保存中...' : '保存 PDF'}
                 onPress={handleSavePress}
-                disabled={isLoading || pdfLoadFailed}>
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={[styles.saveButtonText, { fontSize: buttonFontSize }]}>保存 PDF</Text>
-                )}
-              </TouchableOpacity>
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={isLoading || pdfLoadFailed}
+                loading={isLoading}
+              />
             </View>
           </View>
         </View>
@@ -339,7 +401,7 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <>
         <Pdf
-          source={{ uri: `file://${pdfPath}` }}
+          source={{uri: `file://${pdfPath}`}}
           style={styles.pdf}
           onLoadComplete={handleLoadComplete}
           onError={handleLoadError}
@@ -351,21 +413,22 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* 底部按钮栏 */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.button, styles.cancelButton, { minHeight: 48 }]}
-            onPress={handleDone}>
-            <Text style={[styles.cancelButtonText, { fontSize: buttonFontSize }]}>取消</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, (isLoading || pdfLoadFailed) ? styles.buttonDisabled : styles.saveButton, { minHeight: 48 }]}
+          <Button
+            title="取消"
+            onPress={handleDone}
+            variant="secondary"
+            size="lg"
+            style={styles.button}
+          />
+          <Button
+            title={isLoading ? '保存中...' : '保存 PDF'}
             onPress={handleSavePress}
-            disabled={isLoading || pdfLoadFailed}>
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={[styles.saveButtonText, { fontSize: buttonFontSize }]}>保存 PDF</Text>
-            )}
-          </TouchableOpacity>
+            variant="primary"
+            size="lg"
+            style={styles.button}
+            disabled={isLoading || pdfLoadFailed}
+            loading={isLoading}
+          />
         </View>
       </>
     );
@@ -375,11 +438,16 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     <View style={styles.container}>
       {/* 头部信息 - 仅竖屏模式显示 */}
       {!isLandscape && (
-        <View style={[styles.header, { padding: headerPadding }]}>
-          <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]}>PDF 预览</Text>
-          <Text style={[styles.headerInfo, { fontSize: headerInfoFontSize }]}>
+        <View style={[styles.header, {padding: headerPadding}]}>
+          <Typography variant="headlineMedium" style={{fontSize: headerTitleFontSize}}>
+            PDF 预览
+          </Typography>
+          <Typography
+            variant="caption"
+            color={designSystem.colors.text.secondary}
+            style={{fontSize: headerInfoFontSize}}>
             {questionCount} 题 · {pdfService.getDifficultyLabel(difficulty)}
-          </Text>
+          </Typography>
         </View>
       )}
 
@@ -400,20 +468,12 @@ const PDFPreviewScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   header: {
-    backgroundColor: 'white',
+    backgroundColor: designSystem.colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  headerInfo: {
-    color: '#666',
-    marginTop: 4,
+    borderBottomColor: designSystem.colors.border,
   },
   pdf: {
     flex: 1,
@@ -425,176 +485,68 @@ const styles = StyleSheet.create({
   },
   landscapePdfContainer: {
     flex: 0.6,
-    backgroundColor: '#333',
+    backgroundColor: designSystem.colors.surface.inverse,
   },
   landscapePdf: {
     flex: 1,
   },
   landscapeControls: {
     flex: 0.4,
-    backgroundColor: 'white',
-    padding: 24,
+    backgroundColor: designSystem.colors.surface.primary,
+    padding: designSystem.spacing.xxl,
     justifyContent: 'center',
     borderLeftWidth: 1,
-    borderLeftColor: '#e0e0e0',
-  },
-  landscapeTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  landscapeInfo: {
-    color: '#666',
-    marginBottom: 32,
+    borderLeftColor: designSystem.colors.border,
   },
   landscapeButtonContainer: {
-    gap: 12,
-  },
-  landscapeButton: {
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: designSystem.spacing.md,
   },
   buttonContainer: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-    backgroundColor: 'white',
+    padding: designSystem.spacing.lg,
+    gap: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.surface.primary,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: designSystem.colors.border,
   },
   button: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  saveButton: {
-    backgroundColor: '#2196f3',
-  },
-  saveButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  cancelButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontWeight: '500',
   },
   successContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
-  },
-  successIcon: {
-    color: '#4caf50',
-    marginBottom: 16,
-  },
-  successTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  successPath: {
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  successFileSize: {
-    color: '#999',
-    textAlign: 'center',
-    marginBottom: 24,
+    padding: designSystem.spacing.xxxl,
   },
   successButtonContainer: {
     width: '100%',
-    gap: 12,
-  },
-  successButton: {
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    backgroundColor: '#2196f3',
-  },
-  primaryButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  secondaryButtonText: {
-    color: '#666',
-    fontWeight: '500',
+    gap: designSystem.spacing.md,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
-  },
-  errorIcon: {
-    color: '#f44336',
-    marginBottom: 16,
-  },
-  errorTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  errorMessage: {
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 32,
+    padding: designSystem.spacing.xxxl,
   },
   errorButtonContainer: {
     width: '100%',
-    gap: 12,
-  },
-  errorButton: {
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#f44336',
-  },
-  retryButtonText: {
-    color: 'white',
-    fontWeight: '600',
+    gap: designSystem.spacing.md,
   },
   actionErrorContainer: {
     width: '100%',
-    backgroundColor: '#fff3e0',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 12,
+    backgroundColor: designSystem.colors.warning.light,
+    borderRadius: designSystem.borderRadius.md,
+    padding: designSystem.spacing.md,
+    marginTop: designSystem.spacing.md,
     borderWidth: 1,
-    borderColor: '#ffb74d',
-  },
-  actionErrorText: {
-    color: '#e65100',
-    marginBottom: 8,
+    borderColor: designSystem.colors.warning.border,
   },
   dismissErrorButton: {
     alignSelf: 'flex-start',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    backgroundColor: '#ffb74d',
-    borderRadius: 4,
-  },
-  dismissErrorButtonText: {
-    fontWeight: '600',
-    color: '#fff',
+    paddingVertical: designSystem.spacing.xs,
+    paddingHorizontal: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.warning.main,
+    borderRadius: designSystem.borderRadius.sm,
   },
 });
 

@@ -1,20 +1,20 @@
 import React, {useState, useEffect} from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   RefreshControl,
-  Platform,
   useWindowDimensions,
 } from 'react-native';
 import {StackNavigationProp} from '@react-navigation/native-stack';
 import {PDFFileInfo} from '../types';
 import {pdfService} from '../services/pdfService';
 import {getFontSize, getScaledSpacing, getNumColumns} from '../styles/tablet';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer} from '../components/ui';
 
 type NavigationProp = StackNavigationProp<any, 'PDFList'>;
 
@@ -23,19 +23,14 @@ interface Props {
 }
 
 const PDFListScreen: React.FC<Props> = ({navigation}) => {
-  const { width, height } = useWindowDimensions();
+  const {width, height} = useWindowDimensions();
   const isLandscape = width > height;
   const isLargeTablet = width >= 900;
   const numColumns = isLandscape && isLargeTablet ? 2 : 1;
 
   // Responsive font sizes
-  const headerTitleFontSize = getFontSize(24, width);
-  const headerInfoFontSize = getFontSize(14, width);
   const itemNameFontSize = getFontSize(16, width);
   const itemMetaFontSize = getFontSize(12, width);
-  const emptyTitleFontSize = getFontSize(20, width);
-  const emptyMessageFontSize = getFontSize(14, width);
-  const buttonFontSize = getFontSize(16, width);
 
   // Responsive spacing
   const headerPadding = getScaledSpacing(16, width);
@@ -152,9 +147,9 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
         padding: itemPadding,
       },
       numColumns > 1 && index % 2 === 1
-        ? { marginLeft: getScaledSpacing(8, width) }
+        ? {marginLeft: getScaledSpacing(8, width)}
         : {},
-      numColumns > 1 ? { flex: 1 } : {},
+      numColumns > 1 ? {flex: 1} : {},
     ];
 
     return (
@@ -162,34 +157,44 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
         <TouchableOpacity
           style={styles.itemContent}
           onPress={() => handleOpen(item.path)}>
-          <View style={[styles.itemIconContainer, { minHeight: 48 }]}>
-            <Text style={[styles.itemIcon, { fontSize: getFontSize(24, width) }]}>📄</Text>
+          <View style={styles.itemIconContainer}>
+            <Icon
+              name="description"
+              size="lg"
+              color={designSystem.colors.info.main}
+            />
           </View>
           <View style={styles.itemInfo}>
-            <Text style={[styles.itemName, { fontSize: itemNameFontSize }]} numberOfLines={1}>
+            <Typography
+              variant="headlineSmall"
+              numberOfLines={1}
+              style={{fontSize: itemNameFontSize}}>
               {item.name}
-            </Text>
-            <Text style={[styles.itemMeta, { fontSize: itemMetaFontSize }]}>
+            </Typography>
+            <Typography
+              variant="caption"
+              color={designSystem.colors.text.hint}
+              style={{fontSize: itemMetaFontSize}}>
               {formatDate(item.modifiedAt)} · {pdfService.getFormattedFileSize(item.size)}
-            </Text>
+            </Typography>
           </View>
         </TouchableOpacity>
 
         <View style={styles.itemActions}>
           <TouchableOpacity
-            style={[styles.actionButton, { minHeight: 48, minWidth: 48 }]}
+            style={[styles.actionButton, {minHeight: 48, minWidth: 48}]}
             onPress={() => handleShare(item.path)}>
-            <Text style={[styles.actionIcon, { fontSize: getFontSize(16, width) }]}>↗</Text>
+            <Icon name="share" size="sm" color={designSystem.colors.text.secondary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, { minHeight: 48, minWidth: 48 }]}
+            style={[styles.actionButton, {minHeight: 48, minWidth: 48}]}
             onPress={() => handlePrint(item.path)}>
-            <Text style={[styles.actionIcon, { fontSize: getFontSize(16, width) }]}>🖨</Text>
+            <Icon name="print" size="sm" color={designSystem.colors.text.secondary} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, { minHeight: 48, minWidth: 48 }]}
+            style={[styles.actionButton, {minHeight: 48, minWidth: 48}]}
             onPress={() => handleDelete(item)}>
-            <Text style={[styles.actionIcon, styles.deleteIcon, { fontSize: getFontSize(16, width) }]}>🗑</Text>
+            <Icon name="delete" size="sm" color={designSystem.colors.error.main} />
           </TouchableOpacity>
         </View>
       </View>
@@ -199,19 +204,33 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
   // 空状态
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyIcon, { fontSize: getFontSize(64, width) }]}>📁</Text>
-      <Text style={[styles.emptyTitle, { fontSize: emptyTitleFontSize }]}>暂无保存的 PDF</Text>
-      <Text style={[styles.emptyMessage, { fontSize: emptyMessageFontSize }]}>
+      <Icon
+        name="folder-open"
+        size="xl"
+        color={designSystem.colors.text.disabled}
+      />
+      <Spacer size="lg" />
+      <Typography variant="headlineMedium" align="center">
+        暂无保存的 PDF
+      </Typography>
+      <Spacer size="sm" />
+      <Typography
+        variant="caption"
+        color={designSystem.colors.text.hint}
+        align="center">
         生成一些练习题并保存，然后就会在这里显示
-      </Text>
+      </Typography>
     </View>
   );
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2196f3" />
-        <Text style={[styles.loadingText, { fontSize: buttonFontSize }]}>加载中...</Text>
+        <ActivityIndicator size="large" color={designSystem.colors.primary} />
+        <Spacer size="lg" />
+        <Typography variant="body" color={designSystem.colors.text.secondary}>
+          加载中...
+        </Typography>
       </View>
     );
   }
@@ -219,19 +238,26 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
   return (
     <View style={styles.container}>
       {/* 头部 */}
-      <View style={[styles.header, { padding: headerPadding }]}>
-        <Text style={[styles.headerTitle, { fontSize: headerTitleFontSize }]}>我的 PDF</Text>
-        <Text style={[styles.headerCount, { fontSize: headerInfoFontSize }]}>{pdfs.length} 个文件</Text>
+      <View style={[styles.header, {padding: headerPadding}]}>
+        <Typography variant="displaySmall">我的 PDF</Typography>
+        <Typography variant="caption" color={designSystem.colors.text.secondary}>
+          {pdfs.length} 个文件
+        </Typography>
       </View>
 
       {/* 错误状态 */}
       {error && !refreshing && (
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { fontSize: headerInfoFontSize }]}>{error}</Text>
+          <Typography variant="body" color={designSystem.colors.error.dark}>
+            {error}
+          </Typography>
+          <Spacer size="md" />
           <TouchableOpacity
-            style={[styles.retryButton, { minHeight: 48 }]}
+            style={[styles.retryButton, {minHeight: 48}]}
             onPress={handleRefresh}>
-            <Text style={[styles.retryButtonText, { fontSize: buttonFontSize }]}>重试</Text>
+            <Typography variant="body" color={designSystem.colors.text.inverse}>
+              重试
+            </Typography>
           </TouchableOpacity>
         </View>
       )}
@@ -243,13 +269,17 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
         keyExtractor={item => item.path}
         numColumns={numColumns}
         columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
-        contentContainerStyle={pdfs.length === 0 ? styles.emptyList : [styles.list, { padding: listPadding }]}
+        contentContainerStyle={
+          pdfs.length === 0
+            ? styles.emptyList
+            : [styles.list, {padding: listPadding}]
+        }
         ListEmptyComponent={!error ? renderEmptyState : null}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#2196f3"
+            tintColor={designSystem.colors.primary}
           />
         }
       />
@@ -260,29 +290,18 @@ const PDFListScreen: React.FC<Props> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#666',
+    backgroundColor: designSystem.colors.background,
   },
   header: {
-    backgroundColor: 'white',
+    backgroundColor: designSystem.colors.surface.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  headerTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  headerCount: {
-    color: '#666',
-    marginTop: 4,
+    borderBottomColor: designSystem.colors.border,
   },
   list: {
     // Padding is now set dynamically
@@ -296,14 +315,10 @@ const styles = StyleSheet.create({
   },
   itemContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
     // marginBottom and padding are now set dynamically
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...designSystem.shadows.sm,
   },
   itemContent: {
     flex: 1,
@@ -312,83 +327,46 @@ const styles = StyleSheet.create({
   },
   itemIconContainer: {
     width: 48,
-    borderRadius: 8,
-    backgroundColor: '#e3f2fd',
+    borderRadius: designSystem.borderRadius.md,
+    backgroundColor: designSystem.colors.info.light,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  itemIcon: {
-    // Font size is now set dynamically
+    marginRight: designSystem.spacing.md,
   },
   itemInfo: {
     flex: 1,
   },
-  itemName: {
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  itemMeta: {
-    color: '#999',
-  },
   itemActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: designSystem.spacing.xs,
   },
   actionButton: {
-    borderRadius: 18,
-    backgroundColor: '#f5f5f5',
+    borderRadius: designSystem.borderRadius.xl,
+    backgroundColor: designSystem.colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  actionIcon: {
-    // Font size is now set dynamically
-  },
-  deleteIcon: {
-    color: '#f44336',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    color: '#999',
-    textAlign: 'center',
+    padding: designSystem.spacing.xxxl,
   },
   errorContainer: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#ffebee',
-    borderRadius: 8,
+    margin: designSystem.spacing.lg,
+    padding: designSystem.spacing.lg,
+    backgroundColor: designSystem.colors.error.light,
+    borderRadius: designSystem.borderRadius.md,
     borderWidth: 1,
-    borderColor: '#ffcdd2',
-  },
-  errorText: {
-    color: '#c62828',
-    marginBottom: 12,
+    borderColor: designSystem.colors.error.border,
   },
   retryButton: {
-    backgroundColor: '#c62828',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
+    backgroundColor: designSystem.colors.error.dark,
+    paddingHorizontal: designSystem.spacing.lg,
+    paddingVertical: designSystem.spacing.sm,
+    borderRadius: designSystem.borderRadius.sm,
     alignSelf: 'flex-start',
-  },
-  retryButtonText: {
-    color: 'white',
-    fontWeight: '600',
   },
 });
 

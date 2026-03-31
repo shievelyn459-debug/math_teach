@@ -6,7 +6,6 @@
 import React, {useState, useEffect} from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -15,12 +14,13 @@ import {
   RefreshControl,
 } from 'react-native';
 import {useTheme} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {Child, Grade} from '../types';
 import {childApi} from '../services/api';
 import {activeChildService} from '../services/activeChildService';
 import {useActiveChild} from '../contexts/ActiveChildContext';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer} from '../components/ui';
 
 /**
  * 孩子列表项组件
@@ -53,7 +53,7 @@ const ChildListItem: React.FC<ChildListItemProps> = ({
   };
 
   return (
-    <View style={[styles.childItem, {borderColor: isActive ? theme.colors.primary : '#e0e0e0'}]}>
+    <View style={[styles.childItem, {borderColor: isActive ? theme.colors.primary : designSystem.colors.border}]}>
       <TouchableOpacity
         style={styles.childItemContent}
         onPress={() => onPress(child)}
@@ -61,25 +61,35 @@ const ChildListItem: React.FC<ChildListItemProps> = ({
         {/* 头像/图标 */}
         <View style={[styles.avatarContainer, {backgroundColor: theme.colors.primary}]}>
           {child.avatar ? (
-            <Text style={styles.avatarText}>{child.name.charAt(0)}</Text>
+            <Typography variant="headlineSmall" color={designSystem.colors.text.inverse}>
+              {child.name.charAt(0)}
+            </Typography>
           ) : (
-            <Icon name="child-care" size={32} color="#fff" />
+            <Icon name="child-care" size="xl" color={designSystem.colors.text.inverse} />
           )}
         </View>
 
         {/* 孩子信息 */}
         <View style={styles.childInfo}>
           <View style={styles.nameRow}>
-            <Text style={styles.childName}>{child.name}</Text>
+            <Typography variant="headlineSmall" style={styles.childName}>
+              {child.name}
+            </Typography>
             {isActive && (
               <View style={[styles.activeBadge, {backgroundColor: theme.colors.primary}]}>
-                <Icon name="check-circle" size={16} color="#fff" />
-                <Text style={styles.activeText}>当前</Text>
+                <Icon name="check-circle" size="sm" color={designSystem.colors.text.inverse} />
+                <Typography variant="caption" color={designSystem.colors.text.inverse} style={styles.activeText}>
+                  当前
+                </Typography>
               </View>
             )}
           </View>
-          <Text style={styles.childGrade}>{getGradeDisplayName(child.grade)}</Text>
-          <Text style={styles.childBirthday}>{formatBirthday(child.birthday)}</Text>
+          <Typography variant="caption" color={designSystem.colors.text.secondary}>
+            {getGradeDisplayName(child.grade)}
+          </Typography>
+          <Typography variant="overline" color={designSystem.colors.text.hint}>
+            {formatBirthday(child.birthday)}
+          </Typography>
         </View>
 
         {/* 编辑按钮 */}
@@ -87,7 +97,7 @@ const ChildListItem: React.FC<ChildListItemProps> = ({
           onPress={() => onEdit(child)}
           style={styles.editButton}
           testID={`edit-child-${child.id}`}>
-          <Icon name="edit" size={24} color={theme.colors.primary} />
+          <Icon name="edit" size="lg" color={theme.colors.primary} />
         </TouchableOpacity>
       </TouchableOpacity>
 
@@ -96,8 +106,10 @@ const ChildListItem: React.FC<ChildListItemProps> = ({
         style={[styles.deleteButton, {backgroundColor: theme.colors.error}]}
         onPress={() => onDelete(child)}
         testID={`delete-child-${child.id}`}>
-        <Icon name="delete" size={24} color="#fff" />
-        <Text style={styles.deleteButtonText}>删除</Text>
+        <Icon name="delete" size="lg" color={designSystem.colors.text.inverse} />
+        <Typography variant="body" color={designSystem.colors.text.inverse} style={styles.deleteButtonText}>
+          删除
+        </Typography>
       </TouchableOpacity>
     </View>
   );
@@ -259,17 +271,24 @@ const ChildListScreen = ({route}: any) => {
 
     return (
       <View style={styles.emptyState}>
-        <Icon name="child-care" size={80} color="#ccc" />
-        <Text style={styles.emptyStateTitle}>还没有添加孩子</Text>
-        <Text style={styles.emptyStateDescription}>
+        <Icon name="child-care" size="xl" color={designSystem.colors.text.disabled} />
+        <Spacer size="lg" />
+        <Typography variant="headlineMedium" align="center">
+          还没有添加孩子
+        </Typography>
+        <Spacer size="sm" />
+        <Typography variant="caption" color={designSystem.colors.text.secondary} align="center">
           添加孩子的信息，让我们为他们提供个性化的学习体验
-        </Text>
+        </Typography>
+        <Spacer size="xxl" />
         <TouchableOpacity
           style={[styles.addButton, {backgroundColor: theme.colors.primary}]}
           onPress={handleAddChild}
           testID="add-first-child-button">
-          <Icon name="add" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>添加第一个孩子</Text>
+          <Icon name="add" size="lg" color={designSystem.colors.text.inverse} />
+          <Typography variant="body" color={designSystem.colors.text.inverse} style={styles.addButtonText}>
+            添加第一个孩子
+          </Typography>
         </TouchableOpacity>
       </View>
     );
@@ -281,7 +300,10 @@ const ChildListScreen = ({route}: any) => {
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.loadingText}>加载中...</Text>
+          <Spacer size="lg" />
+          <Typography variant="body" color={designSystem.colors.text.secondary}>
+            加载中...
+          </Typography>
         </View>
       </View>
     );
@@ -291,8 +313,12 @@ const ChildListScreen = ({route}: any) => {
     <View style={styles.container}>
       {/* 头部 */}
       <View style={[styles.header, {backgroundColor: theme.colors.primary}]}>
-        <Text style={styles.headerTitle}>我的孩子</Text>
-        <Text style={styles.headerSubtitle}>管理孩子的信息</Text>
+        <Typography variant="displaySmall" color={designSystem.colors.text.inverse}>
+          我的孩子
+        </Typography>
+        <Typography variant="caption" color={designSystem.colors.text.inverse}>
+          管理孩子的信息
+        </Typography>
       </View>
 
       {/* 孩子列表 */}
@@ -321,7 +347,7 @@ const ChildListScreen = ({route}: any) => {
           style={[styles.floatingActionButton, {backgroundColor: theme.colors.primary}]}
           onPress={handleAddChild}
           testID="add-child-button">
-          <Icon name="add" size={28} color="#fff" />
+          <Icon name="add" size="lg" color={designSystem.colors.text.inverse} />
         </TouchableOpacity>
       )}
     </View>
@@ -331,67 +357,42 @@ const ChildListScreen = ({route}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-  },
   header: {
-    padding: 24,
-    paddingTop: 60,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#fff',
-    opacity: 0.9,
+    padding: designSystem.spacing.xxl,
+    paddingTop: designSystem.spacing.xxxl + designSystem.spacing.xxl,
+    borderBottomLeftRadius: designSystem.borderRadius.xl,
+    borderBottomRightRadius: designSystem.borderRadius.xl,
   },
   listContent: {
-    padding: 16,
+    padding: designSystem.spacing.lg,
   },
   childItem: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
+    marginBottom: designSystem.spacing.md,
     borderWidth: 2,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...designSystem.shadows.sm,
   },
   childItemContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: designSystem.spacing.lg,
   },
   avatarContainer: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: designSystem.borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    marginRight: designSystem.spacing.md,
   },
   childInfo: {
     flex: 1,
@@ -399,97 +400,64 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: designSystem.spacing.xs,
   },
   childName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginRight: 8,
+    marginRight: designSystem.spacing.sm,
   },
   activeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingHorizontal: designSystem.spacing.sm,
+    paddingVertical: designSystem.spacing.xs / 2,
+    borderRadius: designSystem.borderRadius.lg,
   },
   activeText: {
-    fontSize: 12,
-    color: '#fff',
-    marginLeft: 4,
+    marginLeft: designSystem.spacing.xs,
   },
   childGrade: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
-  },
-  childBirthday: {
-    fontSize: 12,
-    color: '#999',
+    marginBottom: designSystem.spacing.xs / 2,
   },
   editButton: {
-    padding: 8,
-    marginLeft: 8,
+    padding: designSystem.spacing.sm,
+    marginLeft: designSystem.spacing.sm,
   },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: designSystem.spacing.lg,
     height: 92,
   },
   deleteButtonText: {
-    fontSize: 16,
-    color: '#fff',
-    marginLeft: 8,
+    marginLeft: designSystem.spacing.sm,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyStateDescription: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
+    padding: designSystem.spacing.xxxl,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingHorizontal: designSystem.spacing.xxl,
+    paddingVertical: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.full,
   },
   addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 8,
+    marginLeft: designSystem.spacing.sm,
   },
   floatingActionButton: {
     position: 'absolute',
-    right: 24,
-    bottom: 24,
+    right: designSystem.spacing.xxl,
+    bottom: designSystem.spacing.xxl,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: designSystem.borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    ...designSystem.shadows.md,
   },
 });
 

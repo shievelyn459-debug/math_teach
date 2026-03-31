@@ -1,5 +1,7 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, StyleSheet} from 'react-native';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer} from '../components/ui';
 
 /**
  * 知识点讲解屏幕
@@ -8,8 +10,13 @@ import {View, Text, StyleSheet} from 'react-native';
 const ExplainScreen = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>知识点讲解</Text>
-      <Text style={styles.subtitle}>敬请期待...</Text>
+      <Typography variant="displaySmall" style={styles.title}>
+        知识点讲解
+      </Typography>
+      <Spacer size="sm" />
+      <Typography variant="body" color={designSystem.colors.text.secondary}>
+        敬请期待...
+      </Typography>
     </View>
   );
 };
@@ -20,16 +27,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+    textAlign: 'center',
   },
 });
 
