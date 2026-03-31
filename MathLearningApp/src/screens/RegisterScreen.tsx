@@ -1,12 +1,10 @@
 import React, {useState} from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   TouchableOpacity,
 } from 'react-native';
 import {Button, Card, useTheme} from 'react-native-paper';
@@ -14,6 +12,8 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 
 import {FormInput, PasswordInput} from '../components/FormInput';
 import {authService} from '../services/authService';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer, Icon} from '../components/ui';
 
 type RegisterScreenProps = NativeStackScreenProps<any, 'Register'>;
 
@@ -116,25 +116,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
 
       if (response.success) {
         // 注册成功 (AC4: 自动登录并导航到主页)
-        Alert.alert(
-          '注册成功！',
-          '欢迎加入一年级数学学习助手',
-          [
-            {
-              text: '开始使用',
-              onPress: () => {
-                navigation.reset({
-                  index: 0,
-                  routes: [{name: 'Main'}],
-                });
-              },
-            },
-          ]
-        );
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'Main'}],
+        });
       } else {
         // 注册失败 (AC3, AC5: 显示友好的错误信息)
         if (response.error?.message?.includes('超时') || response.error?.code === 'TIMEOUT_ERROR') {
-          // 超时错误特殊处理
           setErrors({
             general: '注册请求超时，请检查网络连接后重试',
           });
@@ -178,25 +166,39 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
         keyboardShouldPersistTaps="handled">
         {/* 顶部标题区域 */}
         <View style={[styles.header, {backgroundColor: theme.colors.primary}]}>
-          <Text style={styles.headerTitle}>创建账户</Text>
-          <Text style={styles.headerSubtitle}>
+          <Typography
+            variant="headlineLarge"
+            color={designSystem.colors.text.inverse}
+            style={styles.headerTitle}>
+            创建账户
+          </Typography>
+          <Typography
+            variant="body"
+            color={designSystem.colors.text.inverse}
+            style={styles.headerSubtitle}>
             加入一年级数学学习助手，帮助您的孩子爱上数学
-          </Text>
+          </Typography>
         </View>
 
         {/* 注册表单卡片 */}
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={styles.cardTitle}>
+            <Typography variant="headlineSmall" style={styles.cardTitle}>
               请填写您的信息
-            </Text>
+            </Typography>
 
             {/* 通用错误提示 */}
             {errors.general && (
-              <View style={[styles.errorBox, {backgroundColor: '#ffebee'}]}>
-                <Text style={[styles.errorBoxText, {color: '#c62828'}]}>
+              <View
+                style={[
+                  styles.errorBox,
+                  {backgroundColor: designSystem.colors.error.light},
+                ]}>
+                <Icon name="error" size="sm" color={designSystem.colors.error.default} />
+                <Spacer size="sm" horizontal />
+                <Typography variant="body" color={designSystem.colors.error.default}>
                   {errors.general}
-                </Text>
+                </Typography>
               </View>
             )}
 
@@ -245,12 +247,17 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
 
             {/* 密码要求提示 (AC5) */}
             <View style={styles.passwordHint}>
-              <Text style={styles.hintTitle}>密码要求：</Text>
-              <Text style={styles.hintText}>• 至少8个字符</Text>
-              <Text style={styles.hintText}>• 包含大写字母（A-Z）</Text>
-              <Text style={styles.hintText}>• 包含小写字母（a-z）</Text>
-              <Text style={styles.hintText}>• 包含数字（0-9）</Text>
-              <Text style={styles.hintText}>• 包含特殊字符（!@#$%^&*等）</Text>
+              <Typography variant="bodyLarge" color={designSystem.colors.info.default}>
+                密码要求：
+              </Typography>
+              <Spacer size="xs" />
+              <Typography variant="overline" color={designSystem.colors.text.secondary}>
+                • 至少8个字符{'\n'}
+                • 包含大写字母（A-Z）{'\n'}
+                • 包含小写字母（a-z）{'\n'}
+                • 包含数字（0-9）{'\n'}
+                • 包含特殊字符（!@#$%^&*等）
+              </Typography>
             </View>
 
             {/* 注册按钮 */}
@@ -261,18 +268,20 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
               disabled={isLoading}
               style={styles.registerButton}
               contentStyle={styles.registerButtonContent}
-              labelStyle={styles.registerButtonLabel}
               testID="register-button">
               {isLoading ? '注册中...' : '注册'}
             </Button>
 
             {/* 已有账户链接 */}
             <View style={styles.loginLinkContainer}>
-              <Text style={styles.loginLinkText}>已有账户？</Text>
+              <Typography variant="body" color={designSystem.colors.text.secondary}>
+                已有账户？
+              </Typography>
+              <Spacer size="xs" horizontal />
               <TouchableOpacity onPress={navigateToLogin} testID="login-link">
-                <Text style={[styles.loginLink, {color: theme.colors.primary}]}>
+                <Typography variant="bodyLarge" color={theme.colors.primary}>
                   立即登录
-                </Text>
+                </Typography>
               </TouchableOpacity>
             </View>
           </Card.Content>
@@ -280,12 +289,19 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
 
         {/* 友好提示 (AC5) */}
         <View style={styles.tipsBox}>
-          <Text style={styles.tipsTitle}>💡 温馨提示</Text>
-          <Text style={styles.tipsText}>
-            • 注册后，您可以添加孩子的信息并开始使用
-            {'\n'}• 您的个人信息将被安全保护
-            {'\n'}• 如有问题，请随时联系客服
-          </Text>
+          <View style={styles.tipsHeader}>
+            <Icon name="lightbulb" size="md" color={designSystem.colors.warning.main} />
+            <Spacer size="sm" horizontal />
+            <Typography variant="bodyLarge" color={designSystem.colors.warning.main}>
+              温馨提示
+            </Typography>
+          </View>
+          <Spacer size="sm" />
+          <Typography variant="body" color={designSystem.colors.text.secondary}>
+            • 注册后，您可以添加孩子的信息并开始使用{'\n'}
+            • 您的个人信息将被安全保护{'\n'}
+            • 如有问题，请随时联系客服
+          </Typography>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -295,107 +311,67 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
   },
   header: {
-    padding: 24,
+    padding: designSystem.spacing.xl,
     paddingTop: 60,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: designSystem.borderRadius.xl,
+    borderBottomRightRadius: designSystem.borderRadius.xl,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
+    marginBottom: designSystem.spacing.sm,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#fff',
     opacity: 0.9,
   },
   card: {
-    margin: 16,
-    borderRadius: 12,
+    margin: designSystem.spacing.lg,
+    borderRadius: designSystem.borderRadius.lg,
     elevation: 4,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#333',
+    marginBottom: designSystem.spacing.lg,
   },
   errorBox: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  errorBoxText: {
-    fontSize: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.md,
+    marginBottom: designSystem.spacing.lg,
   },
   passwordHint: {
-    backgroundColor: '#e3f2fd',
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 16,
-  },
-  hintTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#1976d2',
-  },
-  hintText: {
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 20,
+    backgroundColor: designSystem.colors.info.light,
+    padding: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.md,
+    marginVertical: designSystem.spacing.lg,
   },
   registerButton: {
-    marginTop: 8,
+    marginTop: designSystem.spacing.sm,
   },
   registerButtonContent: {
-    paddingVertical: 8,
-  },
-  registerButtonLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    paddingVertical: designSystem.spacing.sm,
   },
   loginLinkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
-  },
-  loginLinkText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  loginLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
+    marginTop: designSystem.spacing.xl,
   },
   tipsBox: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: '#fff3e0',
-    borderRadius: 12,
+    margin: designSystem.spacing.lg,
+    padding: designSystem.spacing.lg,
+    backgroundColor: designSystem.colors.warning.light,
+    borderRadius: designSystem.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#ffe0b2',
+    borderColor: designSystem.colors.warning.lighter,
   },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#e65100',
-  },
-  tipsText: {
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 22,
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 

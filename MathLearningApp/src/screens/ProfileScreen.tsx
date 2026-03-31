@@ -6,7 +6,6 @@
 import React, {useState, useEffect} from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -15,12 +14,13 @@ import {
   RefreshControl,
 } from 'react-native';
 import {useTheme} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import {useNavigation} from '@react-navigation/native';
 import {ProfileField, EditableProfileField} from '../components/ProfileField';
 import {authService} from '../services/authService';
 import {userApi} from '../services/api';
 import {User} from '../types';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer} from '../components/ui';
 
 /**
  * 用户个人中心屏幕
@@ -115,7 +115,10 @@ const ProfileScreen = ({navigation}: any) => {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={styles.loadingText}>加载中...</Text>
+        <Spacer size="md" />
+        <Typography variant="body" color={designSystem.colors.text.secondary}>
+          加载中...
+        </Typography>
       </View>
     );
   }
@@ -125,13 +128,19 @@ const ProfileScreen = ({navigation}: any) => {
     return (
       <ScrollView style={styles.container}>
         <View style={[styles.header, {backgroundColor: theme.colors.primary}]}>
-          <Text style={styles.userName}>未登录</Text>
-          <Text style={styles.userEmail}>请先登录</Text>
+          <Typography variant="headlineMedium" style={styles.userName}>
+            未登录
+          </Typography>
+          <Typography variant="body" style={styles.userEmail}>
+            请先登录
+          </Typography>
         </View>
         <TouchableOpacity
           style={styles.loginButton}
           onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.loginButtonText}>前往登录</Text>
+          <Typography variant="bodyLarge" color={designSystem.colors.text.inverse}>
+            前往登录
+          </Typography>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -150,29 +159,27 @@ const ProfileScreen = ({navigation}: any) => {
       }>
       {/* 头部用户信息卡片 */}
       <View style={[styles.header, {backgroundColor: theme.colors.primary}]}>
-        {user.avatar ? (
-          <View style={styles.avatarContainer}>
-            {/* TODO: 添加头像显示 */}
-            <Text style={styles.avatarPlaceholder}>{user.name.charAt(0)}</Text>
-          </View>
-        ) : (
-          <View style={[styles.avatarPlaceholder, {backgroundColor: '#fff'}]}>
-            <Text style={[styles.avatarText, {color: theme.colors.primary}]}>
-              {user.name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        <Text style={styles.userName}>{user.name}</Text>
-        <Text style={styles.userEmail}>{user.email}</Text>
+        <View style={[styles.avatarPlaceholder, {backgroundColor: designSystem.colors.surface.primary}]}>
+          <Typography variant="displaySmall" color={theme.colors.primary}>
+            {user.name.charAt(0).toUpperCase()}
+          </Typography>
+        </View>
+        <Typography variant="headlineMedium" color={designSystem.colors.text.inverse} style={styles.userName}>
+          {user.name}
+        </Typography>
+        <Typography variant="body" color={designSystem.colors.text.inverse} style={styles.userEmail}>
+          {user.email}
+        </Typography>
       </View>
 
       {/* 个人信息部分 (AC1: 显示姓名、邮箱、电话) */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Icon name="person" size={20} color={theme.colors.primary} />
-          <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+          <Icon name="person" size="sm" color={theme.colors.primary} />
+          <Spacer size="sm" horizontal />
+          <Typography variant="bodyLarge" color={theme.colors.primary}>
             个人信息
-          </Text>
+          </Typography>
         </View>
 
         <EditableProfileField
@@ -200,10 +207,11 @@ const ProfileScreen = ({navigation}: any) => {
       {/* 账户操作部分 */}
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
-          <Icon name="settings" size={20} color={theme.colors.primary} />
-          <Text style={[styles.sectionTitle, {color: theme.colors.primary}]}>
+          <Icon name="settings" size="sm" color={theme.colors.primary} />
+          <Spacer size="sm" horizontal />
+          <Typography variant="bodyLarge" color={theme.colors.primary}>
             账户操作
-          </Text>
+          </Typography>
         </View>
 
         <TouchableOpacity
@@ -211,10 +219,11 @@ const ProfileScreen = ({navigation}: any) => {
           onPress={handleEditProfile}
           testID="edit-profile-button">
           <View style={styles.menuItemLeft}>
-            <Icon name="edit" size={24} color="#666" />
-            <Text style={styles.menuItemText}>编辑资料</Text>
+            <Icon name="edit" size="md" color={designSystem.colors.text.secondary} />
+            <Spacer size="md" horizontal />
+            <Typography variant="body">编辑资料</Typography>
           </View>
-          <Icon name="chevron-right" size={24} color="#999" />
+          <Icon name="chevron-right" size="md" color={designSystem.colors.text.hint} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -222,39 +231,47 @@ const ProfileScreen = ({navigation}: any) => {
           onPress={() => (navigation as any).navigate('ChildList')}
           testID="child-management-button">
           <View style={styles.menuItemLeft}>
-            <Icon name="child-care" size={24} color="#666" />
-            <Text style={styles.menuItemText}>孩子信息管理</Text>
+            <Icon name="child-care" size="md" color={designSystem.colors.text.secondary} />
+            <Spacer size="md" horizontal />
+            <Typography variant="body">孩子信息管理</Typography>
           </View>
-          <Icon name="chevron-right" size={24} color="#999" />
+          <Icon name="chevron-right" size="md" color={designSystem.colors.text.hint} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuItemLeft}>
-            <Icon name="history" size={24} color="#666" />
-            <Text style={styles.menuItemText}>学习记录</Text>
+            <Icon name="history" size="md" color={designSystem.colors.text.secondary} />
+            <Spacer size="md" horizontal />
+            <Typography variant="body">学习记录</Typography>
           </View>
-          <Icon name="chevron-right" size={24} color="#999" />
+          <Icon name="chevron-right" size="md" color={designSystem.colors.text.hint} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuItem}>
           <View style={styles.menuItemLeft}>
-            <Icon name="settings-applications" size={24} color="#666" />
-            <Text style={styles.menuItemText}>设置</Text>
+            <Icon name="settings-applications" size="md" color={designSystem.colors.text.secondary} />
+            <Spacer size="md" horizontal />
+            <Typography variant="body">设置</Typography>
           </View>
-          <Icon name="chevron-right" size={24} color="#999" />
+          <Icon name="chevron-right" size="md" color={designSystem.colors.text.hint} />
         </TouchableOpacity>
       </View>
 
       {/* 退出登录按钮 */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <Text style={styles.logoutButtonText}>退出登录</Text>
+        <Typography variant="bodyLarge" color={designSystem.colors.error.main}>
+          退出登录
+        </Typography>
       </TouchableOpacity>
 
       {/* 刷新指示器 */}
       {refreshing && (
         <View style={styles.refreshingIndicator}>
           <ActivityIndicator size="small" color={theme.colors.primary} />
-          <Text style={styles.refreshingText}>刷新中...</Text>
+          <Spacer size="sm" horizontal />
+          <Typography variant="caption" color={designSystem.colors.text.secondary}>
+            刷新中...
+          </Typography>
         </View>
       )}
     </ScrollView>
@@ -264,129 +281,79 @@ const ProfileScreen = ({navigation}: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-  },
   header: {
-    padding: 24,
-    paddingTop: 60,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    padding: designSystem.spacing.xl,
+    paddingTop: 60, // Safe area padding
+    borderBottomLeftRadius: designSystem.borderRadius.xl,
+    borderBottomRightRadius: designSystem.borderRadius.xl,
     alignItems: 'center',
-  },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
   },
   avatarPlaceholder: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: designSystem.borderRadius.round,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-    backgroundColor: '#fff',
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    marginBottom: designSystem.spacing.md,
   },
   userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
+    marginBottom: designSystem.spacing.xs,
   },
   userEmail: {
-    fontSize: 14,
-    color: '#fff',
     opacity: 0.9,
   },
   sectionContainer: {
-    marginTop: 24,
-    paddingHorizontal: 16,
+    marginTop: designSystem.spacing.xl,
+    paddingHorizontal: designSystem.spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
+    marginBottom: designSystem.spacing.md,
+    marginLeft: designSystem.spacing.xs,
   },
   menuItem: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    backgroundColor: designSystem.colors.surface.primary,
+    padding: designSystem.spacing.lg,
+    borderRadius: designSystem.borderRadius.lg,
+    marginBottom: designSystem.spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...designSystem.shadows.sm,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  menuItemText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 12,
-  },
   loginButton: {
-    margin: 16,
-    marginTop: 24,
-    backgroundColor: '#007bff',
-    padding: 16,
-    borderRadius: 12,
+    margin: designSystem.spacing.lg,
+    marginTop: designSystem.spacing.xl,
+    backgroundColor: designSystem.colors.primary,
+    padding: designSystem.spacing.lg,
+    borderRadius: designSystem.borderRadius.lg,
     alignItems: 'center',
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
   },
   logoutButton: {
-    margin: 16,
-    marginTop: 24,
-    backgroundColor: '#ffebee',
-    padding: 16,
-    borderRadius: 12,
+    margin: designSystem.spacing.lg,
+    marginTop: designSystem.spacing.xl,
+    backgroundColor: designSystem.colors.error.light,
+    padding: designSystem.spacing.lg,
+    borderRadius: designSystem.borderRadius.lg,
     alignItems: 'center',
-  },
-  logoutButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#c62828',
   },
   refreshingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 8,
-  },
-  refreshingText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#666',
+    padding: designSystem.spacing.sm,
   },
 });
 

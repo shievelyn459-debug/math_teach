@@ -1,11 +1,9 @@
 import React, {useState} from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
@@ -14,12 +12,13 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 
 import {FormInput, PasswordInput} from '../components/FormInput';
 import {authService} from '../services/authService';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer, Icon} from '../components/ui';
 
 type LoginScreenProps = NativeStackScreenProps<any, 'Login'>;
 
 /**
  * 用户登录屏幕
- * 测试模式：添加日志以调试导航问题
  * Story 1-2 完整实现
  *
  * 验收标准:
@@ -34,7 +33,6 @@ type LoginScreenProps = NativeStackScreenProps<any, 'Login'>;
  * AC9: 用户可以导航到密码重置屏幕
  */
 const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
-  console.log('[LoginScreen] Rendering LoginScreen component');
   const theme = useTheme();
 
   // 表单状态
@@ -66,13 +64,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
       newErrors.email = '请输入有效的邮箱地址';
     }
 
-    // 密码验证 (AC2)
-    // 登录时只检查密码是否已输入，不验证复杂度（已在注册时完成）
-    // 允许密码包含空格（可能是用户故意设置的）
     if (!password) {
       newErrors.password = '请输入密码';
     } else if (password.length > 128) {
-      // 防止过长输入导致的问题
       newErrors.password = '密码过长，请检查后重试';
     }
 
@@ -81,7 +75,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
   };
 
   /**
-   * 处理邮箱输入变化 - 清除邮箱相关错误
+   * 处理邮箱输入变化
    */
   const handleEmailChange = (text: string) => {
     setEmail(text);
@@ -91,7 +85,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
   };
 
   /**
-   * 处理密码输入变化 - 清除密码相关错误
+   * 处理密码输入变化
    */
   const handlePasswordChange = (text: string) => {
     setPassword(text);
@@ -102,7 +96,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
 
   /**
    * 处理登录提交 (AC1, AC3, AC6, AC7)
-   * 包含失败尝试跟踪和安全措施
    */
   const handleLogin = async () => {
     setErrors({});
@@ -114,49 +107,34 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
     setIsLoading(true);
 
     try {
-      // 调用登录服务 (AC6: 在3秒内完成)
       const response = await authService.login(
         email.trim().toLowerCase(),
         password,
-        rememberMe  // AC4: 传递记住我偏好
+        rememberMe,
       );
 
       if (response.success) {
-        // 登录成功，导航到主屏幕 (AC3)
         navigation.reset({
           index: 0,
           routes: [{name: 'Main'}],
         });
       } else {
-        // 登录失败，显示错误信息 (AC2, AC5)
-        // 错误消息已经是家长友好的，来自authService
         if (response.error?.code === 'USER_NOT_FOUND') {
           setErrors({
             general: response.error.message,
             email: response.error.message,
           });
-        } else if (response.error?.code === 'ACCOUNT_LOCKED') {
-          // 账户锁定安全措施 (AC7)
-          setErrors({
-            general: response.error.message,
-          });
-        } else if (response.error?.code === 'TOO_MANY_ATTEMPTS') {
-          // 速率限制安全措施 (AC7)
-          setErrors({
-            general: response.error.message,
-          });
+        } else if (
+          response.error?.code === 'ACCOUNT_LOCKED' ||
+          response.error?.code === 'TOO_MANY_ATTEMPTS'
+        ) {
+          setErrors({general: response.error.message});
         } else {
-          setErrors({
-            general: response.error?.message || '登录失败，请稍后重试',
-          });
+          setErrors({general: response.error?.message || '登录失败，请稍后重试'});
         }
       }
     } catch (error) {
-      console.error('[LoginScreen] Login error:', error);
-      // 网络错误的家长友好提示 (AC5)
-      setErrors({
-        general: '网络连接出现问题，请检查您的网络后重试',
-      });
+      setErrors({general: '网络连接出现问题，请检查您的网络后重试'});
     } finally {
       setIsLoading(false);
     }
@@ -187,23 +165,39 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
         <View style={styles.content}>
           {/* 顶部标题区域 */}
           <View style={[styles.header, {backgroundColor: theme.colors.primary}]}>
-            <Text style={styles.headerTitle}>欢迎回来</Text>
-            <Text style={styles.headerSubtitle}>
+            <Typography
+              variant="headlineLarge"
+              color={designSystem.colors.text.inverse}
+              style={styles.headerTitle}>
+              欢迎回来
+            </Typography>
+            <Typography
+              variant="body"
+              color={designSystem.colors.text.inverse}
+              style={styles.headerSubtitle}>
               登录您的账户继续使用
-            </Text>
+            </Typography>
           </View>
 
           {/* 登录表单卡片 */}
           <Card style={styles.card}>
             <Card.Content>
-              <Text style={styles.cardTitle}>登录</Text>
+              <Typography variant="headlineSmall" style={styles.cardTitle}>
+                登录
+              </Typography>
 
               {/* 通用错误提示 (AC5) */}
               {errors.general && (
-                <View style={[styles.errorBox, {backgroundColor: '#ffebee'}]}>
-                  <Text style={[styles.errorBoxText, {color: '#c62828'}]}>
+                <View
+                  style={[
+                    styles.errorBox,
+                    {backgroundColor: designSystem.colors.error.light},
+                  ]}>
+                  <Icon name="error" size="sm" color={designSystem.colors.error.default} />
+                  <Spacer size="sm" horizontal />
+                  <Typography variant="body" color={designSystem.colors.error.default}>
                     {errors.general}
-                  </Text>
+                  </Typography>
                 </View>
               )}
 
@@ -234,9 +228,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
                   <TouchableOpacity
                     onPress={navigateToForgotPassword}
                     testID="forgot-password-link">
-                    <Text style={[styles.forgotPasswordLink, {color: theme.colors.primary}]}>
+                    <Typography variant="bodySmall" color={theme.colors.primary}>
                       忘记密码？
-                    </Text>
+                    </Typography>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -253,12 +247,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
                   <TouchableOpacity
                     onPress={() => setRememberMe(!rememberMe)}
                     style={styles.checkboxLabel}>
-                    <Text style={styles.checkboxText}>记住我</Text>
+                    <Typography variant="body">记住我</Typography>
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.rememberMeHint}>
+                <Typography
+                  variant="overline"
+                  color={designSystem.colors.text.secondary}
+                  style={styles.rememberMeHint}>
                   勾选后30天内保持登录状态，否则7天后需重新登录
-                </Text>
+                </Typography>
               </View>
 
               {/* 登录按钮 (AC1, AC6) */}
@@ -269,20 +266,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
                 disabled={isLoading}
                 style={styles.loginButton}
                 contentStyle={styles.loginButtonContent}
-                labelStyle={styles.loginButtonLabel}
                 testID="login-button">
                 {isLoading ? '登录中...' : '登录'}
               </Button>
 
               {/* 注册链接 (AC8) */}
               <View style={styles.registerLinkContainer}>
-                <Text style={styles.registerLinkText}>还没有账户？</Text>
-                <TouchableOpacity
-                  onPress={navigateToRegister}
-                  testID="register-link">
-                  <Text style={[styles.registerLink, {color: theme.colors.primary}]}>
+                <Typography variant="body" color={designSystem.colors.text.secondary}>
+                  还没有账户？
+                </Typography>
+                <Spacer size="xs" horizontal />
+                <TouchableOpacity onPress={navigateToRegister} testID="register-link">
+                  <Typography variant="bodyLarge" color={theme.colors.primary}>
                     立即注册
-                  </Text>
+                  </Typography>
                 </TouchableOpacity>
               </View>
             </Card.Content>
@@ -290,12 +287,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
 
           {/* 友好提示 (AC5) */}
           <View style={styles.tipsBox}>
-            <Text style={styles.tipsTitle}>💡 温馨提示</Text>
-            <Text style={styles.tipsText}>
-              • 登录后可以上传题目并获得讲解
-              {'\n'}• 忘记密码可以点击"忘记密码"链接重置
-              {'\n'}• 连续多次登录失败可能会临时锁定账户
-            </Text>
+            <View style={styles.tipsHeader}>
+              <Icon name="lightbulb" size="md" color={designSystem.colors.warning.default} />
+              <Spacer size="sm" horizontal />
+              <Typography variant="bodyLarge" color={designSystem.colors.warning.default}>
+                温馨提示
+              </Typography>
+            </View>
+            <Spacer size="sm" />
+            <Typography variant="body" color={designSystem.colors.text.secondary}>
+              • 登录后可以上传题目并获得讲解{'\n'}
+              • 忘记密码可以点击"忘记密码"链接重置{'\n'}
+              • 连续多次登录失败可能会临时锁定账户
+            </Typography>
           </View>
         </View>
       </ScrollView>
@@ -306,7 +310,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -315,116 +319,77 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 24,
+    padding: designSystem.spacing.xl,
     paddingTop: 80,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: designSystem.borderRadius.xl,
+    borderBottomRightRadius: designSystem.borderRadius.xl,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
+    marginBottom: designSystem.spacing.sm,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#fff',
     opacity: 0.9,
   },
   card: {
-    margin: 16,
-    marginTop: 32,
-    borderRadius: 12,
+    margin: designSystem.spacing.lg,
+    marginTop: designSystem.spacing.xxl,
+    borderRadius: designSystem.borderRadius.lg,
     elevation: 4,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#333',
+    marginBottom: designSystem.spacing.lg,
   },
   errorBox: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  errorBoxText: {
-    fontSize: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.md,
+    marginBottom: designSystem.spacing.lg,
   },
   forgotPasswordContainer: {
     alignItems: 'flex-end',
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  forgotPasswordLink: {
-    fontSize: 13,
-    fontWeight: '500',
+    marginTop: designSystem.spacing.xs,
+    marginBottom: designSystem.spacing.sm,
   },
   rememberMeContainer: {
-    marginVertical: 12,
+    marginVertical: designSystem.spacing.md,
   },
   checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   checkboxLabel: {
-    marginLeft: 8,
+    marginLeft: designSystem.spacing.sm,
     flex: 1,
   },
-  checkboxText: {
-    fontSize: 14,
-    color: '#333',
-  },
   rememberMeHint: {
-    fontSize: 12,
-    color: '#666',
     marginLeft: 32,
-    marginTop: 4,
+    marginTop: designSystem.spacing.xs,
   },
   loginButton: {
-    marginTop: 8,
+    marginTop: designSystem.spacing.sm,
   },
   loginButtonContent: {
-    paddingVertical: 8,
-  },
-  loginButtonLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    paddingVertical: designSystem.spacing.sm,
   },
   registerLinkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
-  },
-  registerLinkText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  registerLink: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
+    marginTop: designSystem.spacing.xl,
   },
   tipsBox: {
-    margin: 16,
+    margin: designSystem.spacing.lg,
     marginTop: 0,
-    padding: 16,
-    backgroundColor: '#fff3e0',
-    borderRadius: 12,
+    padding: designSystem.spacing.lg,
+    backgroundColor: designSystem.colors.warning.light,
+    borderRadius: designSystem.borderRadius.lg,
     borderWidth: 1,
-    borderColor: '#ffe0b2',
+    borderColor: designSystem.colors.warning.lighter,
   },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    color: '#e65100',
-  },
-  tipsText: {
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 22,
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });
 

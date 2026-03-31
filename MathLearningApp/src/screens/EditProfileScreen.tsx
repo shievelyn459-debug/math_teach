@@ -6,11 +6,9 @@
 import React, {useState, useEffect} from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import {Button, useTheme} from 'react-native-paper';
 import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
@@ -18,6 +16,8 @@ import {FormInput} from '../components/FormInput';
 import {authService} from '../services/authService';
 import {userApi} from '../services/api';
 import {User} from '../types';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer, Icon} from '../components/ui';
 
 /**
  * 验证结果类型
@@ -237,8 +237,12 @@ const EditProfileScreen = () => {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* 头部 */}
       <View style={[styles.header, {backgroundColor: theme.colors.primary}]}>
-        <Text style={styles.headerTitle}>编辑个人资料</Text>
-        <Text style={styles.headerSubtitle}>更新您的个人信息</Text>
+        <Typography variant="displaySmall" style={styles.headerTitle}>
+          编辑个人资料
+        </Typography>
+        <Typography variant="body" style={styles.headerSubtitle}>
+          更新您的个人信息
+        </Typography>
       </View>
 
       {/* 表单字段 */}
@@ -255,7 +259,9 @@ const EditProfileScreen = () => {
           error={errors.name}
           testID="name-input"
         />
-        <Text style={styles.hintText}>2-50个字符</Text>
+        <Typography variant="overline" color={designSystem.colors.text.secondary} style={styles.hintText}>
+          2-50个字符
+        </Typography>
 
         {/* 邮箱字段 (AC3, AC5, AC6) */}
         <FormInput
@@ -285,9 +291,9 @@ const EditProfileScreen = () => {
           error={errors.phone}
           testID="phone-input"
         />
-        <Text style={styles.hintText}>
+        <Typography variant="overline" color={designSystem.colors.text.secondary} style={styles.hintText}>
           国际格式：+国家代码+号码，例如 +8613812345678
-        </Text>
+        </Typography>
       </View>
 
       {/* 操作按钮 */}
@@ -315,7 +321,11 @@ const EditProfileScreen = () => {
       {/* 未保存更改提示 */}
       {hasChanges && (
         <View style={styles.unsavedHint}>
-          <Text style={styles.unsavedHintText}>您有未保存的更改</Text>
+          <Icon name="warning" size="sm" color={designSystem.colors.warning.main} />
+          <Spacer size="xs" horizontal />
+          <Typography variant="caption" color={designSystem.colors.warning.main}>
+            您有未保存的更改
+          </Typography>
         </View>
       )}
     </ScrollView>
@@ -325,55 +335,46 @@ const EditProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: designSystem.colors.background,
   },
   content: {
-    paddingBottom: 24,
+    paddingBottom: designSystem.spacing.xl,
   },
   header: {
-    padding: 24,
-    paddingTop: 60,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    padding: designSystem.spacing.xl,
+    paddingTop: 60, // Safe area padding
+    borderBottomLeftRadius: designSystem.borderRadius.xl,
+    borderBottomRightRadius: designSystem.borderRadius.xl,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
+    // Typography handles fontSize and fontWeight
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#fff',
-    opacity: 0.9,
+    // Typography handles fontSize
   },
   formContainer: {
-    marginTop: 24,
-    paddingHorizontal: 16,
+    marginTop: designSystem.spacing.xl,
+    paddingHorizontal: designSystem.spacing.lg,
   },
   hintText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 16,
-    marginLeft: 4,
+    marginBottom: designSystem.spacing.lg,
+    marginLeft: designSystem.spacing.xs,
   },
   buttonContainer: {
-    paddingHorizontal: 16,
-    marginTop: 8,
+    paddingHorizontal: designSystem.spacing.lg,
+    marginTop: designSystem.spacing.sm,
   },
   saveButton: {
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
   },
   cancelButton: {
-    marginBottom: 8,
+    marginBottom: designSystem.spacing.sm,
   },
   unsavedHint: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
-  },
-  unsavedHintText: {
-    fontSize: 12,
-    color: '#ff9800',
+    justifyContent: 'center',
+    marginTop: designSystem.spacing.lg,
   },
 });
 
