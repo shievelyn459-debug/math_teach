@@ -1,6 +1,8 @@
 import React from 'react';
-import {TextInput, View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {TextInput, View, StyleSheet, TouchableOpacity} from 'react-native';
 import {useTheme} from 'react-native-paper';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon} from '../components/ui';
 
 /**
  * 通用表单输入组件
@@ -20,7 +22,6 @@ interface FormInputProps {
   maxLength?: number;
   right?: React.ReactNode;
   testID?: string;
-  // 新增：验证相关
   validating?: boolean;
   valid?: boolean;
   showSuccessIcon?: boolean;
@@ -48,7 +49,6 @@ export const FormInput: React.FC<FormInputProps> = ({
 }) => {
   const theme = useTheme();
 
-  // 输入时清除错误
   const handleChangeText = (text: string) => {
     onChangeText(text);
     if (error && onClearError) {
@@ -56,16 +56,17 @@ export const FormInput: React.FC<FormInputProps> = ({
     }
   };
 
-  // 获取输入框边框颜色
   const getBorderColor = () => {
     if (error) return theme.colors.error;
-    if (valid && value.length > 0) return '#4caf50'; // 绿色表示有效
-    return '#ddd';
+    if (valid && value.length > 0) return designSystem.colors.success.default;
+    return designSystem.colors.border;
   };
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, {color: theme.colors.primary}]}>{label}</Text>
+      <Typography variant="overline" color={theme.colors.primary} style={styles.label}>
+        {label}
+      </Typography>
       <View style={styles.inputWrapper}>
         <TextInput
           testID={testID}
@@ -78,39 +79,35 @@ export const FormInput: React.FC<FormInputProps> = ({
           value={value}
           onChangeText={handleChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={designSystem.colors.text.hint}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           autoCorrect={autoCorrect}
           editable={!disabled}
           maxLength={maxLength}
-          // 确保TextInput不会被其他元素遮挡
           importantForAccessibility="auto"
         />
-        {/* 验证状态图标 - 移到输入框外部，不影响输入 */}
         {!error && value.length > 0 && showSuccessIcon && !right && (
-          <Text style={styles.externalStatusIcon}>
-            {validating ? '验证中...' : valid ? '✓' : ''}
-          </Text>
+          <View style={styles.externalStatusIcon}>
+            {validating ? (
+              <Typography variant="caption" color={designSystem.colors.text.secondary}>
+                验证中...
+              </Typography>
+            ) : valid ? (
+              <Icon name="check" size="sm" color={designSystem.colors.success.default} />
+            ) : null}
+          </View>
         )}
       </View>
-      {/* 自定义右侧内容 */}
-      {right && (
-        <View style={styles.externalRight}>
-          {right}
-        </View>
-      )}
-      {/* 内联错误消息 */}
+      {right && <View style={styles.externalRight}>{right}</View>}
       {error && (
-        <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, {color: theme.colors.error}]}>
+        <View style={[styles.errorContainer, {backgroundColor: designSystem.colors.error.light}]}>
+          <Typography variant="overline" color={theme.colors.error} style={styles.errorText}>
             {error}
-          </Text>
+          </Typography>
           <TouchableOpacity onPress={onClearError} style={styles.clearErrorButton}>
-            <Text style={[styles.clearErrorText, {color: theme.colors.primary}]}>
-              ✕
-            </Text>
+            <Icon name="close" size="sm" color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
       )}
@@ -148,20 +145,21 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, {color: theme.colors.primary}]}>{label}</Text>
-      <View style={styles.inputRow}>
+      <Typography variant="overline" color={theme.colors.primary} style={styles.label}>
+        {label}
+      </Typography>
+      <View
+        style={[
+          styles.inputRow,
+          {borderColor: error ? theme.colors.error : designSystem.colors.border},
+        ]}>
         <TextInput
           testID={testID}
-          style={[
-            styles.input,
-            styles.passwordInput,
-            error ? styles.inputError : {},
-            {borderColor: error ? theme.colors.error : '#ddd'},
-          ]}
+          style={styles.passwordInput}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={designSystem.colors.text.hint}
           secureTextEntry={secureTextEntry}
           autoCapitalize="none"
           autoCorrect={false}
@@ -171,99 +169,94 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
           onPress={togglePasswordVisibility}
           style={styles.toggleButton}
           hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-          <Text style={[styles.toggleButtonText, {color: theme.colors.primary}]}>
-            {secureTextEntry ? '显示' : '隐藏'}
-          </Text>
+          <Icon
+            name={secureTextEntry ? 'visibility' : 'visibility-off'}
+            size="sm"
+            color={theme.colors.primary}
+          />
         </TouchableOpacity>
       </View>
-      {error && <Text style={[styles.errorText, {color: theme.colors.error}]}>{error}</Text>}
+      {error && (
+        <Typography variant="overline" color={theme.colors.error}>
+          {error}
+        </Typography>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: designSystem.spacing.lg,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: designSystem.spacing.sm,
   },
   inputWrapper: {
     position: 'relative',
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
+    borderRadius: designSystem.borderRadius.md,
+    paddingHorizontal: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.md,
+    fontSize: designSystem.typography.sizes.body,
+    backgroundColor: designSystem.colors.surface.primary,
     minHeight: 46,
+    color: designSystem.colors.text.primary,
   },
   inputError: {
     borderWidth: 2,
-    borderColor: '#d32f2f',
   },
   inputDisabled: {
-    backgroundColor: '#f5f5f5',
-    color: '#999',
+    backgroundColor: designSystem.colors.surface.secondary,
+    color: designSystem.colors.text.disabled,
   },
   externalStatusIcon: {
     position: 'absolute',
-    right: 12,
+    right: designSystem.spacing.md,
     top: 14,
-    fontSize: 16,
   },
   externalRight: {
     position: 'absolute',
-    right: 12,
+    right: designSystem.spacing.md,
     top: 12,
     zIndex: 2,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-    backgroundColor: '#ffebee',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    marginTop: designSystem.spacing.xs,
+    borderRadius: designSystem.borderRadius.sm,
+    paddingHorizontal: designSystem.spacing.sm,
+    paddingVertical: designSystem.spacing.xs,
   },
   errorText: {
     flex: 1,
-    fontSize: 12,
   },
   clearErrorButton: {
-    padding: 4,
-  },
-  clearErrorText: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    padding: designSystem.spacing.xs,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    paddingRight: 8,
+    borderRadius: designSystem.borderRadius.md,
+    backgroundColor: designSystem.colors.surface.primary,
+    paddingRight: designSystem.spacing.sm,
   },
   passwordInput: {
     flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingHorizontal: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.md,
+    fontSize: designSystem.typography.sizes.body,
     minHeight: 46,
     borderWidth: 0,
     backgroundColor: 'transparent',
+    color: designSystem.colors.text.primary,
   },
   toggleButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  toggleButtonText: {
-    fontSize: 20,
+    paddingHorizontal: designSystem.spacing.sm,
+    paddingVertical: designSystem.spacing.sm,
   },
 });

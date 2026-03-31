@@ -4,8 +4,10 @@
  */
 
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, StyleSheet} from 'react-native';
 import {useTheme} from 'react-native-paper';
+import {designSystem} from '../styles/designSystem';
+import {Typography} from '../components/ui';
 
 export interface ProfileFieldProps {
   label: string;
@@ -28,10 +30,17 @@ export const ProfileField: React.FC<ProfileFieldProps> = ({
 
   return (
     <View style={styles.fieldContainer} testID={testID}>
-      <Text style={[styles.label, {color: theme.colors.primary}]}>{label}</Text>
-      <Text style={[styles.value, {color: value ? '#333' : '#999'}]}>
+      <Typography
+        variant="overline"
+        color={theme.colors.primary}
+        style={styles.label}>
+        {label}
+      </Typography>
+      <Typography
+        variant="body"
+        color={value ? designSystem.colors.text.primary : designSystem.colors.text.hint}>
         {value || '未设置'}
-      </Text>
+      </Typography>
     </View>
   );
 };
@@ -54,13 +63,23 @@ export const EditableProfileField: React.FC<EditableProfileFieldProps> = ({
 
   return (
     <View style={styles.editableFieldContainer} testID={testID}>
-      <Text style={[styles.label, {color: theme.colors.primary}]}>{label}</Text>
+      <Typography
+        variant="overline"
+        color={theme.colors.primary}
+        style={styles.label}>
+        {label}
+      </Typography>
       <View style={styles.valueRow}>
-        <Text style={[styles.value, {flex: 1, color: value ? '#333' : '#999'}]}>
+        <Typography
+          variant="body"
+          color={value ? designSystem.colors.text.primary : designSystem.colors.text.hint}
+          style={styles.valueText}>
           {value || '点击设置'}
-        </Text>
+        </Typography>
         {onPress && (
-          <Text style={[styles.editText, {color: theme.colors.primary}]}>编辑</Text>
+          <Typography variant="caption" color={theme.colors.primary}>
+            编辑
+          </Typography>
         )}
       </View>
     </View>
@@ -69,44 +88,27 @@ export const EditableProfileField: React.FC<EditableProfileFieldProps> = ({
 
 const styles = StyleSheet.create({
   fieldContainer: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: designSystem.colors.surface.primary,
+    padding: designSystem.spacing.lg,
+    borderRadius: designSystem.borderRadius.lg,
+    marginBottom: designSystem.spacing.md,
+    ...designSystem.shadows.sm,
   },
   editableFieldContainer: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: designSystem.colors.surface.primary,
+    padding: designSystem.spacing.lg,
+    borderRadius: designSystem.borderRadius.lg,
+    marginBottom: designSystem.spacing.md,
+    ...designSystem.shadows.sm,
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    marginBottom: designSystem.spacing.sm,
   },
-  value: {
-    fontSize: 16,
-    color: '#333',
+  valueText: {
+    flex: 1,
   },
   valueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  editText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
 });

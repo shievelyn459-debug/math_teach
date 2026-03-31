@@ -1,11 +1,10 @@
 import React from 'react';
 import {
   View,
-  Text,
-  TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
+import {designSystem} from '../styles/designSystem';
+import {Button, Icon, Spacer, Typography} from '../components/ui';
 
 interface PDFActionButtonsProps {
   onShare?: () => void;
@@ -28,72 +27,59 @@ const PDFActionButtons: React.FC<PDFActionButtonsProps> = ({
   opening = false,
   showViewAll = false,
 }) => {
-  const ActionButton: React.FC<{
-    onPress: () => void;
-    icon: string;
-    label: string;
-    loading: boolean;
-    disabled?: boolean;
-    style: any;
-  }> = ({ onPress, icon, label, loading, disabled, style }) => (
-    <TouchableOpacity
-      style={[styles.actionButton, style, disabled && styles.buttonDisabled]}
-      onPress={onPress}
-      disabled={disabled || loading}>
-      {loading ? (
-        <ActivityIndicator size="small" color="#fff" />
-      ) : (
-        <>
-          <Text style={styles.buttonIcon}>{icon}</Text>
-          <Text style={styles.buttonLabel}>{label}</Text>
-        </>
-      )}
-    </TouchableOpacity>
-  );
+  const isDisabled = sharing || printing || opening;
 
   return (
     <View style={styles.container}>
       <View style={styles.primaryActions}>
         {onShare && (
-          <ActionButton
+          <Button
+            title="分享"
             onPress={onShare}
-            icon="↗"
-            label="分享"
+            variant="primary"
+            size="md"
             loading={sharing}
-            disabled={sharing || printing || opening}
+            disabled={isDisabled}
+            leftIcon="share"
             style={styles.shareButton}
           />
         )}
         {onPrint && (
-          <ActionButton
+          <Button
+            title="打印"
             onPress={onPrint}
-            icon="🖨"
-            label="打印"
+            variant="primary"
+            size="md"
             loading={printing}
-            disabled={sharing || printing || opening}
+            disabled={isDisabled}
+            leftIcon="print"
             style={styles.printButton}
           />
         )}
         {onOpen && (
-          <ActionButton
+          <Button
+            title="打开"
             onPress={onOpen}
-            icon="📄"
-            label="打开"
+            variant="primary"
+            size="md"
             loading={opening}
-            disabled={sharing || printing || opening}
+            disabled={isDisabled}
+            leftIcon="description"
             style={styles.openButton}
           />
         )}
       </View>
 
       {showViewAll && onViewAll && (
-        <TouchableOpacity
-          style={styles.viewAllButton}
+        <Button
+          title="查看我的 PDF"
           onPress={onViewAll}
-          disabled={sharing || printing || opening}>
-          <Text style={styles.viewAllButtonText}>查看我的 PDF</Text>
-          <Text style={styles.viewAllButtonIcon}>→</Text>
-        </TouchableOpacity>
+          variant="outline"
+          size="md"
+          disabled={isDisabled}
+          rightIcon="chevron-right"
+          fullWidth
+        />
       )}
     </View>
   );
@@ -102,67 +88,24 @@ const PDFActionButtons: React.FC<PDFActionButtonsProps> = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    gap: 12,
+    gap: designSystem.spacing.md,
   },
   primaryActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: designSystem.spacing.sm,
     justifyContent: 'space-between',
   },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    gap: 6,
-    minHeight: 48,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonIcon: {
-    fontSize: 18,
-    color: '#fff',
-  },
-  buttonLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
   shareButton: {
-    backgroundColor: '#4CAF50',
+    flex: 1,
+    backgroundColor: designSystem.colors.success.default,
   },
   printButton: {
-    backgroundColor: '#2196F3',
+    flex: 1,
+    backgroundColor: designSystem.colors.primary,
   },
   openButton: {
-    backgroundColor: '#FF9800',
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    minHeight: 48,
-  },
-  viewAllButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-    marginRight: 6,
-  },
-  viewAllButtonIcon: {
-    fontSize: 14,
-    color: '#2196F3',
-    fontWeight: 'bold',
+    flex: 1,
+    backgroundColor: designSystem.colors.warning.default,
   },
 });
 
