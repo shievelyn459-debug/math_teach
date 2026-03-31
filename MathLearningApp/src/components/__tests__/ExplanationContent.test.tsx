@@ -20,6 +20,7 @@ jest.mock('react-native', () => {
   RN.AccessibilityInfo = {
     announceForSync: jest.fn(),
     announceForAsync: jest.fn(),
+    isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
   };
   return RN;
 });

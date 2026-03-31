@@ -7,7 +7,7 @@ import {ProcessingStage, PerformanceMetrics} from '../../types';
 jest.mock('../../services/performanceTracker', () => ({
   performanceTracker: {
     getElapsedTime: jest.fn(() => 5000),
-    getCurrentStage: jest.fn(() => ProcessingStage.RECOGNIZING),
+    getCurrentStage: jest.fn(() => 'RECOGNIZING'), // 使用字符串字面值代替 ProcessingStage.RECOGNIZING
     estimateRemainingTime: jest.fn(() => 15000),
     shouldShowWarning: jest.fn(() => false),
   },

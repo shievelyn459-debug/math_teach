@@ -1,13 +1,14 @@
 import React, {useState, useEffect} from 'react';
 import {
   View,
-  Text,
   Modal,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   Keyboard,
 } from 'react-native';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Button, Spacer} from '../components/ui';
 
 interface Props {
   visible: boolean;
@@ -97,42 +98,56 @@ const FilenameDialog: React.FC<Props> = ({
         <View style={styles.container}>
           <TouchableOpacity activeOpacity={1}>
             <View style={styles.dialog}>
-              <Text style={styles.title}>保存 PDF</Text>
+              <Typography variant="headlineSmall" style={styles.title}>
+                保存 PDF
+              </Typography>
 
-              <View style={styles.inputContainer}>
+              <Spacer size="md" />
+
+              <View style={[
+                styles.inputContainer,
+                error ? styles.inputError : {}
+              ]}>
                 <TextInput
-                  style={[
-                    styles.input,
-                    error ? styles.inputError : null
-                  ]}
+                  style={styles.input}
                   value={filename}
                   onChangeText={(text) => {
                     setFilename(text);
                     validateFilename(text);
                   }}
                   placeholder="请输入文件名"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={designSystem.colors.text.hint}
                   autoFocus
                   selectTextOnFocus
                 />
-                <Text style={styles.extension}>.pdf</Text>
+                <Typography variant="body" color={designSystem.colors.text.secondary}>
+                  .pdf
+                </Typography>
               </View>
 
               {error && (
-                <Text style={styles.errorText}>{error}</Text>
+                <Typography variant="overline" color={designSystem.colors.error.default} style={styles.errorText}>
+                  {error}
+                </Typography>
               )}
 
+              <Spacer size="xl" />
+
               <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
-                  onPress={handleCancel}>
-                  <Text style={styles.cancelButtonText}>取消</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.confirmButton]}
-                  onPress={handleConfirm}>
-                  <Text style={styles.confirmButtonText}>保存</Text>
-                </TouchableOpacity>
+                <Button
+                  title="取消"
+                  onPress={handleCancel}
+                  variant="secondary"
+                  size="md"
+                  style={styles.button}
+                />
+                <Button
+                  title="保存"
+                  onPress={handleConfirm}
+                  variant="primary"
+                  size="md"
+                  style={styles.button}
+                />
               </View>
             </View>
           </TouchableOpacity>
@@ -145,7 +160,7 @@ const FilenameDialog: React.FC<Props> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: designSystem.colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -154,77 +169,42 @@ const styles = StyleSheet.create({
     maxWidth: 400,
   },
   dialog: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
+    padding: designSystem.spacing.xl,
+    ...designSystem.shadows.lg,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 16,
+    marginBottom: designSystem.spacing.sm,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#f9f9f9',
+    borderColor: designSystem.colors.border,
+    borderRadius: designSystem.borderRadius.md,
+    paddingHorizontal: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.surface.secondary,
   },
   input: {
     flex: 1,
     height: 44,
-    fontSize: 16,
-    color: '#333',
+    fontSize: designSystem.typography.sizes.body,
+    color: designSystem.colors.text.primary,
   },
   inputError: {
-    borderColor: '#f44336',
-  },
-  extension: {
-    fontSize: 16,
-    color: '#666',
-    marginLeft: 4,
+    borderColor: designSystem.colors.error.default,
   },
   errorText: {
-    fontSize: 12,
-    color: '#f44336',
-    marginTop: 8,
+    marginTop: designSystem.spacing.sm,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 20,
-    gap: 12,
+    gap: designSystem.spacing.md,
   },
   button: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
     minWidth: 80,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
-  },
-  confirmButton: {
-    backgroundColor: '#2196f3',
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
   },
 });
 
