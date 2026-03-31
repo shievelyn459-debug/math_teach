@@ -1145,10 +1145,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: designSystem.colors.background,
   },
-  // 滚动容器
+  // 滚动容器 - 改为flex: 1填充可用空间
   scrollContainer: {
-    flex: 0,
-    maxHeight: SCREEN_HEIGHT * 0.25,
+    flex: 1,
   },
   // 简化版使用说明
   miniInstructionCard: {
@@ -1198,9 +1197,12 @@ const styles = StyleSheet.create({
     borderRadius: designSystem.borderRadius.lg,
     overflow: 'hidden',
     backgroundColor: designSystem.colors.surface.dark,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   preview: {
-    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   cameraOverlay: {
     position: 'absolute',
@@ -1212,13 +1214,13 @@ const styles = StyleSheet.create({
   },
   focusFrame: {
     position: 'absolute',
-    top: SCREEN_HEIGHT * 0.25,
-    left: SCREEN_WIDTH * 0.1,
-    width: SCREEN_WIDTH * 0.8,
-    height: SCREEN_WIDTH * 0.8,
+    top: '10%',
+    left: '10%',
+    right: '10%',
+    bottom: '10%',
     borderColor: 'rgba(255,255,255,0.8)',
     borderWidth: 2,
-    borderRadius: designSystem.borderRadius.md,
+    borderRadius: designSystem.borderRadius.lg,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1227,8 +1229,8 @@ const styles = StyleSheet.create({
   // 侧边工具栏
   cameraSideToolbar: {
     position: 'absolute',
-    right: designSystem.spacing.lg,
-    top: SCREEN_HEIGHT * 0.25 + (SCREEN_WIDTH * 0.8 - SCREEN_HEIGHT * 0.5) / 2,
+    right: designSystem.spacing.sm,
+    top: '20%',
     gap: designSystem.spacing.md,
   },
   sideToolbarButton: {
@@ -1262,9 +1264,9 @@ const styles = StyleSheet.create({
   bottomSection: {
     backgroundColor: designSystem.colors.surface.primary,
     paddingHorizontal: designSystem.spacing.lg,
-    paddingVertical: designSystem.spacing.md,
-    paddingBottom: SCREEN_HEIGHT * 0.18,
-    minHeight: SCREEN_HEIGHT * 0.25,
+    paddingVertical: designSystem.spacing.xs,
+    paddingBottom: designSystem.spacing.xl,
+    minHeight: SCREEN_HEIGHT * 0.12,
   },
   tipContainer: {
     flexDirection: 'row',
