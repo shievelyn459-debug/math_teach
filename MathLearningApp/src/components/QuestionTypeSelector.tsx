@@ -1,18 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-import { QuestionType } from '../types';
+import {View, Text, TouchableOpacity, Modal, StyleSheet} from 'react-native';
+import {QuestionType} from '../types';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer, Button} from '../components/ui';
 
 interface QuestionTypeSelectorProps {
   visible: boolean;
-  currentType?: QuestionType;
+  currentType: QuestionType | null;
   onSelect: (type: QuestionType) => void;
   onCancel: () => void;
 }
 
 const QUESTION_TYPES = [
-  { type: QuestionType.ADDITION, label: '加法', description: '数字相加的运算' },
-  { type: QuestionType.SUBTRACTION, label: '减法', description: '数字相减的运算' },
-  { type: QuestionType.WORD_PROBLEM, label: '应用题', description: '文字描述的数学问题' },
+  {type: QuestionType.ADDITION, label: '加法', description: '加法运算练习'},
+  {type: QuestionType.SUBTRACTION, label: '减法', description: '减法运算练习'},
+  { type: QuestionType.WORD_PROBLEM, label: '应用题', description: '文字描述的数学问题'},
 ];
 
 const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({
@@ -21,26 +23,24 @@ const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({
   onSelect,
   onCancel,
 }) => {
-  if (!visible) return null;
-
-  const getTypeLabel = (type: QuestionType): string => {
-    const typeObj = QUESTION_TYPES.find(t => t.type === type);
-    return typeObj ? typeObj.label : type;
-  };
-
   return (
     <Modal
       visible={visible}
-      transparent={true}
+      transparent
       animationType="slide"
-      onRequestClose={onCancel}
+      onRequestClose={onCancel}>
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>手动选择题目类型</Text>
-          <Text style={styles.modalSubtitle}>
-            请选择正确的题目类型，帮助我们更好地为您服务：
-          </Text>
+          <Typography variant="headlineMedium" align="center" style={styles.modalTitle}>
+            手动选择题目类型
+          </Typography>
+          <Spacer size="sm" />
+          <Typography variant="body" color={designSystem.colors.text.secondary} align="center" style={styles.modalSubtitle}>
+            请选择正确的题目类型，帮助我们更好地为您服务
+          </Typography>
+
+          <Spacer size="lg" />
 
           {QUESTION_TYPES.map((typeObj) => (
             <TouchableOpacity
@@ -51,15 +51,26 @@ const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({
                 currentType === typeObj.type && styles.typeOptionSelected,
               ]}
               onPress={() => onSelect(typeObj.type)}
-            >
-              <Text style={styles.typeLabel}>{typeObj.label}</Text>
-              <Text style={styles.typeDescription}>{typeObj.description}</Text>
+              activeOpacity={0.7}>
+              <Typography variant="headlineSmall" style={styles.typeLabel}>
+                {typeObj.label}
+              </Typography>
+              <Spacer size="xs" />
+              <Typography variant="body" color={designSystem.colors.text.secondary}>
+                {typeObj.description}
+              </Typography>
             </TouchableOpacity>
           ))}
 
-          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.cancelButtonText}>取消</Text>
-          </TouchableOpacity>
+          <Spacer size="lg" />
+
+          <Button
+            title="取消"
+            onPress={onCancel}
+            variant="secondary"
+            size="lg"
+            fullWidth
+          />
         </View>
       </View>
     </Modal>
@@ -71,70 +82,36 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: designSystem.colors.overlay.medium,
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
+    padding: designSystem.spacing.xxl,
     width: '85%',
     maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    ...designSystem.shadows.md,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-    color: '#333',
+    marginBottom: designSystem.spacing.sm,
   },
   modalSubtitle: {
-    fontSize: 14,
-    marginBottom: 20,
     textAlign: 'center',
-    color: '#666',
-    lineHeight: 20,
   },
   typeOption: {
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    marginVertical: 6,
+    padding: designSystem.spacing.lg,
+    backgroundColor: designSystem.colors.surface.secondary,
+    borderRadius: designSystem.borderRadius.md,
+    marginVertical: designSystem.spacing.sm,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: designSystem.colors.border,
   },
   typeOptionSelected: {
-    backgroundColor: '#2196f3',
-    borderColor: '#1976d2',
+    backgroundColor: designSystem.colors.primary,
+    borderColor: designSystem.colors.primaryDark,
   },
   typeLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  typeDescription: {
-    fontSize: 14,
-    color: '#666',
-  },
-  cancelButton: {
-    padding: 14,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 8,
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
+    marginBottom: designSystem.spacing.xs,
   },
 });
 
