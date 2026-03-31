@@ -89,17 +89,6 @@ jest.mock('expo-crypto', () => ({
   getRandomBytesAsync: jest.fn(() => Promise.resolve(new Uint8Array([1, 2, 3]))),
 }));
 
-// Mock expo-file-system
-jest.mock('expo-file-system', () => ({
-  documentDirectory: '/mock/document/',
-  cacheDirectory: '/mock/cache/',
-  readAsStringAsync: jest.fn(),
-  writeAsStringAsync: jest.fn(),
-  deleteAsync: jest.fn(),
-  makeDirectoryAsync: jest.fn(),
-  getDocumentAsync: jest.fn(),
-}));
-
 // Mock expo-print
 jest.mock('expo-print', () => ({
   printToFileAsync: jest.fn(() => Promise.resolve({ uri: '/mock/print.pdf' })),

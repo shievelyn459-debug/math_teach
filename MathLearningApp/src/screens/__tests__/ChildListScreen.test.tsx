@@ -29,13 +29,14 @@ jest.mock('../../services/activeChildService', () => {
     getActiveChild: jest.fn(() => null),
     onActiveChildChanged: jest.fn(() => () => {}),
     getGradeDisplayName: jest.fn((grade: Grade) => {
-      const names: Record<Grade, string> = {
-        [Grade.GRADE_1]: '一年级',
-        [Grade.GRADE_2]: '二年级',
-        [Grade.GRADE_3]: '三年级',
-        [Grade.GRADE_4]: '四年级',
-        [Grade.GRADE_5]: '五年级',
-        [Grade.GRADE_6]: '六年级',
+      // 使用字符串字面值代替 Grade 枚举
+      const names: Record<string, string> = {
+        '1': '一年级',
+        '2': '二年级',
+        '3': '三年级',
+        '4': '四年级',
+        '5': '五年级',
+        '6': '六年级',
       };
       return names[grade] || `${grade}年级`;
     }),

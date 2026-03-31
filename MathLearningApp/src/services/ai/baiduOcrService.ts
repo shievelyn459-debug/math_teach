@@ -134,11 +134,13 @@ class BaiduOcrService {
     // 速率限制
     await this.checkRateLimit();
 
-    // 添加超时控制（10秒超时）
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUTS.baiduOcr);
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.error('[BaiduOcrService] Request aborted due to timeout');
+    }, AI_TIMEOUTS.baiduOcr);
 
-    console.log('[BaiduOcrService] Sending OCR request with', AI_TIMEOUTS.baiduOcr, 'ms timeout');
+    console.log('[BaiduOcrService] Starting OCR request with', AI_TIMEOUTS.baiduOcr, 'ms timeout');
 
     try {
       const token = await this.getAccessToken();
@@ -188,30 +190,20 @@ class BaiduOcrService {
       const startTime = Date.now();
       this.requestTimes.push(startTime);
 
-      // 使用Promise.race实现更可靠的超时控制
-      const fetchPromise = fetch(apiUrl, {
+      console.log('[BaiduOcrService] Sending HTTP request...');
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: formData,
+        signal: controller.signal,
       });
-
-      // 创建超时Promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`OCR请求超时（${AI_TIMEOUTS.baiduOcr}ms），请检查网络连接`));
-        }, AI_TIMEOUTS.baiduOcr);
-      });
-
-      console.log('[BaiduOcrService] Sending OCR request with', AI_TIMEOUTS.baiduOcr, 'ms timeout');
-
-      // 等待fetch或超时
-      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
 
       clearTimeout(timeoutId);
       const processingTime = Date.now() - startTime;
-      console.log(`[BaiduOcrService] OCR processing time: ${processingTime}ms`);
+      console.log(`[BaiduOcrService] Response received in ${processingTime}ms`);
 
       if (!response.ok) {
         throw new Error(`OCR request failed: ${response.status}`);
@@ -240,14 +232,16 @@ class BaiduOcrService {
         rawResponse: data,
       };
     } catch (error: any) {
+      clearTimeout(timeoutId);
+
       // 检查是否是超时错误
-      if (error.message && error.message.includes('超时')) {
-        console.error('[BaiduOcrService] OCR request timeout after', AI_TIMEOUTS.baiduOcr, 'ms');
-        throw error; // 直接抛出超时错误
+      if (error.name === 'AbortError') {
+        console.error('[BaiduOcrService] Request timed out after', AI_TIMEOUTS.baiduOcr, 'ms');
+        throw new Error(`OCR请求超时（${AI_TIMEOUTS.baiduOcr/1000}秒），请检查网络连接`);
       }
 
       console.error('[BaiduOcrService] OCR recognition failed:', error);
-      throw error;
+      throw new Error(`OCR识别失败: ${error.message || '网络错误'}`);
     }
   }
 

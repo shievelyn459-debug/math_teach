@@ -9,6 +9,11 @@ import ChildFormScreen from '../ChildFormScreen';
 import {Child, Grade} from '../../types';
 import {childApi} from '../../services/api';
 
+// Mock react-native-paper before importing
+jest.mock('react-native-paper', () => ({
+  PaperProvider: ({children}) => children,
+}));
+
 // Mock dependencies
 jest.mock('../../services/api', () => ({
   childApi: {

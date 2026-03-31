@@ -16,6 +16,7 @@ import ProcessingProgress from '../components/ProcessingProgress';
 import KnowledgePointTag from '../components/KnowledgePointTag';
 import HelpDialog from '../components/HelpDialog';
 import OnboardingTour from '../components/OnboardingTour';
+import TipCard from '../components/TipCard';
 import CountdownTimer from '../components/CountdownTimer';
 import {preferencesService} from '../services/preferencesService';
 import {performanceTracker, WARNING_THRESHOLD} from '../services/performanceTracker';
@@ -29,6 +30,21 @@ import {aiService} from '../services/ai'; // Import AI service for OCR
 
 // 获取屏幕尺寸
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+
+// 平板适配工具
+const isTablet = () => {
+  const pixelDensity = Dimensions.get('window').scale;
+  const adjustedWidth = SCREEN_WIDTH * pixelDensity;
+  const adjustedHeight = SCREEN_HEIGHT * pixelDensity;
+  return Math.min(adjustedWidth, adjustedHeight) >= 900;
+};
+
+const IS_TABLET = isTablet();
+
+// 平板适配尺寸
+const TABLET_SCALE = IS_TABLET ? 1.2 : 1;
+const BUTTON_SIZE = Math.min(SCREEN_WIDTH * (IS_TABLET ? 0.22 : 0.19), IS_TABLET ? 100 : 80) * TABLET_SCALE;
+const GALLERY_BUTTON_SIZE = Math.min(SCREEN_WIDTH * (IS_TABLET ? 0.16 : 0.15), IS_TABLET ? 80 : 65) * TABLET_SCALE;
 
 const CameraScreen = () => {
   const navigation = useNavigation();
@@ -812,14 +828,18 @@ const CameraScreen = () => {
 
       {/* 可滚动内容区域 */}
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* 使用说明 - 简化版 */}
-        <View style={styles.miniInstructionCard}>
-          <Icon name="info-outline" size="sm" color={designSystem.colors.info.default} />
-          <Spacer size="sm" direction="horizontal" />
-          <Typography variant="caption" color={designSystem.colors.info.dark}>
-            将题目对准相机框内，确保清晰完整
-          </Typography>
-        </View>
+        {/* 拍摄提示卡片 - 家长友好设计 */}
+        <TipCard
+          title="拍摄小贴士"
+          tips={[
+            '确保光线充足',
+            '把题目放在桌面上',
+            '平板垂直对准题目',
+            '保持稳定，避免模糊',
+          ]}
+          icon="📷"
+          style={styles.tipCard}
+        />
 
       {/* 识别状态显示 */}
       {isRecognizing && (
@@ -964,84 +984,41 @@ const CameraScreen = () => {
             </View>
           </View>
 
-          {/* 侧边工具栏 */}
-          <View style={styles.cameraSideToolbar}>
-            <TouchableOpacity style={styles.sideToolbarButton}>
-              <Icon name="flash-on" size="md" color={designSystem.colors.text.inverse} />
+          {/* 底部控制按钮 - 叠加在相机区域上 */}
+          <View style={styles.cameraBottomControls}>
+            {/* 左侧：相册按钮 */}
+            <TouchableOpacity
+              style={[styles.smallControlButton, (isTakingPicture || isRecognizing || preselectedImage) && styles.controlButtonDisabled]}
+              onPress={pickImageFromGallery}
+              disabled={isTakingPicture || isRecognizing || !!preselectedImage}
+              activeOpacity={0.8}>
+              <Icon name="photo-library" size="md" color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.sideToolbarButton}>
-              <Icon name="flip-camera-ios" size="md" color={designSystem.colors.text.inverse} />
+
+            {/* 中间：拍照按钮 */}
+            {!preselectedImage && (
+              <TouchableOpacity
+                style={[styles.captureButton, (isTakingPicture || isRecognizing) && styles.controlButtonDisabled]}
+                onPress={takePicture}
+                disabled={isTakingPicture || isRecognizing}
+                activeOpacity={0.8}>
+                <View style={styles.captureButtonInner}>
+                  <Icon name="camera-alt" size="lg" color="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* 右侧：历史记录按钮 */}
+            <TouchableOpacity
+              style={styles.smallControlButton}
+              onPress={() => (navigation as any).navigate('History')}
+              disabled={isTakingPicture || isRecognizing}
+              activeOpacity={0.8}>
+              <Icon name="history" size="md" color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
         )}
-      </View>
-
-      {/* 底部控制栏 */}
-      <View style={styles.bottomSection}>
-        {/* 功能提示 */}
-        <View style={styles.tipContainer}>
-          <Icon name="info-outline" size="sm" color={designSystem.colors.text.secondary} />
-          <Spacer size="xs" direction="horizontal" />
-          <Typography variant="caption" color={designSystem.colors.text.secondary}>
-            拍照或从相册选择数学题目
-          </Typography>
-        </View>
-
-        {/* 主控制按钮 */}
-        <View style={styles.mainControls}>
-          {/* 左侧：相册按钮 - 当有预选图片时禁用 */}
-          <TouchableOpacity
-            style={[styles.controlButton, styles.galleryButton, (isTakingPicture || isRecognizing || preselectedImage) && styles.controlButtonDisabled]}
-            onPress={pickImageFromGallery}
-            disabled={isTakingPicture || isRecognizing || !!preselectedImage}>
-            <Icon name="photo-library" size="lg" color={designSystem.colors.text.inverse} />
-            <Typography variant="caption" color={designSystem.colors.text.inverse}>
-              相册
-            </Typography>
-          </TouchableOpacity>
-
-          {/* 中间：拍照按钮 - 当有预选图片时隐藏 */}
-          {!preselectedImage && (
-            <TouchableOpacity
-              style={[styles.controlButton, styles.cameraButton, (isTakingPicture || isRecognizing) && styles.controlButtonDisabled]}
-              onPress={takePicture}
-              disabled={isTakingPicture || isRecognizing}>
-              <View style={styles.cameraButtonInner}>
-                <Icon name="camera-alt" size="lg" color={designSystem.colors.text.inverse} />
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {/* 右侧：历史记录按钮 */}
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => (navigation as any).navigate('History')}
-            disabled={isTakingPicture || isRecognizing}>
-            <Icon name="history" size="lg" color={designSystem.colors.text.inverse} />
-            <Typography variant="caption" color={designSystem.colors.text.inverse}>
-              历史
-            </Typography>
-          </TouchableOpacity>
-        </View>
-
-        {/* 快速功能按钮 */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickActionButton} onPress={() => setShowHelp(true)}>
-            <Icon name="help-outline" size="md" color={designSystem.colors.info.default} />
-            <Spacer size="xs" direction="horizontal" />
-            <Typography variant="caption" color={designSystem.colors.info.default}>
-              使用帮助
-            </Typography>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionButton}>
-            <Icon name="settings" size="md" color={designSystem.colors.info.default} />
-            <Spacer size="xs" direction="horizontal" />
-            <Typography variant="caption" color={designSystem.colors.info.default}>
-              设置
-            </Typography>
-          </TouchableOpacity>
-        </View>
       </View>
       </View>
 
@@ -1149,6 +1126,12 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
+  // 拍摄提示卡片样式 - 缩小边距
+  tipCard: {
+    marginHorizontal: designSystem.spacing.sm,
+    marginTop: designSystem.spacing.xs,
+    marginBottom: designSystem.spacing.xs,
+  },
   // 简化版使用说明
   miniInstructionCard: {
     flexDirection: 'row',
@@ -1160,23 +1143,19 @@ const styles = StyleSheet.create({
     marginHorizontal: designSystem.spacing.md,
     borderRadius: designSystem.borderRadius.md,
   },
-  // 固定底部容器
+  // 固定底部容器 - 不使用flex:1避免覆盖ScrollView
   fixedBottomContainer: {
     backgroundColor: designSystem.colors.surface.primary,
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 0,
   },
-  // 顶部工具栏
+  // 顶部工具栏 - 缩小高度
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: designSystem.spacing.lg,
-    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + designSystem.spacing.sm : designSystem.spacing.lg,
-    paddingBottom: designSystem.spacing.md,
+    paddingHorizontal: designSystem.spacing.md,
+    paddingTop: StatusBar.currentHeight ? StatusBar.currentHeight + designSystem.spacing.xs : designSystem.spacing.sm,
+    paddingBottom: designSystem.spacing.xs,
     backgroundColor: designSystem.colors.primary,
-    ...designSystem.shadows.md,
   },
   headerButton: {
     padding: designSystem.spacing.xs,
@@ -1191,8 +1170,8 @@ const styles = StyleSheet.create({
     backgroundColor: designSystem.colors.surface.dark,
   },
   cameraContainer: {
-    height: SCREEN_HEIGHT * 0.55,
-    marginHorizontal: designSystem.spacing.md,
+    height: SCREEN_HEIGHT * 0.52,
+    marginHorizontal: designSystem.spacing.sm,
     marginTop: designSystem.spacing.xs,
     borderRadius: designSystem.borderRadius.lg,
     overflow: 'hidden',
@@ -1217,7 +1196,7 @@ const styles = StyleSheet.create({
     top: '10%',
     left: '10%',
     right: '10%',
-    bottom: '10%',
+    bottom: '20%',
     borderColor: 'rgba(255,255,255,0.8)',
     borderWidth: 2,
     borderRadius: designSystem.borderRadius.lg,
@@ -1226,18 +1205,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.1)',
   },
-  // 侧边工具栏
-  cameraSideToolbar: {
+  // 底部控制按钮 - 叠加在相机区域上
+  cameraBottomControls: {
     position: 'absolute',
-    right: designSystem.spacing.sm,
-    top: '20%',
-    gap: designSystem.spacing.md,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingVertical: designSystem.spacing.md,
+    paddingHorizontal: designSystem.spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  sideToolbarButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  smallControlButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  captureButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#FF9800',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...designSystem.shadows.md,
+  },
+  captureButtonInner: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1260,57 +1260,64 @@ const styles = StyleSheet.create({
     paddingVertical: designSystem.spacing.sm,
     borderRadius: designSystem.borderRadius.xl,
   },
-  // 底部区域
+  // 底部区域 - 温暖背景
   bottomSection: {
-    backgroundColor: designSystem.colors.surface.primary,
+    backgroundColor: '#FAFAFA', // 温暖白色背景
     paddingHorizontal: designSystem.spacing.lg,
-    paddingVertical: designSystem.spacing.xs,
+    paddingVertical: designSystem.spacing.sm,
     paddingBottom: designSystem.spacing.xl,
-    minHeight: SCREEN_HEIGHT * 0.12,
+    borderTopLeftRadius: designSystem.borderRadius.xl,
+    borderTopRightRadius: designSystem.borderRadius.xl,
+    minHeight: SCREEN_HEIGHT * 0.15,
+    ...designSystem.shadows.md,
   },
   tipContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: designSystem.spacing.sm,
+    marginBottom: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.xs,
   },
-  // 主控制按钮
+  // 主控制按钮 - 平板友好大按钮
   mainControls: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     marginBottom: designSystem.spacing.md,
+    paddingHorizontal: designSystem.spacing.md,
   },
   controlButton: {
     alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+    minHeight: 80,
+    padding: designSystem.spacing.md,
   },
   controlButtonDisabled: {
     opacity: 0.5,
   },
-  // 拍照按钮
+  // 拍照按钮 - 更大更友好，平板适配
   cameraButton: {
-    width: SCREEN_WIDTH * 0.19,
-    height: SCREEN_WIDTH * 0.19,
-    borderRadius: SCREEN_WIDTH * 0.095,
-    backgroundColor: designSystem.colors.info.default,
+    width: BUTTON_SIZE,
+    height: BUTTON_SIZE,
+    borderRadius: BUTTON_SIZE / 2,
+    backgroundColor: '#FF9800', // 温暖橙色
     justifyContent: 'center',
     alignItems: 'center',
     ...designSystem.shadows.lg,
   },
   cameraButtonInner: {
-    width: SCREEN_WIDTH * 0.15,
-    height: SCREEN_WIDTH * 0.15,
-    borderRadius: SCREEN_WIDTH * 0.075,
-    backgroundColor: designSystem.colors.info.dark,
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // 相册按钮
+  // 相册按钮 - 更大更友好，平板适配
   galleryButton: {
-    width: SCREEN_WIDTH * 0.15,
-    height: SCREEN_WIDTH * 0.15,
-    borderRadius: SCREEN_WIDTH * 0.075,
-    backgroundColor: designSystem.colors.success.default,
+    width: GALLERY_BUTTON_SIZE,
+    height: GALLERY_BUTTON_SIZE,
+    borderRadius: GALLERY_BUTTON_SIZE / 2,
+    backgroundColor: '#42A5F5', // 淡蓝色
     justifyContent: 'center',
     alignItems: 'center',
     ...designSystem.shadows.md,

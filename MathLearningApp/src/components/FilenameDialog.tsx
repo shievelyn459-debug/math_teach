@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 44,
-    fontSize: designSystem.typography.sizes.body,
+    fontSize: 16,
     color: designSystem.colors.text.primary,
   },
   inputError: {

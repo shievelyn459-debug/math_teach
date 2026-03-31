@@ -344,7 +344,7 @@ class FeedbackManager {
    */
   async resetMilestone(milestoneType: MilestoneType): Promise<void> {
     try {
-      const key = `milestone_${milestoneType}`;
+      const key = `feedback_milestone_${milestoneType}`;
       await AsyncStorage.removeItem(key);
     } catch (error) {
       console.error('Failed to reset milestone:', error);
@@ -357,7 +357,7 @@ class FeedbackManager {
   async resetAllMilestones(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const milestoneKeys = keys.filter(k => k.startsWith('milestone_'));
+      const milestoneKeys = keys.filter(k => k.startsWith('feedback_milestone_'));
       await AsyncStorage.multiRemove(milestoneKeys);
     } catch (error) {
       console.error('Failed to reset all milestones:', error);

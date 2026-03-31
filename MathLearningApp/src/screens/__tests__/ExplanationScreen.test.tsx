@@ -46,19 +46,19 @@ jest.mock('../../services/explanationService', () => {
     knowledgePointName: '10以内加法',
     sections: [
       {
-        type: ExplanationSectionType.DEFINITION,
+        type: 'definition', // 使用字符串字面值代替 ExplanationSectionType.DEFINITION
         title: '什么是10以内加法',
         content: ['加法就是把东西合在一起数一数'],
         order: 1,
       },
       {
-        type: ExplanationSectionType.METHODS,
+        type: 'methods', // 使用字符串字面值代替 ExplanationSectionType.METHODS
         title: '解题方法',
         content: ['第一步：数手指法'],
         order: 2,
       },
       {
-        type: ExplanationSectionType.EXAMPLES,
+        type: 'examples', // 使用字符串字面值代替 ExplanationSectionType.EXAMPLES
         title: '常见例题',
         content: [],
         examples: [
@@ -72,7 +72,7 @@ jest.mock('../../services/explanationService', () => {
         order: 3,
       },
       {
-        type: ExplanationSectionType.TIPS,
+        type: 'tips', // 使用字符串字面值代替 ExplanationSectionType.TIPS
         title: '辅导技巧',
         content: ['✅ 多鼓励孩子'],
         order: 4,

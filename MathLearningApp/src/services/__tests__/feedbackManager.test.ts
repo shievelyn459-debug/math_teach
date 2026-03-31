@@ -199,9 +199,9 @@ describe('FeedbackManager', () => {
       feedbackManager.showNetworkError();
 
       expect(Alert.alert).toHaveBeenCalledWith(
-        '网络连接失败',
-        '请检查网络设置后重试。您的数据已保存，不会丢失。',
-        [{text: '确定', style: 'default', onPress: undefined}],
+        '没关系',
+        '💫 网络休息中，稍等片刻就好。您的数据已安全保存。',
+        [{text: '我知道了', style: 'default', onPress: undefined}],
         expect.any(Object) // {cancelable: true}
       );
     });
@@ -211,10 +211,10 @@ describe('FeedbackManager', () => {
       feedbackManager.showNetworkError(onRetry);
 
       expect(Alert.alert).toHaveBeenCalledWith(
-        '网络连接失败',
+        '没关系',
         expect.any(String),
         expect.arrayContaining([
-          expect.objectContaining({text: '重试', onPress: onRetry}),
+          expect.objectContaining({text: '好的，重试', onPress: onRetry}),
         ]),
         expect.any(Object) // {cancelable: true}
       );
@@ -226,8 +226,8 @@ describe('FeedbackManager', () => {
       feedbackManager.showValidationError('用户名', '用户名太短');
 
       expect(Alert.alert).toHaveBeenCalledWith(
-        '用户名格式不正确',
-        '用户名太短',
+        '🌿 让我们检查一下',
+        '用户名可能需要调整一下。用户名太短',
         [{text: '确定', style: 'default', onPress: undefined}],
         expect.any(Object) // {cancelable: true}
       );
@@ -264,7 +264,7 @@ describe('FeedbackManager', () => {
 
       expect(celebrated).toBe(true);
       expect(setItemMock).toHaveBeenCalledWith(
-        'milestone_first_generation',
+        'feedback_milestone_first_generation',
         'true'
       );
       getItemMock.mockClear();
@@ -354,7 +354,7 @@ describe('FeedbackManager', () => {
       await feedbackManager.resetMilestone(MilestoneType.FIRST_GENERATION);
 
       expect(removeItemMock).toHaveBeenCalledWith(
-        'milestone_first_generation'
+        'feedback_milestone_first_generation'
       );
       removeItemMock.mockClear();
     });
@@ -363,8 +363,8 @@ describe('FeedbackManager', () => {
       const getAllKeysMock = AsyncStorage.getAllKeys as jest.Mock;
       const multiRemoveMock = AsyncStorage.multiRemove as jest.Mock;
       getAllKeysMock.mockResolvedValue([
-        'milestone_first_generation',
-        'milestone_first_pdf',
+        'feedback_milestone_first_generation',
+        'feedback_milestone_first_pdf',
         'other_key',
       ]);
       multiRemoveMock.mockResolvedValue(undefined);
@@ -372,8 +372,8 @@ describe('FeedbackManager', () => {
       await feedbackManager.resetAllMilestones();
 
       expect(multiRemoveMock).toHaveBeenCalledWith([
-        'milestone_first_generation',
-        'milestone_first_pdf',
+        'feedback_milestone_first_generation',
+        'feedback_milestone_first_pdf',
       ]);
       getAllKeysMock.mockClear();
       multiRemoveMock.mockClear();
@@ -385,49 +385,49 @@ describe('FeedbackManager', () => {
       const error = {isNetworkError: true};
       const message = feedbackManager.formatErrorMessage(error, '上传');
 
-      expect(message).toBe('网络连接失败，请检查网络设置');
+      expect(message).toBe('💫 网络休息中，稍等片刻就好');
     });
 
     it('应该格式化超时错误', () => {
       const error = {message: 'Request timeout'};
       const message = feedbackManager.formatErrorMessage(error, '上传');
 
-      expect(message).toBe('请求超时，请稍后重试');
+      expect(message).toBe('⏰ 等待有点久了，要再试一次吗');
     });
 
     it('应该格式化服务器错误', () => {
       const error = {status: 500};
       const message = feedbackManager.formatErrorMessage(error, '上传');
 
-      expect(message).toBe('系统繁忙，请稍后再试。您的数据已保存。');
+      expect(message).toBe('🌱 系统正在休息，请稍后再试试看');
     });
 
     it('应该格式化认证错误', () => {
       const error = {status: 401};
       const message = feedbackManager.formatErrorMessage(error, '登录');
 
-      expect(message).toBe('登录已过期，请重新登录');
+      expect(message).toBe('🔓 需要你的允许才能继续哦');
     });
 
     it('应该格式化404错误', () => {
       const error = {status: 404};
       const message = feedbackManager.formatErrorMessage(error);
 
-      expect(message).toBe('请求的资源不存在');
+      expect(message).toBe('🍃 这个内容找不到了，让我们重新开始');
     });
 
     it('应该使用默认错误消息', () => {
       const error = {message: 'Unknown error'};
       const message = feedbackManager.formatErrorMessage(error, '操作');
 
-      expect(message).toBe('操作失败：Unknown error');
+      expect(message).toBe('🍃 操作遇到小问题，让我们再试一次吧');
     });
 
     it('应该截断过长的错误消息', () => {
       const error = {message: 'A'.repeat(100)};
       const message = feedbackManager.formatErrorMessage(error, '操作');
 
-      expect(message).toBe('操作失败');
+      expect(message).toBe('🍃 操作遇到小问题，让我们再试一次吧');
     });
   });
 
@@ -437,7 +437,7 @@ describe('FeedbackManager', () => {
       feedbackManager.showFriendlyError(error, '上传');
 
       expect(Alert.alert).toHaveBeenCalledWith(
-        '网络连接失败',
+        '没关系',
         expect.any(String),
         expect.any(Array),
         expect.any(Object) // {cancelable: true}
@@ -450,10 +450,10 @@ describe('FeedbackManager', () => {
       feedbackManager.showFriendlyError(error, '操作', onRetry);
 
       expect(Alert.alert).toHaveBeenCalledWith(
-        '出错了',
+        '没关系',
         expect.any(String),
         expect.arrayContaining([
-          expect.objectContaining({text: '重试', onPress: onRetry}),
+          expect.objectContaining({text: '好的，重试', onPress: onRetry}),
         ]),
         expect.any(Object) // {cancelable: true}
       );

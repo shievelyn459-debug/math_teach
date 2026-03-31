@@ -9,88 +9,89 @@ import {getExplanationService} from '../explanationService';
 import {ExplanationSource} from '../../types/explanation';
 
 // Mock the ExplanationService
-jest.mock('../explanationService', () => {
-  const mockExplanation = {
-    id: 'exp-001',
-    knowledgePointId: 'kp-add-001',
-    knowledgePointName: '10以内加法',
-    sections: [
-      {
-        type: 'definition',
-        title: '什么是10以内加法',
-        content: ['加法就是把东西合在一起数一数'],
-        order: 1,
-      },
-      {
-        type: 'methods',
-        title: '解题方法',
-        content: ['第一步：数手指法'],
-        order: 2,
-      },
-      {
-        type: 'examples',
-        title: '常见例题',
-        content: [],
-        examples: [
-          {
-            question: '3 + 2 = ?',
-            answer: '5',
-            steps: ['数一数'],
-            difficulty: 'easy',
-          },
-        ],
-        order: 3,
-      },
-      {
-        type: 'tips',
-        title: '辅导技巧',
-        content: ['✅ 多鼓励孩子'],
-        order: 4,
-      },
-    ],
-    teachingTips: [
-      {
-        id: 'tip-001',
-        title: '用实物演示',
-        description: '用玩具演示',
-        dos: ['使用玩具'],
-        donts: ['不要用抽象数字'],
-      },
-    ],
-    source: ExplanationSource.TEMPLATE,
-    qualityScore: 0.95,
-    version: 1,
-    reviewed: true,
-    childAppropriate: true,
-    language: 'zh-CN',
-    estimatedReadTime: 5,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  return {
-    getExplanationService: jest.fn(() => ({
-      generateExplanation: jest.fn().mockResolvedValue({
-        explanation: mockExplanation,
-        generationTime: 1200,
-        source: ExplanationSource.TEMPLATE,
-        fallbackUsed: false,
-        qualityMetrics: {
-          completeness: 0.95,
-          clarity: 0.9,
-          childAppropriate: 0.92,
+const mockExplanation = {
+  id: 'exp-001',
+  knowledgePointId: 'kp-add-001',
+  knowledgePointName: '10以内加法',
+  sections: [
+    {
+      type: 'definition',
+      title: '什么是10以内加法',
+      content: ['加法就是把东西合在一起数一数'],
+      order: 1,
+    },
+    {
+      type: 'methods',
+      title: '解题方法',
+      content: ['第一步：数手指法'],
+      order: 2,
+    },
+    {
+      type: 'examples',
+      title: '常见例题',
+      content: [],
+      examples: [
+        {
+          question: '3 + 2 = ?',
+          answer: '5',
+          steps: ['数一数'],
+          difficulty: 'easy',
         },
-      }),
-      submitFeedback: jest.fn().mockResolvedValue({success: true}),
-      getFeedbackStats: jest.fn().mockReturnValue({
-        averageRating: 4.5,
-        totalFeedbacks: 10,
-        helpfulPercentage: 90,
-        easyToUnderstandPercentage: 85,
-      }),
-    })),
-  };
-});
+      ],
+      order: 3,
+    },
+    {
+      type: 'tips',
+      title: '辅导技巧',
+      content: ['✅ 多鼓励孩子'],
+      order: 4,
+    },
+  ],
+  teachingTips: [
+    {
+      id: 'tip-001',
+      title: '用实物演示',
+      description: '用玩具演示',
+      dos: ['使用玩具'],
+      donts: ['不要用抽象数字'],
+    },
+  ],
+  source: 'TEMPLATE', // 使用字符串字面值代替 ExplanationSource.TEMPLATE
+  qualityScore: 0.95,
+  version: 1,
+  reviewed: true,
+  childAppropriate: true,
+  language: 'zh-CN',
+  estimatedReadTime: 5,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+// 创建单例 mock 服务实例
+const mockExplanationService = {
+  generateExplanation: jest.fn().mockResolvedValue({
+    explanation: mockExplanation,
+    generationTime: 1200,
+    source: 'TEMPLATE',
+    fallbackUsed: false,
+    qualityMetrics: {
+      completeness: 0.95,
+      clarity: 0.9,
+      childAppropriate: 0.92,
+    },
+  }),
+  submitFeedback: jest.fn().mockResolvedValue({success: true}),
+  getFeedbackStats: jest.fn().mockReturnValue({
+    averageRating: 4.5,
+    totalFeedbacks: 10,
+    helpfulPercentage: 90,
+    easyToUnderstandPercentage: 85,
+  }),
+};
+
+jest.mock('../explanationService', () => ({
+  getExplanationService: jest.fn(() => mockExplanationService),
+}));
 
 describe('explanationApi - Integration Tests', () => {
   beforeEach(() => {
@@ -132,16 +133,20 @@ describe('explanationApi - Integration Tests', () => {
     });
 
     it('should timeout after 3 seconds', async () => {
-      const mockService = getExplanationService();
-      (mockService.generateExplanation as jest.Mock).mockImplementation(
+      // 使用fake timers来避免实际等待
+      jest.useFakeTimers();
+
+      // 修改单例 mock 实现以模拟超时
+      mockExplanationService.generateExplanation.mockImplementation(
         () =>
           new Promise(resolve => {
+            // 使用未timer的Promise来模拟延迟
             setTimeout(
               () =>
                 resolve({
                   explanation: {},
                   generationTime: 4000,
-                  source: ExplanationSource.AI,
+                  source: 'AI',
                   fallbackUsed: false,
                   qualityMetrics: {},
                 }),
@@ -150,19 +155,40 @@ describe('explanationApi - Integration Tests', () => {
           })
       );
 
-      const result = await explanationApi.generateExplanation(
+      const resultPromise = explanationApi.generateExplanation(
         'kp-add-001',
         '10以内加法'
       );
 
+      // 前进时间超过API超时时间（3秒）
+      jest.advanceTimersByTime(3100);
+
+      const result = await resultPromise;
+
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('EXPLANATION_GENERATION_FAILED');
       expect(result.error?.message).toContain('超时');
+
+      // 恢复真实timers
+      jest.useRealTimers();
+
+      // 恢复默认实现
+      mockExplanationService.generateExplanation.mockResolvedValue({
+        explanation: mockExplanation,
+        generationTime: 1200,
+        source: 'TEMPLATE',
+        fallbackUsed: false,
+        qualityMetrics: {
+          completeness: 0.95,
+          clarity: 0.9,
+          childAppropriate: 0.92,
+        },
+      });
     });
 
     it('should handle service errors gracefully', async () => {
-      const mockService = getExplanationService();
-      (mockService.generateExplanation as jest.Mock).mockRejectedValue(
+      // 修改单例 mock 实现以模拟错误
+      mockExplanationService.generateExplanation.mockRejectedValue(
         new Error('Service unavailable')
       );
 
@@ -173,6 +199,19 @@ describe('explanationApi - Integration Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('EXPLANATION_GENERATION_FAILED');
+
+      // 恢复默认实现
+      mockExplanationService.generateExplanation.mockResolvedValue({
+        explanation: mockExplanation,
+        generationTime: 1200,
+        source: 'TEMPLATE',
+        fallbackUsed: false,
+        qualityMetrics: {
+          completeness: 0.95,
+          clarity: 0.9,
+          childAppropriate: 0.92,
+        },
+      });
     });
   });
 
@@ -194,8 +233,8 @@ describe('explanationApi - Integration Tests', () => {
     });
 
     it('should handle feedback submission errors', async () => {
-      const mockService = getExplanationService();
-      (mockService.submitFeedback as jest.Mock).mockResolvedValue({
+      // 修改单例 mock 实现以模拟错误响应
+      mockExplanationService.submitFeedback.mockResolvedValue({
         success: false,
         message: 'Network error',
       });
@@ -210,6 +249,9 @@ describe('explanationApi - Integration Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('FEEDBACK_SUBMISSION_FAILED');
+
+      // 恢复默认实现
+      mockExplanationService.submitFeedback.mockResolvedValue({success: true});
     });
   });
 
@@ -227,13 +269,21 @@ describe('explanationApi - Integration Tests', () => {
     });
 
     it('should return error for non-existent explanation', async () => {
-      const mockService = getExplanationService();
-      (mockService.getFeedbackStats as jest.Mock).mockReturnValue(null);
+      // 修改单例 mock 实现以模拟返回 null
+      mockExplanationService.getFeedbackStats.mockReturnValue(null);
 
       const result = await explanationApi.getFeedbackStats('exp-nonexistent');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('STATS_NOT_FOUND');
+
+      // 恢复默认实现
+      mockExplanationService.getFeedbackStats.mockReturnValue({
+        averageRating: 4.5,
+        totalFeedbacks: 10,
+        helpfulPercentage: 90,
+        easyToUnderstandPercentage: 85,
+      });
     });
   });
 });
@@ -260,7 +310,8 @@ describe('explanationApi - Performance Tests', () => {
   });
 
   it('should cache results for repeated requests', async () => {
-    const mockService = getExplanationService();
+    // 重置 mock 调用计数
+    mockExplanationService.generateExplanation.mockClear();
 
     // First request
     await explanationApi.generateExplanation(
@@ -274,15 +325,15 @@ describe('explanationApi - Performance Tests', () => {
       '10以内加法'
     );
 
-    // GenerateExplanation should be called twice, but internally may use cache
-    expect(mockService.generateExplanation).toHaveBeenCalledTimes(2);
+    // GenerateExplanation 应该被调用两次（API层不处理缓存）
+    expect(mockExplanationService.generateExplanation).toHaveBeenCalledTimes(2);
   });
 });
 
 describe('explanationApi - Error Handling', () => {
   it('should handle timeout gracefully', async () => {
-    const mockService = getExplanationService();
-    (mockService.generateExplanation as jest.Mock).mockImplementation(
+    // 修改单例 mock 实现以模拟超时拒绝
+    mockExplanationService.generateExplanation.mockImplementation(
       () =>
         new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Slow response')), 4000);
@@ -296,11 +347,24 @@ describe('explanationApi - Error Handling', () => {
 
     expect(result.success).toBe(false);
     expect(result.error?.message).toContain('超时');
+
+    // 恢复默认实现
+    mockExplanationService.generateExplanation.mockResolvedValue({
+      explanation: mockExplanation,
+      generationTime: 1200,
+      source: 'TEMPLATE',
+      fallbackUsed: false,
+      qualityMetrics: {
+        completeness: 0.95,
+        clarity: 0.9,
+        childAppropriate: 0.92,
+      },
+    });
   });
 
   it('should handle service exceptions', async () => {
-    const mockService = getExplanationService();
-    (mockService.generateExplanation as jest.Mock).mockImplementation(() => {
+    // 修改单例 mock 实现以抛出异常
+    mockExplanationService.generateExplanation.mockImplementation(() => {
       throw new Error('Unexpected error');
     });
 
@@ -310,6 +374,19 @@ describe('explanationApi - Error Handling', () => {
     );
 
     expect(result.success).toBe(false);
+
+    // 恢复默认实现
+    mockExplanationService.generateExplanation.mockResolvedValue({
+      explanation: mockExplanation,
+      generationTime: 1200,
+      source: 'TEMPLATE',
+      fallbackUsed: false,
+      qualityMetrics: {
+        completeness: 0.95,
+        clarity: 0.9,
+        childAppropriate: 0.92,
+      },
+    });
   });
 });
 

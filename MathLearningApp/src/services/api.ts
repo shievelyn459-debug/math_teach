@@ -68,26 +68,27 @@ const DEFAULT_TIMEOUT = 30000; // 默认30秒超时
 
 /**
  * 将图片URI转换为base64格式
- * 使用expo-file-system以支持React Native文件系统
+ * 使用react-native-fs以支持React Native文件系统
  */
 async function uriToBase64(uri: string): Promise<string> {
   try {
     console.log('[uriToBase64] Converting URI to base64:', uri);
 
-    // 动态导入FileSystem以避免在非React Native环境中的问题
-    const FileSystem = await import('expo-file-system');
+    // 使用react-native-fs读取文件
+    const RNFS = require('react-native-fs');
+
+    // 处理file://前缀
+    const filePath = uri.replace('file://', '');
 
     // 检查文件是否存在
-    const fileInfo = await FileSystem.FileSystem.getInfoAsync(uri);
-    console.log('[uriToBase64] File exists:', fileInfo.exists);
-    if (fileInfo.exists && fileInfo.size) {
-      console.log('[uriToBase64] File size:', fileInfo.size, 'bytes');
+    const exists = await RNFS.exists(filePath);
+    console.log('[uriToBase64] File exists:', exists);
+    if (!exists) {
+      throw new Error(`File does not exist: ${filePath}`);
     }
 
     // 读取文件并转换为base64
-    const base64 = await FileSystem.FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.FileSystem.EncodingType.Base64,
-    });
+    const base64 = await RNFS.readFile(filePath, 'base64');
 
     console.log('[uriToBase64] Base64 string length:', base64.length);
     console.log('[uriToBase64] Base64 preview (first 100 chars):', base64.substring(0, 100));

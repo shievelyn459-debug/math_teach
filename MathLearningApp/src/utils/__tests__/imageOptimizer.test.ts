@@ -11,29 +11,6 @@ jest.mock('expo-image-manipulator', () => ({
   },
 }));
 
-// Mock expo-file-system
-jest.mock('expo-file-system', () => ({
-  getInfoAsync: jest.fn().mockImplementation((uri) => {
-    // Return large size for images that need optimization, small for already optimized
-    if (uri.includes('small') || uri.includes('optimized')) {
-      return Promise.resolve({
-        exists: true,
-        size: 100 * 1024, // 100KB - already small
-        uri,
-        width: 800,
-        height: 600,
-      });
-    }
-    return Promise.resolve({
-      exists: true,
-      size: 5 * 1024 * 1024, // 5MB - needs optimization
-      uri,
-      width: 3840,
-      height: 2160,
-    });
-  }),
-}));
-
 describe('ImageOptimizer', () => {
   beforeEach(() => {
     jest.clearAllMocks();

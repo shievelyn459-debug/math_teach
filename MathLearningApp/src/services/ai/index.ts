@@ -78,7 +78,14 @@ class AIService {
         return baiduOcrService.parseMathQuestion(result.text);
       } catch (error) {
         console.error('[AIService] Baidu OCR failed:', error);
-        // 降级到基础OCR
+
+        // 如果是超时或网络错误，直接抛给用户，不降级
+        if (error.message && (error.message.includes('超时') || error.message.includes('网络'))) {
+          throw error;
+        }
+
+        // 其他错误（如API配置错误）尝试降级到基础OCR
+        console.log('[AIService] Attempting fallback to general OCR...');
         return baiduOcrService.recognizeGeneralText(imageBase64)
           .then(r => baiduOcrService.parseMathQuestion(r.text))
           .catch(() => this.getFallbackOCRResult());

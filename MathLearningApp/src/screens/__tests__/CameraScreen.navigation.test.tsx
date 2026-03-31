@@ -40,7 +40,7 @@ jest.mock('../../services/preferencesService', () => ({
     getDifficultyPreference: jest.fn(),
     recordDifficultySelection: jest.fn(),
     recordCorrection: jest.fn(),
-    getRecommendedDifficulty: jest.fn(() => Difficulty.MEDIUM),
+    getRecommendedDifficulty: jest.fn(() => 'medium'), // 使用字符串字面值代替 Difficulty.MEDIUM
   },
 }));
 
