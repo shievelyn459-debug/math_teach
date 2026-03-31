@@ -1,6 +1,8 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator} from 'react-native';
+import {View, Modal, StyleSheet, ActivityIndicator} from 'react-native';
 import {Difficulty} from '../types';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer, Button, Icon} from '../components/ui';
 
 interface DifficultySelectorProps {
   visible: boolean;
@@ -56,25 +58,42 @@ const DifficultySelector: React.FC<DifficultySelectorProps> = ({
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>选择题目难度</Text>
-          <Text style={styles.modalSubtitle}>
+          <Typography variant="headlineMedium" align="center">
+            选择题目难度
+          </Typography>
+          <Spacer size="sm" />
+          <Typography
+            variant="body"
+            color={designSystem.colors.text.secondary}
+            align="center">
             根据孩子的学习情况选择合适的难度级别
-          </Text>
+          </Typography>
 
           {recommendedDifficulty && (
-            <View style={styles.recommendationBadge}>
-              <Text style={styles.recommendationText}>
-                推荐：{getDifficultyLabel(recommendedDifficulty)}
-              </Text>
-            </View>
+            <>
+              <Spacer size="md" />
+              <View style={styles.recommendationBadge}>
+                <Icon name="recommend" size="sm" color={designSystem.colors.info.dark} />
+                <View style={{width: designSystem.spacing.xs}} />
+                <Typography variant="body" color={designSystem.colors.info.dark}>
+                  推荐：{getDifficultyLabel(recommendedDifficulty)}
+                </Typography>
+              </View>
+            </>
           )}
 
           {isLoading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#2196f3" />
-              <Text style={styles.loadingText}>加载偏好设置中...</Text>
+              <ActivityIndicator size="large" color={designSystem.colors.primary} />
+              <Spacer size="md" />
+              <Typography variant="body" color={designSystem.colors.text.secondary}>
+                加载偏好设置中...
+              </Typography>
             </View>
           )}
+
+          <Spacer size="md" />
+
           {DIFFICULTY_LEVELS.map((levelObj) => {
             const isRecommended = levelObj.level === recommendedDifficulty;
             const isSelected = levelObj.level === currentDifficulty;
@@ -87,188 +106,114 @@ const DifficultySelector: React.FC<DifficultySelectorProps> = ({
                   styles.difficultyOption,
                   isSelected && styles.difficultyOptionSelected,
                 ]}
-                onPress={() => onSelect(levelObj.level)}
-                disabled={isLoading}>
+                onPress={() => !isLoading && onSelect(levelObj.level)}
+                activeOpacity={0.7}>
                 {isRecommended && !isSelected && (
                   <View style={styles.recommendationTag}>
-                    <Text style={styles.recommendationTagText}>推荐</Text>
+                    <Typography variant="overline" color={designSystem.colors.surface.primary}>
+                      推荐
+                    </Typography>
                   </View>
                 )}
                 <View style={styles.difficultyHeader}>
-                  <Text
-                    style={[
-                      styles.difficultyLabel,
-                      isSelected && styles.difficultyLabelSelected,
-                    ]}>
+                  <Typography
+                    variant="headlineSmall"
+                    color={isSelected ? designSystem.colors.surface.primary : designSystem.colors.text.primary}>
                     {levelObj.label}
-                  </Text>
+                  </Typography>
                   {isSelected && (
-                    <Text style={styles.selectedCheck}>✓</Text>
+                    <Icon name="check" size="md" color={designSystem.colors.surface.primary} />
                   )}
                 </View>
-                <Text
-                  style={[
-                    styles.difficultyDescription,
-                    isSelected && styles.difficultyDescriptionSelected,
-                  ]}>
+                <Typography
+                  variant="body"
+                  color={isSelected ? designSystem.colors.surface.primary : designSystem.colors.text.secondary}>
                   {levelObj.description}
-                </Text>
-                <Text
-                  style={[
-                    styles.difficultyDetail,
-                    isSelected && styles.difficultyDetailSelected,
-                  ]}>
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color={isSelected ? designSystem.colors.surface.primary : designSystem.colors.text.hint}>
                   {levelObj.detail}
-                </Text>
+                </Typography>
               </TouchableOpacity>
             );
           })}
 
-          <TouchableOpacity
-            style={styles.cancelButton}
+          <Spacer size="lg" />
+
+          <Button
+            title="取消"
             onPress={onCancel}
-            disabled={isLoading}>
-            <Text style={styles.cancelButtonText}>取消</Text>
-          </TouchableOpacity>
+            variant="secondary"
+            size="lg"
+            disabled={isLoading}
+            style={{width: '100%'}}
+          />
         </View>
       </View>
     </Modal>
   );
 };
 
+// Need to import TouchableOpacity
+import {TouchableOpacity} from 'react-native';
+
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: designSystem.colors.overlay.medium,
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
+    padding: designSystem.spacing.xl,
     width: '90%',
     maxWidth: 420,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-    color: '#333',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#666',
-    lineHeight: 20,
+    ...designSystem.shadows.lg,
   },
   recommendationBadge: {
-    backgroundColor: '#e3f2fd',
-    borderColor: '#2196f3',
+    backgroundColor: designSystem.colors.info.light,
+    borderColor: designSystem.colors.info.default,
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 16,
+    borderRadius: designSystem.borderRadius.md,
+    padding: designSystem.spacing.md,
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  recommendationText: {
-    fontSize: 14,
-    color: '#1976d2',
-    fontWeight: '600',
+    justifyContent: 'center',
   },
   loadingContainer: {
-    paddingVertical: 30,
+    paddingVertical: designSystem.spacing.xl,
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#666',
-  },
   difficultyOption: {
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    marginVertical: 6,
+    padding: designSystem.spacing.lg,
+    backgroundColor: designSystem.colors.surface.secondary,
+    borderRadius: designSystem.borderRadius.md,
+    marginVertical: designSystem.spacing.xs,
     borderWidth: 2,
-    borderColor: '#e9ecef',
+    borderColor: designSystem.colors.border,
     position: 'relative',
   },
   difficultyOptionSelected: {
-    backgroundColor: '#2196f3',
-    borderColor: '#1976d2',
+    backgroundColor: designSystem.colors.primary,
+    borderColor: designSystem.colors.primaryDark,
   },
   recommendationTag: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#4caf50',
-    paddingHorizontal: 8,
+    top: designSystem.spacing.xs,
+    right: designSystem.spacing.xs,
+    backgroundColor: designSystem.colors.success.default,
+    paddingHorizontal: designSystem.spacing.sm,
     paddingVertical: 2,
-    borderRadius: 4,
-  },
-  recommendationTagText: {
-    color: 'white',
-    fontSize: 11,
-    fontWeight: 'bold',
+    borderRadius: designSystem.borderRadius.sm,
   },
   difficultyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  difficultyLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  difficultyLabelSelected: {
-    color: 'white',
-  },
-  selectedCheck: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  difficultyDescription: {
-    fontSize: 15,
-    color: '#555',
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  difficultyDescriptionSelected: {
-    color: 'white',
-  },
-  difficultyDetail: {
-    fontSize: 13,
-    color: '#777',
-    lineHeight: 18,
-  },
-  difficultyDetailSelected: {
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  cancelButton: {
-    padding: 14,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 8,
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
+    marginBottom: designSystem.spacing.xs,
   },
 });
 

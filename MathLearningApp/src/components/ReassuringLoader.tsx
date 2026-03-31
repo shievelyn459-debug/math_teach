@@ -5,7 +5,8 @@
 
 import React, {useEffect, useState} from 'react';
 import {View, StyleSheet} from 'react-native';
-import {Text} from 'react-native-paper';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer} from '../components/ui';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -97,10 +98,15 @@ const ReassuringLoader: React.FC<ReassuringLoaderProps> = ({
         <View style={[styles.ringSegment, styles.segment3]} />
       </Animated.View>
 
+      <Spacer size="lg" />
+
       {/* 消息 */}
-      <Text style={styles.message}>
+      <Typography
+        variant="body"
+        color={designSystem.colors.text.secondary}
+        align="center">
         {message || reassuringMessages[currentMessageIndex]}
-      </Text>
+      </Typography>
 
       {/* 进度条（如果有） */}
       {progress !== undefined && (
@@ -108,14 +114,24 @@ const ReassuringLoader: React.FC<ReassuringLoaderProps> = ({
           <View style={styles.progressBackground}>
             <View style={[styles.progressFill, {width: `${progress}%`}]} />
           </View>
-          <Text style={styles.progressText}>{Math.round(progress)}%</Text>
+          <Typography
+            variant="caption"
+            color={designSystem.colors.text.hint}
+            align="center">
+            {Math.round(progress)}%
+          </Typography>
         </View>
       )}
 
       {/* 呼吸提示（可选） */}
       {showBreathing && (
         <View style={styles.breatheHint}>
-          <Text style={styles.breatheText}>深呼吸...放松...</Text>
+          <Typography
+            variant="caption"
+            color={designSystem.colors.info.default}
+            align="center">
+            深呼吸...放松...
+          </Typography>
         </View>
       )}
     </View>
@@ -127,16 +143,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    backgroundColor: 'rgba(247, 243, 232, 0.95)',
+    padding: designSystem.spacing.xxl,
+    backgroundColor: designSystem.colors.surface.secondary,
   },
 
   breatheCircle: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(92, 158, 173, 0.15)',
-    marginBottom: 24,
+    backgroundColor: designSystem.colors.primaryLight,
   },
 
   rotateRing: {
@@ -150,7 +165,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#5C9EAD',
+    backgroundColor: designSystem.colors.primary,
     top: 0,
     left: 54,
   },
@@ -166,53 +181,33 @@ const styles = StyleSheet.create({
     top: 54,
   },
 
-  message: {
-    fontSize: 16,
-    color: '#5A6C7D',
-    textAlign: 'center',
-    marginTop: 24,
-    lineHeight: 24,
-  },
-
   progressContainer: {
     width: '100%',
     maxWidth: 240,
-    marginTop: 24,
+    marginTop: designSystem.spacing.xl,
     alignItems: 'center',
   },
 
   progressBackground: {
     width: '100%',
     height: 6,
-    backgroundColor: 'rgba(92, 158, 173, 0.2)',
-    borderRadius: 3,
+    backgroundColor: designSystem.colors.surface.tertiary,
+    borderRadius: designSystem.borderRadius.sm,
     overflow: 'hidden',
   },
 
   progressFill: {
     height: '100%',
-    backgroundColor: '#5C9EAD',
-    borderRadius: 3,
-  },
-
-  progressText: {
-    fontSize: 14,
-    color: '#8A9AAC',
-    marginTop: 8,
+    backgroundColor: designSystem.colors.primary,
+    borderRadius: designSystem.borderRadius.sm,
   },
 
   breatheHint: {
-    marginTop: 32,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(124, 185, 168, 0.15)',
-    borderRadius: 12,
-  },
-
-  breatheText: {
-    fontSize: 13,
-    color: '#7CB9A8',
-    textAlign: 'center',
+    marginTop: designSystem.spacing.xxl,
+    paddingHorizontal: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.sm,
+    backgroundColor: designSystem.colors.info.light,
+    borderRadius: designSystem.borderRadius.md,
   },
 });
 

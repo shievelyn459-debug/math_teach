@@ -6,7 +6,6 @@
 import React, {useEffect, useRef} from 'react';
 import {
   View,
-  Text,
   Modal,
   StyleSheet,
   TouchableOpacity,
@@ -14,7 +13,8 @@ import {
   Dimensions,
 } from 'react-native';
 import {useTheme, Card} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer} from '../components/ui';
 
 const {width, height} = Dimensions.get('window');
 
@@ -263,16 +263,26 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
             <Card.Content style={styles.cardContent}>
               {/* 图标 */}
               <View style={[styles.iconContainer, {backgroundColor: theme.colors.primary + '20'}]}>
-                <Icon name="celebration" size={80} color={theme.colors.primary} />
+                <Icon name="celebration" size="xl" color={theme.colors.primary} />
               </View>
 
+              <Spacer size="lg" />
+
               {/* 消息 */}
-              <Text style={[styles.message, {color: theme.colors.primary}]}>
+              <Typography
+                variant="headlineMedium"
+                color={theme.colors.primary}
+                align="center"
+                style={styles.message}>
                 {getMessage()}
-              </Text>
+              </Typography>
+
+              <Spacer size="md" />
 
               {/* 提示 */}
-              <Text style={styles.hint}>点击任意处关闭</Text>
+              <Typography variant="caption" color={designSystem.colors.text.hint}>
+                点击任意处关闭
+              </Typography>
             </Card.Content>
           </Card>
         </Animated.View>
@@ -284,7 +294,7 @@ const CelebrationOverlay: React.FC<CelebrationOverlayProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: designSystem.colors.overlay.medium,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -297,7 +307,7 @@ const styles = StyleSheet.create({
     top: -20,
   },
   confettiPiece: {
-    borderRadius: 2,
+    borderRadius: designSystem.borderRadius.sm,
   },
   content: {
     width: width * 0.8,
@@ -307,7 +317,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   cardContent: {
-    padding: 32,
+    padding: designSystem.spacing.xxl,
     alignItems: 'center',
   },
   iconContainer: {
@@ -316,17 +326,9 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
   },
   message: {
-    fontSize: 24,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  hint: {
-    fontSize: 12,
-    color: '#757575',
   },
 });
 

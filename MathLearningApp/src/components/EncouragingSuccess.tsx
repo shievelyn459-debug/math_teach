@@ -5,14 +5,13 @@
 
 import React, {useEffect, useRef} from 'react';
 import {View, StyleSheet, TouchableOpacity} from 'react-native';
-import {Text} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer} from '../components/ui';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withSequence,
-  withDelay,
   runOnJS,
 } from 'react-native-reanimated';
 
@@ -104,21 +103,39 @@ const EncouragingSuccess: React.FC<EncouragingSuccessProps> = ({
       <View style={styles.content}>
         {/* 成功图标 */}
         <Animated.View style={[styles.iconContainer, iconStyle]}>
-          <Icon name={icon} size={48} color="#7CB9A8" />
+          <Icon name={icon} size="xl" color={designSystem.colors.success.default} />
         </Animated.View>
 
+        <Spacer size="lg" />
+
         {/* 标题 */}
-        <Text style={styles.title}>{title}</Text>
+        <Typography variant="headlineMedium" align="center">
+          {title}
+        </Typography>
 
         {/* 消息 */}
-        {message && <Text style={styles.message}>{message}</Text>}
+        {message && (
+          <>
+            <Spacer size="sm" />
+            <Typography
+              variant="body"
+              color={designSystem.colors.text.secondary}
+              align="center">
+              {message}
+            </Typography>
+          </>
+        )}
 
         {/* 里程碑显示 */}
         {milestone && (
           <View style={styles.milestone}>
-            <Text style={styles.milestoneText}>
+            <Typography
+              variant="caption"
+              color={designSystem.colors.text.hint}
+              align="center">
               {milestone.label || '进度'}: {milestone.current}/{milestone.total}
-            </Text>
+            </Typography>
+            <Spacer size="xs" />
             <View style={styles.milestoneBar}>
               <View
                 style={[
@@ -133,7 +150,7 @@ const EncouragingSuccess: React.FC<EncouragingSuccessProps> = ({
         {/* 关闭按钮 */}
         {onClose && (
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="close" size={24} color="#8A9AAC" />
+            <Icon name="close" size="md" color={designSystem.colors.text.hint} />
           </TouchableOpacity>
         )}
 
@@ -157,82 +174,54 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(92, 158, 173, 0.2)',
+    backgroundColor: designSystem.colors.overlay.light,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
   },
 
   content: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 32,
-    margin: 24,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.xl,
+    padding: designSystem.spacing.xxl,
+    margin: designSystem.spacing.xl,
     alignItems: 'center',
     maxWidth: 340,
-    shadowColor: '#5C9EAD',
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+    ...designSystem.shadows.lg,
   },
 
   iconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: 'rgba(124, 185, 168, 0.2)',
+    backgroundColor: designSystem.colors.success.light,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#2C3E50',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-
-  message: {
-    fontSize: 16,
-    color: '#5A6C7D',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 16,
   },
 
   milestone: {
     width: '100%',
-    marginTop: 16,
-  },
-
-  milestoneText: {
-    fontSize: 13,
-    color: '#8A9AAC',
-    marginBottom: 8,
-    textAlign: 'center',
+    marginTop: designSystem.spacing.md,
   },
 
   milestoneBar: {
     height: 6,
-    backgroundColor: '#F0EBE0',
-    borderRadius: 3,
+    backgroundColor: designSystem.colors.surface.tertiary,
+    borderRadius: designSystem.borderRadius.sm,
     overflow: 'hidden',
   },
 
   milestoneProgress: {
     height: '100%',
-    backgroundColor: '#7CB9A8',
-    borderRadius: 3,
+    backgroundColor: designSystem.colors.success.default,
+    borderRadius: designSystem.borderRadius.sm,
   },
 
   closeButton: {
     position: 'absolute',
-    top: 16,
-    right: 16,
-    padding: 4,
+    top: designSystem.spacing.md,
+    right: designSystem.spacing.md,
+    padding: designSystem.spacing.xs,
   },
 
   decorationDot: {
@@ -240,7 +229,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#7CB9A8',
+    backgroundColor: designSystem.colors.success.default,
   },
 
   dot1: {

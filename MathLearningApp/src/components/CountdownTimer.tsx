@@ -6,8 +6,8 @@
 
 import React, {useEffect, useState, useRef} from 'react';
 import {View, StyleSheet, Animated} from 'react-native';
-import {Text} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer} from '../components/ui';
 import {emotionalColors} from '../styles/calmingColors';
 
 interface CountdownTimerProps {
@@ -99,17 +99,20 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({
     <View style={styles.container}>
       <Animated.View style={[styles.circleContainer, {transform: [{scale: pulseAnim}], borderColor: color}]}>
         <View style={styles.content}>
-          <Text style={[styles.timeText, {color}]}>
+          <Typography variant="headlineMedium" color={color}>
             {formatTime(remainingTime)}
-          </Text>
-          <Text style={styles.unitText}>秒</Text>
+          </Typography>
+          <Typography variant="caption" color={designSystem.colors.text.secondary}>
+            秒
+          </Typography>
         </View>
       </Animated.View>
 
       {message ? (
         <View style={styles.messageContainer}>
-          <Icon name="schedule" size={14} color={color} />
-          <Text style={[styles.messageText, {color}]}>{message}</Text>
+          <Icon name="schedule" size="sm" color={color} />
+          <View style={{width: designSystem.spacing.xs}} />
+          <Typography variant="caption" color={color}>{message}</Typography>
         </View>
       ) : null}
     </View>
@@ -127,7 +130,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     borderWidth: 6,
     // Story 5-4: 使用温暖背景色
-    backgroundColor: '#F7F3E8',
+    backgroundColor: designSystem.colors.surface.secondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -135,30 +138,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  timeText: {
-    fontSize: 28,
-    fontWeight: '600',
-    lineHeight: 32,
-    // Story 5-4: 使用柔和文本色
-    color: '#2C3E50',
-  },
-  unitText: {
-    fontSize: 12,
-    // Story 5-4: 使用柔和文本色
-    color: '#5A6C7D',
-  },
   messageContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  messageText: {
-    fontSize: 12,
-    marginLeft: 4,
-    fontWeight: '500',
+    marginTop: designSystem.spacing.sm,
+    paddingHorizontal: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.xs,
+    borderRadius: designSystem.borderRadius.md,
   },
 });
 

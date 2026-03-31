@@ -6,7 +6,6 @@
 import React, {useEffect, useState} from 'react';
 import {
   View,
-  Text,
   Modal,
   StyleSheet,
   Animated,
@@ -15,7 +14,8 @@ import {
 import {ProcessingStage, PerformanceMetrics} from '../types';
 import {performanceTracker} from '../services/performanceTracker';
 import {emotionalColors} from '../styles/calmingColors';
-import {rewriteLoadingMessage} from '../utils/toneGuidelines';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer} from '../components/ui';
 
 interface ProcessingProgressProps {
   visible: boolean;
@@ -126,7 +126,6 @@ const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
 
   const currentStage = performanceTracker.getCurrentStage();
   const elapsed = performanceTracker.getElapsedTime();
-  const progressPercent = Math.min((elapsed / totalTimeout) * 100, 100);
 
   // Story 5-4: 获取当前阶段的友好消息
   const getCurrentStageInfo = () => {
@@ -155,7 +154,11 @@ const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           {/* Story 5-4: 使用友好的标题 */}
-          <Text style={styles.title}>我们正在努力，请稍候...</Text>
+          <Typography variant="headlineMedium" align="center">
+            我们正在努力，请稍候...
+          </Typography>
+
+          <Spacer size="lg" />
 
           {/* 进度条 */}
           <View style={styles.progressBarContainer}>
@@ -172,12 +175,15 @@ const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
                 ]}
               />
             </View>
-            <Text style={styles.progressPercent}>
+            <Typography
+              variant="caption"
+              color={designSystem.colors.text.secondary}
+              align="center">
               {Math.round(progressAnim.interpolate({
                 inputRange: [0, 100],
                 outputRange: [0, 100],
               }).__getValue())}%
-            </Text>
+            </Typography>
           </View>
 
           {/* 阶段列表 */}
@@ -192,20 +198,28 @@ const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
                       status === 'active' && styles.stageIndicatorActive,
                       status === 'completed' && styles.stageIndicatorCompleted,
                     ]}>
-                    <Text style={styles.stageIcon}>
+                    <Typography variant="body">
                       {status === 'completed' ? '✓' : stageInfo.icon}
-                    </Text>
+                    </Typography>
                   </View>
-                  <Text
-                    style={[
-                      styles.stageLabel,
-                      status === 'active' && styles.stageLabelActive,
-                      status === 'completed' && styles.stageLabelCompleted,
-                    ]}>
+                  <Typography
+                    variant="body"
+                    color={
+                      status === 'active'
+                        ? emotionalColors.calm
+                        : status === 'completed'
+                          ? emotionalColors.encouraging
+                          : designSystem.colors.text.secondary
+                    }
+                    style={status === 'active' && styles.stageLabelActive}>
                     {stageInfo.label}
-                  </Text>
+                  </Typography>
                   {status === 'active' && (
-                    <Text style={styles.stageStatus}>处理中...</Text>
+                    <Typography
+                      variant="caption"
+                      color={emotionalColors.calm}>
+                      处理中...
+                    </Typography>
                   )}
                 </View>
               );
@@ -214,28 +228,35 @@ const ProcessingProgress: React.FC<ProcessingProgressProps> = ({
 
           {/* 时间信息 */}
           <View style={styles.timeInfoContainer}>
-            <Text style={styles.timeLabel}>已用时间：{formatTime(elapsed)}</Text>
+            <Typography variant="caption" color={designSystem.colors.text.secondary}>
+              已用时间：{formatTime(elapsed)}
+            </Typography>
             {estimatedRemaining > 0 && currentStage !== ProcessingStage.CORRECTION && currentStage !== ProcessingStage.DIFFICULTY_SELECTION && (
-              <Text style={styles.timeLabel}>
+              <Typography variant="caption" color={designSystem.colors.text.secondary}>
                 预计剩余：{formatTime(estimatedRemaining)}
-              </Text>
+              </Typography>
             )}
           </View>
 
           {/* 警告信息 */}
           {showWarning && (
             <View style={styles.warningContainer}>
-              <Text style={styles.warningIcon}>⚠️</Text>
-              <Text style={styles.warningText}>
+              <Typography variant="body">⚠️</Typography>
+              <Spacer size="sm" horizontal />
+              <Typography variant="body" color="#D4A574">
                 处理时间较长，请稍候...
-              </Text>
+              </Typography>
             </View>
           )}
 
           {/* 提示信息 */}
-          <Text style={styles.tipText}>
+          <Typography
+            variant="body"
+            color={designSystem.colors.text.secondary}
+            align="center"
+            style={{lineHeight: 20}}>
             {currentStageInfo.friendlyMessage}
-          </Text>
+          </Typography>
         </View>
       </View>
     </Modal>
@@ -250,153 +271,81 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     // Story 5-4: 使用柔和的覆盖层颜色
-    backgroundColor: 'rgba(92, 158, 173, 0.2)',
+    backgroundColor: designSystem.colors.overlay.light,
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 24,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.xl,
+    padding: designSystem.spacing.xl,
     width: '90%',
     maxWidth: 420,
-    // Story 5-4: 使用柔和阴影
-    shadowColor: '#5C9EAD',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 20,
-    // Story 5-4: 使用柔和文本颜色
-    color: '#2C3E50',
+    ...designSystem.shadows.lg,
   },
   progressBarContainer: {
-    marginBottom: 20,
+    marginBottom: designSystem.spacing.lg,
   },
   progressBarBackground: {
     height: 8,
     // Story 5-4: 使用柔和背景色
-    backgroundColor: '#F0EBE0',
-    borderRadius: 4,
+    backgroundColor: designSystem.colors.surface.tertiary,
+    borderRadius: designSystem.borderRadius.sm,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     // Story 5-4: 使用柔和青色
     backgroundColor: emotionalColors.calm,
-    borderRadius: 4,
-  },
-  progressPercent: {
-    textAlign: 'center',
-    fontSize: 14,
-    // Story 5-4: 使用柔和文本颜色
-    color: '#5A6C7D',
-    marginTop: 8,
-    fontWeight: '500',
+    borderRadius: designSystem.borderRadius.sm,
   },
   stagesContainer: {
-    marginBottom: 20,
+    marginBottom: designSystem.spacing.lg,
   },
   stageRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: designSystem.spacing.md,
+    paddingHorizontal: designSystem.spacing.sm,
   },
   stageIndicator: {
     width: 36,
     height: 36,
     borderRadius: 18,
     // Story 5-4: 使用温暖的背景色
-    backgroundColor: '#F7F3E8',
+    backgroundColor: designSystem.colors.surface.secondary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: designSystem.spacing.md,
   },
   stageIndicatorActive: {
     // Story 5-4: 使用柔和青色
     backgroundColor: emotionalColors.calm,
-    shadowColor: emotionalColors.calm,
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    ...designSystem.shadows.sm,
   },
   stageIndicatorCompleted: {
     // Story 5-4: 使用薄荷绿
     backgroundColor: emotionalColors.encouraging,
   },
-  stageIcon: {
-    fontSize: 16,
-  },
-  stageLabel: {
-    flex: 1,
-    fontSize: 15,
-    // Story 5-4: 使用柔和文本颜色
-    color: '#5A6C7D',
-  },
   stageLabelActive: {
-    // Story 5-4: 使用柔和青色
-    color: emotionalColors.calm,
     fontWeight: '600',
-  },
-  stageLabelCompleted: {
-    // Story 5-4: 使用薄荷绿
-    color: emotionalColors.encouraging,
-  },
-  stageStatus: {
-    fontSize: 12,
-    // Story 5-4: 使用柔和青色
-    color: emotionalColors.calm,
   },
   timeInfoContainer: {
     // Story 5-4: 使用温暖的背景色
-    backgroundColor: '#F7F3E8',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-  },
-  timeLabel: {
-    fontSize: 14,
-    // Story 5-4: 使用柔和文本颜色
-    color: '#5A6C7D',
-    marginBottom: 4,
+    backgroundColor: designSystem.colors.surface.secondary,
+    borderRadius: designSystem.borderRadius.md,
+    padding: designSystem.spacing.md,
+    marginBottom: designSystem.spacing.md,
   },
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     // Story 5-4: 使用柔和的警告背景色
-    backgroundColor: 'rgba(232, 168, 124, 0.15)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    backgroundColor: designSystem.colors.warning.light,
+    borderRadius: designSystem.borderRadius.md,
+    padding: designSystem.spacing.md,
+    marginBottom: designSystem.spacing.md,
     // Story 5-4: 使用柔和边框
     borderLeftWidth: 4,
     borderLeftColor: emotionalColors.gentleError,
-  },
-  warningIcon: {
-    fontSize: 20,
-    marginRight: 10,
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 14,
-    // Story 5-4: 使用暖棕色文本
-    color: '#D4A574',
-    fontWeight: '500',
-  },
-  tipText: {
-    fontSize: 14,
-    // Story 5-4: 使用柔和文本颜色
-    color: '#5A6C7D',
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
 

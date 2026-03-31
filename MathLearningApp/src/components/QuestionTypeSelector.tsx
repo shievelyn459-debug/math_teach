@@ -29,7 +29,6 @@ const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({
       transparent
       animationType="slide"
       onRequestClose={onCancel}>
-    >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Typography variant="headlineMedium" align="center" style={styles.modalTitle}>
@@ -69,7 +68,7 @@ const QuestionTypeSelector: React.FC<QuestionTypeSelectorProps> = ({
             onPress={onCancel}
             variant="secondary"
             size="lg"
-            fullWidth
+            style={{width: '100%'}}
           />
         </View>
       </View>

@@ -9,13 +9,14 @@
 import React from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   ViewStyle,
 } from 'react-native';
 import {ExplanationFormat} from '../types/explanation';
 import {AccessibilityInfo} from 'react-native';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon} from '../components/ui';
 
 interface FormatSelectorProps {
   availableFormats: ExplanationFormat[];  // 可用的格式列表
@@ -30,19 +31,19 @@ interface FormatSelectorProps {
  */
 const FORMAT_CONFIG = {
   [ExplanationFormat.TEXT]: {
-    icon: '📝',
+    icon: 'article' as const,
     label: '文字',
     accessibilityLabel: '文字讲解',
     description: '详细文字说明',
   },
   [ExplanationFormat.ANIMATION]: {
-    icon: '🎬',
+    icon: 'auto-fix-high' as const,
     label: '动画',
     accessibilityLabel: '动画演示',
     description: '即将推出',
   },
   [ExplanationFormat.VIDEO]: {
-    icon: '🎥',
+    icon: 'play-circle-outline' as const,
     label: '视频',
     accessibilityLabel: '视频讲解',
     description: '即将推出',
@@ -116,26 +117,29 @@ export const FormatSelector: React.FC<FormatSelectorProps> = ({
             accessibilityRole="tab"
             accessibilityState={{selected: isSelected, disabled: !isAvailable || disabled}}
             accessibilityHint={isAvailable ? config.description : `${config.label}${config.description}`}>
-            <Text style={[
-              styles.formatIcon,
-              !isAvailable && styles.disabledText,
-            ]}>
-              {config.icon}
-            </Text>
-            <Text style={[
-              styles.formatLabel,
-              isSelected && styles.selectedLabel,
-              !isAvailable && styles.disabledText,
-            ]}>
+            <Icon
+              name={config.icon}
+              size="sm"
+              color={isSelected ? designSystem.colors.surface.primary : isAvailable ? designSystem.colors.text.primary : designSystem.colors.text.disabled}
+            />
+            <Typography
+              variant="body"
+              style={[
+                styles.formatLabel,
+                isSelected && styles.selectedLabel,
+                !isAvailable && styles.disabledText,
+              ]}>
               {config.label}
-            </Text>
+            </Typography>
             {/* Story 3-5: 选中指示器 */}
             {isSelected && (
-              <Text style={styles.checkmark}>✓</Text>
+              <Icon name="check" size="sm" color={designSystem.colors.surface.primary} />
             )}
             {!isAvailable && (
               <View style={styles.comingSoonBadge}>
-                <Text style={styles.comingSoonText}>即将</Text>
+                <Typography variant="overline" color={designSystem.colors.surface.primary}>
+                  即将
+                </Typography>
               </View>
             )}
           </TouchableOpacity>
@@ -149,62 +153,46 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 4,
+    backgroundColor: designSystem.colors.surface.secondary,
+    borderRadius: designSystem.borderRadius.md,
+    padding: designSystem.spacing.xs,
   },
   formatButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    marginHorizontal: 2,
+    paddingVertical: designSystem.spacing.sm,
+    paddingHorizontal: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.sm,
+    marginHorizontal: designSystem.spacing.xs / 2,
     minHeight: 40,
     position: 'relative',
+    gap: designSystem.spacing.xs,
   },
   selectedButton: {
-    backgroundColor: '#2196f3',
+    backgroundColor: designSystem.colors.primary,
   },
   disabledButton: {
     opacity: 0.5,
   },
-  formatIcon: {
-    fontSize: 18,
-    marginRight: 6,
-  },
   formatLabel: {
-    fontSize: 14,
     fontWeight: '500',
-    color: '#333',
   },
   selectedLabel: {
-    color: '#fff',
-  },
-  checkmark: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginLeft: 4,
+    color: designSystem.colors.surface.primary,
   },
   disabledText: {
-    color: '#999',
+    color: designSystem.colors.text.disabled,
   },
   comingSoonBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#ff9800',
-    borderRadius: 8,
-    paddingHorizontal: 4,
+    backgroundColor: designSystem.colors.warning.default,
+    borderRadius: designSystem.borderRadius.lg,
+    paddingHorizontal: designSystem.spacing.xs,
     paddingVertical: 2,
-  },
-  comingSoonText: {
-    fontSize: 10,
-    color: '#fff',
-    fontWeight: 'bold',
   },
 });
 

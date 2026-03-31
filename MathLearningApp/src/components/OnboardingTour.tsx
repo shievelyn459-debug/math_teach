@@ -6,16 +6,16 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
-  Text,
   Modal,
   StyleSheet,
   TouchableOpacity,
   Animated,
   Dimensions,
 } from 'react-native';
-import {useTheme, Card, Button} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {useTheme, Card} from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer, Button} from '../components/ui';
 
 const TOUR_COMPLETED_KEY = 'onboarding_tour_completed_';
 const TOOLTIP_WIDTH = 300;
@@ -47,20 +47,20 @@ const TOUR_CONTENTS: Record<string, TourContent> = {
     steps: [
       {
         targetId: 'camera_button',
-        title: '欢迎使用！👋',
+        title: '欢迎使用！',
         description: '点击这里可以快速拍摄数学题照片，系统会自动识别并生成练习题。',
         position: 'bottom',
         action: '点击"拍照上传题目"开始',
       },
       {
         targetId: 'recent_practice',
-        title: '最近练习 📚',
+        title: '最近练习',
         description: '这里显示您最近的练习记录，点击可以查看详细题目和答案。',
         position: 'bottom',
       },
       {
         targetId: 'profile_button',
-        title: '个人中心 👤',
+        title: '个人中心',
         description: '管理您和孩子的个人信息，以及应用设置。',
         position: 'bottom',
       },
@@ -71,7 +71,7 @@ const TOUR_CONTENTS: Record<string, TourContent> = {
     steps: [
       {
         targetId: 'camera_preview',
-        title: '拍摄清晰题目 📷',
+        title: '拍摄清晰题目',
         description: '确保题目完整清晰，保持光线充足，对准题目后点击拍照。',
         position: 'bottom',
         action: '将题目对准取景框',
@@ -89,13 +89,13 @@ const TOUR_CONTENTS: Record<string, TourContent> = {
     steps: [
       {
         targetId: 'questions_list',
-        title: '查看练习题 📝',
+        title: '查看练习题',
         description: '点击任何题目可以展开查看答案和解析。',
         position: 'bottom',
       },
       {
         targetId: 'export_pdf_button',
-        title: '导出PDF 📄',
+        title: '导出PDF',
         description: '可以将练习题导出为PDF，方便打印或分享。',
         position: 'left',
       },
@@ -329,24 +329,27 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
             <Card.Content>
               {/* 标题 */}
               <View style={styles.header}>
-                <Text style={[styles.title, {color: theme.colors.primary}]}>
+                <Typography variant="headlineSmall" color={theme.colors.primary}>
                   {currentStep.title}
-                </Text>
+                </Typography>
                 <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-                  <Text style={styles.skipText}>跳过</Text>
+                  <Typography variant="body" color={designSystem.colors.text.hint}>
+                    跳过
+                  </Typography>
                 </TouchableOpacity>
               </View>
 
               {/* 描述 */}
-              <Text style={styles.description}>{currentStep.description}</Text>
+              <Typography variant="body" style={styles.description}>{currentStep.description}</Typography>
 
               {/* 操作提示 */}
               {currentStep.action && (
                 <View style={styles.actionContainer}>
-                  <Icon name="touch-app" size={16} color={theme.colors.primary} />
-                  <Text style={[styles.actionText, {color: theme.colors.primary}]}>
+                  <Icon name="touch-app" size="sm" color={theme.colors.primary} />
+                  <Spacer size="xs" horizontal />
+                  <Typography variant="body" color={theme.colors.primary}>
                     {currentStep.action}
-                  </Text>
+                  </Typography>
                 </View>
               )}
 
@@ -369,18 +372,19 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
               <View style={styles.buttonContainer}>
                 {currentStepIndex > 0 && (
                   <Button
-                    mode="outlined"
+                    title="上一步"
                     onPress={handlePrevious}
-                    style={styles.button}>
-                    上一步
-                  </Button>
+                    variant="secondary"
+                    size="md"
+                  />
                 )}
                 <Button
-                  mode="contained"
+                  title={isLastStep ? '完成' : '下一步'}
                   onPress={handleNext}
-                  style={[styles.button, {flex: 1}]}>
-                  {isLastStep ? '完成' : '下一步'}
-                </Button>
+                  variant="primary"
+                  size="md"
+                  style={{flex: 1}}
+                />
               </View>
 
               {/* 不再显示复选框 */}
@@ -391,9 +395,11 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
                   styles.checkbox,
                   dontShowAgain && [styles.checkboxChecked, {backgroundColor: theme.colors.primary}]
                 ]}>
-                  {dontShowAgain && <Icon name="check" size={16} color="white" />}
+                  {dontShowAgain && <Icon name="check" size="sm" color={designSystem.colors.surface.primary} />}
                 </View>
-                <Text style={styles.dontShowAgainText}>不再显示此导览</Text>
+                <Typography variant="caption" color={designSystem.colors.text.hint}>
+                  不再显示此导览
+                </Typography>
               </TouchableOpacity>
             </Card.Content>
           </Card>
@@ -409,14 +415,14 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: designSystem.colors.overlay.medium,
   },
   highlight: {
     position: 'absolute',
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: 'white',
-    borderRadius: 8,
+    borderColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.md,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 0},
     shadowOpacity: 0.3,
@@ -434,83 +440,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    flex: 1,
+    marginBottom: designSystem.spacing.md,
   },
   skipButton: {
-    padding: 4,
-  },
-  skipText: {
-    fontSize: 14,
-    color: '#757575',
+    padding: designSystem.spacing.xs,
   },
   description: {
-    fontSize: 14,
     lineHeight: 20,
-    color: '#333',
-    marginBottom: 12,
+    color: designSystem.colors.text.primary,
+    marginBottom: designSystem.spacing.md,
   },
   actionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  actionText: {
-    fontSize: 13,
-    marginLeft: 4,
+    marginBottom: designSystem.spacing.md,
   },
   progressContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: designSystem.spacing.md,
   },
   progressDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginHorizontal: 4,
+    marginHorizontal: designSystem.spacing.xs,
   },
   activeDot: {
     width: 20,
   },
   inactiveDot: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: designSystem.colors.border,
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  button: {
-    flex: 0,
+    gap: designSystem.spacing.sm,
+    marginBottom: designSystem.spacing.md,
   },
   dontShowAgainContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 8,
+    paddingTop: designSystem.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: designSystem.colors.border,
   },
   checkbox: {
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#e0e0e0',
-    borderRadius: 4,
-    marginRight: 8,
+    borderColor: designSystem.colors.border,
+    borderRadius: designSystem.borderRadius.sm,
+    marginRight: designSystem.spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxChecked: {
     borderWidth: 0,
-  },
-  dontShowAgainText: {
-    fontSize: 12,
-    color: '#757575',
   },
   arrow: {
     position: 'absolute',

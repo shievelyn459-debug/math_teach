@@ -6,19 +6,18 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
-  Text,
   Modal,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
-import {Card, Title, Searchbar, Button, useTheme} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {Card, Searchbar, Button, useTheme} from 'react-native-paper';
 import {helpContentService, HelpContent, HelpSection} from '../services/helpContentService';
 import {getScaledSpacing, getFontSize} from '../styles/tablet';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer} from '../components/ui';
 
 interface HelpDialogProps {
   visible: boolean;
@@ -100,20 +99,28 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
 
   const renderSection = (section: HelpSection, index: number) => (
     <View key={index} style={[styles.section, {marginBottom: spacing}]}>
-      <Text style={[styles.sectionTitle, {fontSize: fontSize * 1.1, color: theme.colors.primary}]}>
+      <Typography
+        variant="headlineSmall"
+        color={theme.colors.primary}
+        style={styles.sectionTitle}>
         {section.title}
-      </Text>
-      <Text style={[styles.sectionContent, {fontSize, lineHeight: fontSize * 1.5}]}>
+      </Typography>
+      <Typography
+        variant="body"
+        style={[styles.sectionContent, {lineHeight: fontSize * 1.5}]}>
         {section.content}
-      </Text>
+      </Typography>
       {section.tips && section.tips.length > 0 && (
         <View style={styles.tipsContainer}>
           {section.tips.map((tip, i) => (
             <View key={i} style={[styles.tipItem, {flexDirection: 'row', alignItems: 'flex-start'}]}>
-              <Text style={[styles.tipBullet, {color: theme.colors.primary, marginRight: spacing / 2}]}>
+              <Typography
+                variant="body"
+                color={theme.colors.primary}
+                style={{marginRight: spacing / 2}}>
                 •
-              </Text>
-              <Text style={[styles.tipText, {fontSize, flex: 1}]}>{tip}</Text>
+              </Typography>
+              <Typography variant="body" style={{flex: 1}}>{tip}</Typography>
             </View>
           ))}
         </View>
@@ -123,17 +130,24 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
 
   const renderFAQ = (faq: {question: string; answer: string}[], index: number) => (
     <View key={index} style={[styles.faqContainer, {marginTop: spacing}]}>
-      <Text style={[styles.faqTitle, {fontSize: fontSize * 1.1, color: theme.colors.primary}]}>
+      <Typography
+        variant="headlineSmall"
+        color={theme.colors.primary}
+        style={styles.faqTitle}>
         常见问题
-      </Text>
+      </Typography>
       {faq.map((item, i) => (
         <View key={i} style={[styles.faqItem, {marginBottom: spacing}]}>
-          <Text style={[styles.faqQuestion, {fontSize, fontWeight: '600', marginBottom: spacing / 2}]}>
+          <Typography
+            variant="body"
+            style={{fontWeight: '600', marginBottom: spacing / 2}}>
             Q: {item.question}
-          </Text>
-          <Text style={[styles.faqAnswer, {fontSize, lineHeight: fontSize * 1.5}]}>
+          </Typography>
+          <Typography
+            variant="body"
+            style={{lineHeight: fontSize * 1.5}}>
             A: {item.answer}
-          </Text>
+          </Typography>
         </View>
       ))}
     </View>
@@ -149,11 +163,14 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
         {/* 头部 */}
         <View style={[styles.header, {padding: spacing, backgroundColor: theme.colors.primary}]}>
           <View style={styles.headerContent}>
-            <Text style={[styles.headerTitle, {fontSize: fontSize * 1.2, color: 'white'}]}>
+            <Typography
+              variant="headlineMedium"
+              color={designSystem.colors.surface.primary}
+              style={styles.headerTitle}>
               {isSearching ? '搜索结果' : (helpContent?.title || '帮助')}
-            </Text>
+            </Typography>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Icon name="close" size={24} color="white" />
+              <Icon name="close" size="lg" color={designSystem.colors.surface.primary} />
             </TouchableOpacity>
           </View>
 
@@ -180,29 +197,39 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
           {isLoading ? (
             <View style={styles.centerContainer}>
               <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={{fontSize, marginTop: spacing}}>加载中...</Text>
+              <Spacer size="md" />
+              <Typography variant="body">加载中...</Typography>
             </View>
           ) : isSearching ? (
             <>
               {searchResults.length === 0 ? (
                 <View style={styles.centerContainer}>
-                  <Icon name="search-off" size={48} color={theme.colors.placeholder} />
-                  <Text style={[styles.emptyText, {fontSize, marginTop: spacing}]}>
+                  <Icon name="search-off" size="xl" color={designSystem.colors.text.hint} />
+                  <Spacer size="md" />
+                  <Typography
+                    variant="body"
+                    color={designSystem.colors.text.secondary}>
                     没有找到相关内容
-                  </Text>
+                  </Typography>
                 </View>
               ) : (
                 searchResults.map((content, index) => (
                   <Card key={index} style={[styles.resultCard, {marginBottom: spacing}]}>
                     <Card.Content>
-                      <Text style={[styles.resultTitle, {fontSize: fontSize * 1.1, color: theme.colors.primary}]}>
+                      <Typography
+                        variant="headlineSmall"
+                        color={theme.colors.primary}
+                        style={styles.resultTitle}>
                         {content.title}
-                      </Text>
+                      </Typography>
                       {content.sections.slice(0, 2).map((section, i) => renderSection(section, i))}
                       {content.sections.length > 2 && (
-                        <Text style={[styles.moreText, {fontSize, color: theme.colors.primary}]}>
+                        <Typography
+                          variant="body"
+                          color={theme.colors.primary}
+                          style={styles.moreText}>
                           还有 {content.sections.length - 2} 个区块...
-                        </Text>
+                        </Typography>
                       )}
                     </Card.Content>
                   </Card>
@@ -211,14 +238,18 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
             </>
           ) : loadError ? (
             <View style={styles.centerContainer}>
-              <Icon name="error-outline" size={48} color={theme.colors.error} />
-              <Text style={[styles.errorTitle, {fontSize, marginTop: spacing}]}>
+              <Icon name="error-outline" size="xl" color={designSystem.colors.error.default} />
+              <Spacer size="md" />
+              <Typography
+                variant="headlineSmall"
+                color={designSystem.colors.error.default}
+                style={styles.errorTitle}>
                 帮助内容加载失败
-              </Text>
+              </Typography>
+              <Spacer size="md" />
               <Button
                 mode="contained"
                 onPress={loadHelpContent}
-                style={styles.retryButton}
                 accessibilityLabel="重试加载帮助内容">
                 重试
               </Button>
@@ -230,7 +261,7 @@ const HelpDialog: React.FC<HelpDialogProps> = ({visible, screenId, onClose}) => 
             </>
           ) : (
             <View style={styles.centerContainer}>
-              <Text style={{fontSize}}>帮助内容加载失败</Text>
+              <Typography variant="body">帮助内容加载失败</Typography>
             </View>
           )}
         </ScrollView>
@@ -262,7 +293,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   closeButton: {
-    padding: 4,
+    padding: designSystem.spacing.xs,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -271,7 +302,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     elevation: 0,
-    backgroundColor: 'white',
+    backgroundColor: designSystem.colors.surface.primary,
   },
   content: {
     flex: 1,
@@ -283,78 +314,59 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    color: '#757575',
+    paddingVertical: designSystem.spacing.xxl,
   },
   errorTitle: {
     fontWeight: '600',
-    marginTop: 12,
-  },
-  retryButton: {
-    marginTop: 16,
   },
   moreText: {
     fontStyle: 'italic',
-    marginTop: 8,
+    marginTop: designSystem.spacing.sm,
   },
   section: {
-    marginBottom: 16,
+    marginBottom: designSystem.spacing.md,
   },
   sectionTitle: {
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: designSystem.spacing.sm,
   },
   sectionContent: {
     lineHeight: 24,
   },
   tipsContainer: {
-    marginTop: 12,
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
+    marginTop: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.surface.secondary,
+    padding: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.md,
   },
   tipItem: {
-    marginBottom: 6,
-  },
-  tipBullet: {
-    fontSize: 16,
-  },
-  tipText: {
-    lineHeight: 20,
+    marginBottom: designSystem.spacing.xs,
   },
   faqContainer: {
-    marginTop: 20,
+    marginTop: designSystem.spacing.xl,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingTop: 16,
+    borderTopColor: designSystem.colors.border,
+    paddingTop: designSystem.spacing.md,
   },
   faqTitle: {
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
   },
   faqItem: {
-    marginBottom: 16,
-  },
-  faqQuestion: {
-    marginBottom: 4,
-  },
-  faqAnswer: {
-    lineHeight: 22,
+    marginBottom: designSystem.spacing.md,
   },
   resultCard: {
     elevation: 2,
   },
   resultTitle: {
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
   },
   footer: {
     borderTopWidth: 1,
   },
   closeButtonBottom: {
-    paddingVertical: 4,
+    paddingVertical: designSystem.spacing.xs,
   },
 });
 

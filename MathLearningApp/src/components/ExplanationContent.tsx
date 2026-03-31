@@ -9,11 +9,11 @@
 import React, {useState} from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
   AccessibilityInfo,
+  ActivityIndicator,
 } from 'react-native';
 import {
   Explanation,
@@ -23,6 +23,8 @@ import {
   ExplanationExample,
   ExplanationFormat,
 } from '../types/explanation';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer} from '../components/ui';
 
 interface ExplanationContentProps {
   explanation: Explanation;
@@ -58,7 +60,7 @@ export const ExplanationContent: React.FC<ExplanationContentProps> = ({
     onSectionPress?.(sectionType);
 
     // 通知辅助功能
-    AccessibilityInfo.announceForSync(
+    AccessibilityInfo.announceForAccessibility(
       newExpanded.has(sectionType)
         ? `${getSectionTitle(sectionType)}已展开`
         : `${getSectionTitle(sectionType)}已收起`
@@ -91,8 +93,11 @@ export const ExplanationContent: React.FC<ExplanationContentProps> = ({
     if (isTransitioning) {
       return (
         <View style={styles.transitioningContainer}>
-          <ActivityIndicator size="large" color="#2196f3" />
-          <Text style={styles.transitioningText}>正在切换格式...</Text>
+          <ActivityIndicator size="large" color={designSystem.colors.primary} />
+          <Spacer size="md" />
+          <Typography variant="body" color={designSystem.colors.text.hint}>
+            正在切换格式...
+          </Typography>
         </View>
       );
     }
@@ -103,16 +108,16 @@ export const ExplanationContent: React.FC<ExplanationContentProps> = ({
           <>
             {/* 知识点标题 */}
             <View style={styles.header}>
-              <Text style={styles.knowledgePointName}>
+              <Typography variant="displaySmall" style={styles.knowledgePointName}>
                 {explanation.knowledgePointName}
-              </Text>
+              </Typography>
               <View style={styles.metaRow}>
-                <Text style={styles.metaText}>
+                <Typography variant="caption" color={designSystem.colors.text.hint}>
                   阅读时间: {explanation.estimatedReadTime}分钟
-                </Text>
-                <Text style={styles.metaText}>
+                </Typography>
+                <Typography variant="caption" color={designSystem.colors.text.hint}>
                   质量分数: {Math.round(explanation.qualityScore * 100)}%
-                </Text>
+                </Typography>
               </View>
             </View>
 
@@ -132,7 +137,9 @@ export const ExplanationContent: React.FC<ExplanationContentProps> = ({
 
             {/* 家长辅导技巧 */}
             <View style={styles.teachingTipsContainer}>
-              <Text style={styles.teachingTipsTitle}>💡 家长辅导技巧</Text>
+              <Typography variant="headlineSmall" style={styles.teachingTipsTitle}>
+                💡 家长辅导技巧
+              </Typography>
               {explanation.teachingTips.map((tip) => (
                 <TeachingTipCard key={tip.id} tip={tip} />
               ))}
@@ -183,16 +190,26 @@ const FormatPlaceholder: React.FC<{
 
   return (
     <View style={styles.placeholderContainer}>
-      <Text style={styles.placeholderEmoji}>{emoji}</Text>
-      <Text style={styles.placeholderTitle}>{title} 即将推出</Text>
-      <Text style={styles.placeholderDescription}>{description}</Text>
+      <Typography variant="displayLarge" style={styles.placeholderEmoji}>{emoji}</Typography>
+      <Typography variant="headlineMedium" align="center" style={styles.placeholderTitle}>
+        {title} 即将推出
+      </Typography>
+      <Typography
+        variant="body"
+        color={designSystem.colors.text.hint}
+        align="center"
+        style={styles.placeholderDescription}>
+        {description}
+      </Typography>
       <View style={styles.placeholderTimeline}>
-        <Text style={styles.placeholderTimelineText}>{timeline}</Text>
+        <Typography variant="caption" color={designSystem.colors.warning.dark}>
+          {timeline}
+        </Typography>
       </View>
       <View style={styles.placeholderNote}>
-        <Text style={styles.placeholderNoteText}>
+        <Typography variant="body" color={designSystem.colors.success.dark}>
           💡 您可以先查看文字讲解，内容同样详细易懂
-        </Text>
+        </Typography>
       </View>
     </View>
   );
@@ -222,9 +239,12 @@ const SectionCard: React.FC<SectionCardProps> = ({
         accessibilityLabel={`${title}，${isExpanded ? '点击收起' : '点击展开'}`}
         accessibilityRole="button"
         accessibilityState={{expanded: isExpanded}}>
-        <Text style={styles.sectionIcon}>{icon}</Text>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</Text>
+        <Typography variant="headlineSmall">{icon}</Typography>
+        <Spacer size="md" />
+        <Typography variant="headlineSmall" style={styles.sectionTitle}>{title}</Typography>
+        <Typography variant="caption" color={designSystem.colors.text.hint}>
+          {isExpanded ? '▼' : '▶'}
+        </Typography>
       </TouchableOpacity>
 
       {isExpanded && (
@@ -244,9 +264,9 @@ const TextContent: React.FC<{content: string[]}> = ({content}) => {
   return (
     <View style={styles.textContent}>
       {content.map((paragraph, index) => (
-        <Text key={index} style={styles.paragraph}>
+        <Typography key={index} variant="body" style={styles.paragraph}>
           {paragraph}
-        </Text>
+        </Typography>
       ))}
     </View>
   );
@@ -257,26 +277,32 @@ const ExamplesContent: React.FC<{examples: ExplanationExample[]}> = ({examples})
     <View style={styles.examplesContent}>
       {examples.map((example, index) => (
         <View key={index} style={styles.exampleCard}>
-          <Text style={styles.exampleQuestion}>
+          <Typography variant="body" style={styles.exampleQuestion}>
             Q{index + 1}: {example.question}
-          </Text>
-          <Text style={styles.exampleAnswer}>答案: {example.answer}</Text>
+          </Typography>
+          <Typography variant="body" color={designSystem.colors.success.default} style={styles.exampleAnswer}>
+            答案: {example.answer}
+          </Typography>
 
           <View style={styles.stepsContainer}>
-            <Text style={styles.stepsTitle}>解题步骤:</Text>
+            <Typography variant="caption" color={designSystem.colors.text.hint} style={styles.stepsTitle}>
+              解题步骤:
+            </Typography>
             {example.steps.map((step, stepIndex) => (
               <View key={stepIndex} style={styles.stepRow}>
-                <Text style={styles.stepNumber}>{stepIndex + 1}.</Text>
-                <Text style={styles.stepText}>{step}</Text>
+                <Typography variant="body" color={designSystem.colors.info.default} style={styles.stepNumber}>
+                  {stepIndex + 1}.
+                </Typography>
+                <Typography variant="body" style={styles.stepText}>{step}</Typography>
               </View>
             ))}
           </View>
 
           {example.difficulty && (
             <View style={styles.difficultyBadge}>
-              <Text style={styles.difficultyText}>
+              <Typography variant="overline" color={designSystem.colors.info.dark}>
                 难度: {example.difficulty === 'easy' ? '简单' : example.difficulty === 'medium' ? '中等' : '困难'}
-              </Text>
+              </Typography>
             </View>
           )}
         </View>
@@ -297,40 +323,52 @@ const TeachingTipCard: React.FC<{tip: TeachingTip}> = ({tip}) => {
         accessibilityLabel={`${tip.title}，${expanded ? '点击收起' : '点击展开'}`}
         accessibilityRole="button"
         accessibilityState={{expanded}}>
-        <Text style={styles.tipTitle}>{tip.title}</Text>
-        <Text style={styles.tipExpandIcon}>{expanded ? '▼' : '▶'}</Text>
+        <Typography variant="body" color={designSystem.colors.warning.dark} style={styles.tipTitle}>
+          {tip.title}
+        </Typography>
+        <Typography variant="caption" color={designSystem.colors.warning.default}>
+          {expanded ? '▼' : '▶'}
+        </Typography>
       </TouchableOpacity>
 
       {expanded && (
         <View style={styles.tipContent}>
-          <Text style={styles.tipDescription}>{tip.description}</Text>
+          <Typography variant="body" color={designSystem.colors.text.secondary} style={styles.tipDescription}>
+            {tip.description}
+          </Typography>
 
           {tip.dos.length > 0 && (
             <View style={styles.dosContainer}>
-              <Text style={styles.dosTitle}>✅ 应该这样做:</Text>
+              <Typography variant="caption" color={designSystem.colors.success.default} style={styles.dosTitle}>
+                ✅ 应该这样做:
+              </Typography>
               {tip.dos.map((item, index) => (
-                <Text key={index} style={styles.doItem}>
+                <Typography key={index} variant="body" style={styles.doItem}>
                   • {item}
-                </Text>
+                </Typography>
               ))}
             </View>
           )}
 
           {tip.donts.length > 0 && (
             <View style={styles.dontsContainer}>
-              <Text style={styles.dontsTitle}>❌ 不要这样做:</Text>
+              <Typography variant="caption" color={designSystem.colors.error.default} style={styles.dontsTitle}>
+                ❌ 不要这样做:
+              </Typography>
               {tip.donts.map((item, index) => (
-                <Text key={index} style={styles.dontItem}>
+                <Typography key={index} variant="body" style={styles.dontItem}>
                   • {item}
-                </Text>
+                </Typography>
               ))}
             </View>
           )}
 
           {tip.practiceActivity && (
             <View style={styles.practiceActivityContainer}>
-              <Text style={styles.practiceActivityTitle}>🎯 实践活动</Text>
-              <Text style={styles.practiceActivityText}>{tip.practiceActivity}</Text>
+              <Typography variant="caption" color={designSystem.colors.success.dark} style={styles.practiceActivityTitle}>
+                🎯 实践活动
+              </Typography>
+              <Typography variant="body" style={styles.practiceActivityText}>{tip.practiceActivity}</Typography>
             </View>
           )}
         </View>
@@ -342,228 +380,163 @@ const TeachingTipCard: React.FC<{tip: TeachingTip}> = ({tip}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: designSystem.colors.surface.secondary,
   },
   contentContainer: {
-    padding: 16,
+    padding: designSystem.spacing.md,
   },
   header: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
+    padding: designSystem.spacing.lg,
+    marginBottom: designSystem.spacing.md,
+    ...designSystem.shadows.sm,
   },
   knowledgePointName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 8,
+    marginBottom: designSystem.spacing.sm,
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  metaText: {
-    fontSize: 14,
-    color: '#7f8c8d',
-  },
   sectionCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
+    marginBottom: designSystem.spacing.md,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    ...designSystem.shadows.sm,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-  },
-  sectionIcon: {
-    fontSize: 24,
-    marginRight: 12,
+    padding: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.surface.secondary,
   },
   sectionTitle: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2c3e50',
-  },
-  expandIcon: {
-    fontSize: 12,
-    color: '#7f8c8d',
   },
   sectionContent: {
-    padding: 16,
+    padding: designSystem.spacing.md,
   },
   textContent: {
-    gap: 12,
+    gap: designSystem.spacing.md,
   },
   paragraph: {
-    fontSize: 16,
     lineHeight: 24,
-    color: '#34495e',
+    color: designSystem.colors.text.primary,
   },
   examplesContent: {
-    gap: 16,
+    gap: designSystem.spacing.md,
   },
   exampleCard: {
-    backgroundColor: '#f0f8ff',
-    borderRadius: 8,
-    padding: 16,
+    backgroundColor: designSystem.colors.info.light,
+    borderRadius: designSystem.borderRadius.md,
+    padding: designSystem.spacing.md,
     borderLeftWidth: 4,
-    borderLeftColor: '#3498db',
+    borderLeftColor: designSystem.colors.info.default,
   },
   exampleQuestion: {
-    fontSize: 16,
     fontWeight: '600',
-    color: '#2c3e50',
-    marginBottom: 8,
+    marginBottom: designSystem.spacing.sm,
   },
   exampleAnswer: {
-    fontSize: 15,
-    color: '#27ae60',
     fontWeight: '500',
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
   },
   stepsContainer: {
-    marginTop: 8,
+    marginTop: designSystem.spacing.sm,
   },
   stepsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#7f8c8d',
-    marginBottom: 8,
+    marginBottom: designSystem.spacing.sm,
   },
   stepRow: {
     flexDirection: 'row',
-    marginBottom: 6,
+    marginBottom: designSystem.spacing.xs,
   },
   stepNumber: {
-    fontSize: 14,
     fontWeight: '600',
-    color: '#3498db',
-    marginRight: 8,
+    marginRight: designSystem.spacing.sm,
     minWidth: 20,
   },
   stepText: {
     flex: 1,
-    fontSize: 14,
-    color: '#34495e',
     lineHeight: 20,
+    color: designSystem.colors.text.primary,
   },
   difficultyBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#e8f4f8',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginTop: 8,
-  },
-  difficultyText: {
-    fontSize: 12,
-    color: '#2980b9',
-    fontWeight: '500',
+    backgroundColor: designSystem.colors.info.lighter,
+    paddingHorizontal: designSystem.spacing.sm,
+    paddingVertical: designSystem.spacing.xs,
+    borderRadius: designSystem.borderRadius.sm,
+    marginTop: designSystem.spacing.sm,
   },
   teachingTipsContainer: {
-    marginTop: 8,
+    marginTop: designSystem.spacing.sm,
   },
   teachingTipsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
   },
   tipCard: {
-    backgroundColor: '#fff9e6',
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: designSystem.colors.warning.lighter,
+    borderRadius: designSystem.borderRadius.md,
+    marginBottom: designSystem.spacing.sm,
     overflow: 'hidden',
     borderLeftWidth: 4,
-    borderLeftColor: '#f39c12',
+    borderLeftColor: designSystem.colors.warning.default,
   },
   tipHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#fffbf0',
+    padding: designSystem.spacing.md,
+    backgroundColor: designSystem.colors.warning.light,
   },
   tipTitle: {
     flex: 1,
-    fontSize: 16,
     fontWeight: '600',
-    color: '#d35400',
-  },
-  tipExpandIcon: {
-    fontSize: 12,
-    color: '#f39c12',
   },
   tipContent: {
-    padding: 12,
+    padding: designSystem.spacing.md,
   },
   tipDescription: {
-    fontSize: 14,
-    color: '#34495e',
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
     lineHeight: 20,
   },
   dosContainer: {
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
   },
   dosTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#27ae60',
-    marginBottom: 6,
+    marginBottom: designSystem.spacing.sm,
   },
   doItem: {
-    fontSize: 14,
-    color: '#34495e',
-    marginLeft: 8,
-    marginBottom: 4,
+    marginLeft: designSystem.spacing.sm,
+    marginBottom: designSystem.spacing.xs,
     lineHeight: 18,
+    color: designSystem.colors.text.primary,
   },
   dontsContainer: {
-    marginBottom: 12,
+    marginBottom: designSystem.spacing.md,
   },
   dontsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#e74c3c',
-    marginBottom: 6,
+    marginBottom: designSystem.spacing.sm,
   },
   dontItem: {
-    fontSize: 14,
-    color: '#34495e',
-    marginLeft: 8,
-    marginBottom: 4,
+    marginLeft: designSystem.spacing.sm,
+    marginBottom: designSystem.spacing.xs,
     lineHeight: 18,
+    color: designSystem.colors.text.primary,
   },
   practiceActivityContainer: {
-    backgroundColor: '#e8f5e9',
-    borderRadius: 6,
-    padding: 10,
+    backgroundColor: designSystem.colors.success.lighter,
+    borderRadius: designSystem.borderRadius.sm,
+    padding: designSystem.spacing.md,
   },
   practiceActivityTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2e7d32',
-    marginBottom: 6,
+    marginBottom: designSystem.spacing.sm,
   },
   practiceActivityText: {
-    fontSize: 14,
-    color: '#34495e',
     lineHeight: 18,
+    color: designSystem.colors.text.primary,
   },
   // Story 3-5: 格式切换过渡状态样式
   transitioningContainer: {
@@ -572,11 +545,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
     minHeight: 200,
-  },
-  transitioningText: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    marginTop: 16,
   },
   // Story 3-4: 格式占位符样式
   placeholderContainer: {
@@ -587,47 +555,29 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   placeholderEmoji: {
-    fontSize: 64,
     marginBottom: 20,
   },
   placeholderTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 16,
-    textAlign: 'center',
+    marginBottom: designSystem.spacing.md,
   },
   placeholderDescription: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 24,
+    marginBottom: designSystem.spacing.xl,
     paddingHorizontal: 20,
   },
   placeholderTimeline: {
-    backgroundColor: '#fff3e0',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  placeholderTimelineText: {
-    fontSize: 14,
-    color: '#ef6c00',
-    fontWeight: '500',
+    backgroundColor: designSystem.colors.warning.lighter,
+    paddingHorizontal: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.xl,
+    marginBottom: designSystem.spacing.xl,
   },
   placeholderNote: {
-    backgroundColor: '#e8f5e9',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: designSystem.colors.success.lighter,
+    paddingHorizontal: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.md,
+    borderRadius: designSystem.borderRadius.md,
     borderLeftWidth: 4,
-    borderLeftColor: '#4caf50',
-  },
-  placeholderNoteText: {
-    fontSize: 14,
-    color: '#2e7d32',
-    lineHeight: 20,
+    borderLeftColor: designSystem.colors.success.default,
   },
 });

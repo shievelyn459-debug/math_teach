@@ -1,5 +1,7 @@
 import React from 'react';
-import {View, Text, TouchableOpacity, Modal, StyleSheet} from 'react-native';
+import {View, Modal, StyleSheet, TouchableOpacity} from 'react-native';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Spacer, Button, Icon} from '../components/ui';
 
 interface QuantitySelectorProps {
   visible: boolean;
@@ -51,10 +53,18 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>选择题目数量</Text>
-          <Text style={styles.modalSubtitle}>
+          <Typography variant="headlineMedium" align="center">
+            选择题目数量
+          </Typography>
+          <Spacer size="sm" />
+          <Typography
+            variant="body"
+            color={designSystem.colors.text.secondary}
+            align="center">
             选择要生成的题目数量
-          </Text>
+          </Typography>
+
+          <Spacer size="lg" />
 
           {QUANTITY_OPTIONS.map((option) => {
             const isSelected = option.value === selected;
@@ -67,40 +77,43 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
                   styles.quantityOption,
                   isSelected && styles.quantityOptionSelected,
                 ]}
-                onPress={() => onSelect(option.value)}>
+                onPress={() => onSelect(option.value)}
+                activeOpacity={0.7}>
                 {option.recommended && !isSelected && (
                   <View style={styles.recommendationTag}>
-                    <Text style={styles.recommendationTagText}>推荐</Text>
+                    <Typography variant="overline" color={designSystem.colors.surface.primary}>
+                      推荐
+                    </Typography>
                   </View>
                 )}
                 <View style={styles.quantityHeader}>
-                  <Text
-                    style={[
-                      styles.quantityLabel,
-                      isSelected && styles.quantityLabelSelected,
-                    ]}>
+                  <Typography
+                    variant="headlineSmall"
+                    color={isSelected ? designSystem.colors.surface.primary : designSystem.colors.text.primary}>
                     {option.label}
-                  </Text>
+                  </Typography>
                   {isSelected && (
-                    <Text style={styles.selectedCheck}>✓</Text>
+                    <Icon name="check" size="md" color={designSystem.colors.surface.primary} />
                   )}
                 </View>
-                <Text
-                  style={[
-                    styles.quantityDescription,
-                    isSelected && styles.quantityDescriptionSelected,
-                  ]}>
+                <Typography
+                  variant="body"
+                  color={isSelected ? designSystem.colors.surface.primary : designSystem.colors.text.secondary}>
                   {option.description}
-                </Text>
+                </Typography>
               </TouchableOpacity>
             );
           })}
 
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={onCancel}>
-            <Text style={styles.cancelButtonText}>取消</Text>
-          </TouchableOpacity>
+          <Spacer size="lg" />
+
+          <Button
+            title="取消"
+            onPress={onCancel}
+            variant="secondary"
+            size="lg"
+            style={{width: '100%'}}
+          />
         </View>
       </View>
     </Modal>
@@ -112,101 +125,43 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: designSystem.colors.overlay.medium,
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
+    backgroundColor: designSystem.colors.surface.primary,
+    borderRadius: designSystem.borderRadius.lg,
+    padding: designSystem.spacing.xl,
     width: '90%',
     maxWidth: 420,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-    color: '#333',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: 'center',
-    color: '#666',
-    lineHeight: 20,
+    ...designSystem.shadows.lg,
   },
   quantityOption: {
-    padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    marginVertical: 6,
+    padding: designSystem.spacing.lg,
+    backgroundColor: designSystem.colors.surface.secondary,
+    borderRadius: designSystem.borderRadius.md,
+    marginVertical: designSystem.spacing.xs,
     borderWidth: 2,
-    borderColor: '#e9ecef',
+    borderColor: designSystem.colors.border,
     position: 'relative',
   },
   quantityOptionSelected: {
-    backgroundColor: '#2196f3',
-    borderColor: '#1976d2',
+    backgroundColor: designSystem.colors.primary,
+    borderColor: designSystem.colors.primaryDark,
   },
   recommendationTag: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#4caf50',
-    paddingHorizontal: 8,
+    top: designSystem.spacing.xs,
+    right: designSystem.spacing.xs,
+    backgroundColor: designSystem.colors.success.default,
+    paddingHorizontal: designSystem.spacing.sm,
     paddingVertical: 2,
-    borderRadius: 4,
-  },
-  recommendationTagText: {
-    color: 'white',
-    fontSize: 11,
-    fontWeight: 'bold',
+    borderRadius: designSystem.borderRadius.sm,
   },
   quantityHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
-  },
-  quantityLabel: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  quantityLabelSelected: {
-    color: 'white',
-  },
-  selectedCheck: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  quantityDescription: {
-    fontSize: 14,
-    color: '#666',
-  },
-  quantityDescriptionSelected: {
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  cancelButton: {
-    padding: 14,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 8,
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
+    marginBottom: designSystem.spacing.xs,
   },
 });
 

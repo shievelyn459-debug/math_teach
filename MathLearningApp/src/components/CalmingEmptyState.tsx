@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import {View, StyleSheet, TouchableOpacity, Image} from 'react-native';
-import {Text} from 'react-native-paper';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import {View, StyleSheet} from 'react-native';
+import {designSystem} from '../styles/designSystem';
+import {Typography, Icon, Spacer, Button} from '../components/ui';
 
 interface CalmingEmptyStateProps {
   /** 图标名称 (来自 MaterialIcons) */
@@ -52,42 +52,58 @@ const CalmingEmptyState: React.FC<CalmingEmptyStateProps> = ({
       {/* 插图或图标 */}
       {illustration || (
         <View style={styles.iconContainer}>
-          {icon && <Icon name={icon} size={64} color="#5C9EAD" />}
+          {icon && <Icon name={icon} size="xl" color={designSystem.colors.primary} />}
         </View>
       )}
 
       {/* 标题 */}
-      <Text style={styles.title}>{title}</Text>
+      <Typography variant="headlineMedium" align="center" style={styles.title}>
+        {title}
+      </Typography>
 
       {/* 描述消息 */}
-      <Text style={styles.message}>{message}</Text>
+      <Typography
+        variant="body"
+        color={designSystem.colors.text.secondary}
+        align="center"
+        style={styles.message}>
+        {message}
+      </Typography>
 
       {/* 行动按钮 */}
       <View style={styles.actionsContainer}>
         {actionLabel && onAction && (
-          <TouchableOpacity
-            style={styles.primaryAction}
+          <Button
+            title={actionLabel}
             onPress={onAction}
-            activeOpacity={0.7}>
-            <Text style={styles.primaryActionText}>{actionLabel}</Text>
-          </TouchableOpacity>
+            variant="primary"
+            size="lg"
+            style={{width: '100%'}}
+          />
         )}
 
         {secondaryActionLabel && onSecondaryAction && (
-          <TouchableOpacity
-            style={styles.secondaryAction}
-            onPress={onSecondaryAction}
-            activeOpacity={0.7}>
-            <Text style={styles.secondaryActionText}>{secondaryActionLabel}</Text>
-          </TouchableOpacity>
+          <>
+            <Spacer size="sm" />
+            <Button
+              title={secondaryActionLabel}
+              onPress={onSecondaryAction}
+              variant="secondary"
+              size="md"
+              style={{width: '100%'}}
+            />
+          </>
         )}
       </View>
 
       {/* 帮助提示 */}
       {showHelpTip && (
         <View style={styles.helpTip}>
-          <Icon name="help-outline" size={16} color="#8A9AAC" />
-          <Text style={styles.helpTipText}>需要帮助？点击右上角的问号</Text>
+          <Icon name="help-outline" size="sm" color={designSystem.colors.text.hint} />
+          <View style={{width: designSystem.spacing.sm}} />
+          <Typography variant="caption" color={designSystem.colors.text.hint}>
+            需要帮助？点击右上角的问号
+          </Typography>
         </View>
       )}
     </View>
@@ -99,94 +115,43 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    backgroundColor: '#F7F3E8',
+    padding: designSystem.spacing.xxl,
+    backgroundColor: designSystem.colors.surface.secondary,
   },
 
   iconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(92, 158, 173, 0.15)',
+    backgroundColor: designSystem.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: designSystem.spacing.xl,
   },
 
   title: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#2C3E50',
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 30,
+    marginBottom: designSystem.spacing.md,
   },
 
   message: {
-    fontSize: 16,
-    color: '#5A6C7D',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 26,
-    paddingHorizontal: 16,
+    paddingHorizontal: designSystem.spacing.md,
+    marginBottom: designSystem.spacing.xxl,
   },
 
   actionsContainer: {
     width: '100%',
     alignItems: 'center',
-    gap: 12,
-  },
-
-  primaryAction: {
-    backgroundColor: '#5C9EAD',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 24,
-    minWidth: 200,
-    alignItems: 'center',
-    shadowColor: '#5C9EAD',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-
-  primaryActionText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  secondaryAction: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#5C9EAD',
-    minWidth: 180,
-    alignItems: 'center',
-  },
-
-  secondaryActionText: {
-    color: '#5C9EAD',
-    fontSize: 15,
-    fontWeight: '500',
+    maxWidth: 280,
   },
 
   helpTip: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 32,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(138, 154, 172, 0.1)',
-    borderRadius: 12,
-  },
-
-  helpTipText: {
-    fontSize: 13,
-    color: '#8A9AAC',
-    marginLeft: 6,
+    marginTop: designSystem.spacing.xxl,
+    paddingHorizontal: designSystem.spacing.md,
+    paddingVertical: designSystem.spacing.sm,
+    backgroundColor: designSystem.colors.surface.tertiary,
+    borderRadius: designSystem.borderRadius.md,
   },
 });
 
