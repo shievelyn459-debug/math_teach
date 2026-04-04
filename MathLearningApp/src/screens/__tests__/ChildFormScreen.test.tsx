@@ -14,6 +14,13 @@ jest.mock('react-native-paper', () => ({
   PaperProvider: ({children}) => children,
 }));
 
+// Mock Platform for shadows
+jest.mock('react-native', () => {
+  const RN = jest.requireActual('react-native');
+  RN.Platform.select = jest.fn((obj) => obj.android || obj.default || obj.ios);
+  return RN;
+});
+
 // Mock dependencies
 jest.mock('../../services/api', () => ({
   childApi: {

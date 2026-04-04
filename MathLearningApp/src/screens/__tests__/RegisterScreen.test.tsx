@@ -73,11 +73,12 @@ describe('RegisterScreen', () => {
       const {getByText} = renderScreen();
 
       expect(getByText('密码要求：')).toBeTruthy();
-      expect(getByText('• 至少8个字符')).toBeTruthy();
-      expect(getByText('• 包含大写字母（A-Z）')).toBeTruthy();
-      expect(getByText('• 包含小写字母（a-z）')).toBeTruthy();
-      expect(getByText('• 包含数字（0-9）')).toBeTruthy();
-      expect(getByText('• 包含特殊字符（!@#$%^&*等）')).toBeTruthy();
+      // Password requirements are in a single Typography component, use regex for partial matching
+      expect(getByText(/至少8个字符/)).toBeTruthy();
+      expect(getByText(/包含大写字母/)).toBeTruthy();
+      expect(getByText(/包含小写字母/)).toBeTruthy();
+      expect(getByText(/包含数字/)).toBeTruthy();
+      expect(getByText(/包含特殊字符/)).toBeTruthy();
     });
 
     it('should render login link', () => {
@@ -263,15 +264,11 @@ describe('RegisterScreen', () => {
       fireEvent.press(registerButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          '注册成功！',
-          '欢迎加入一年级数学学习助手',
-          expect.arrayContaining([
-            expect.objectContaining({
-              text: '开始使用',
-            }),
-          ])
-        );
+        // After successful registration, user is automatically navigated to Main screen
+        expect(mockNavigation.reset).toHaveBeenCalledWith({
+          index: 0,
+          routes: [{name: 'Main'}],
+        });
       });
     });
 

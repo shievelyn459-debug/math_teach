@@ -113,6 +113,10 @@ export const getShadow = (level: ShadowLevel): ShadowStyle => {
   }
 
   const config = shadowConfigs[level];
+  // Handle case where Platform.select might not be available in tests
+  if (!Platform.select) {
+    return config.android || config.default || config.ios;
+  }
   return Platform.select({
     ios: config.ios,
     android: config.android,

@@ -23,7 +23,11 @@ jest.mock('react-native', () => {
   RN.AccessibilityInfo = {
     announceForSync: jest.fn(),
     announceForAsync: jest.fn(),
+    announceForAccessibility: jest.fn(),
+    isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
   };
+  // Add Platform.select mock for shadows
+  RN.Platform.select = (obj) => obj.android || obj.default || obj.ios;
   return RN;
 });
 
@@ -157,19 +161,9 @@ jest.mock('react-native-pdf-lib', () => ({
   },
 }));
 
-// Platform mock
+// Platform mock for specific imports
 jest.mock('react-native/Libraries/Utilities/Platform', () => ({
   OS: 'ios',
   Version: '14.0',
-  select: (obj) => obj.ios || obj.default,
+  select: (obj) => obj.ios || obj.default || obj.android,
 }));
-
-// AccessibilityInfo mock
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  RN.AccessibilityInfo = {
-    announceForAccessibility: jest.fn(),
-    isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
-  };
-  return RN;
-});
