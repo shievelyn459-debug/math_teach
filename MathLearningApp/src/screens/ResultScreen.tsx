@@ -152,6 +152,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({
               <KnowledgePointTag
                 matchResult={knowledgePoints.primaryKnowledgePoint}
                 onPress={(mr) => onKnowledgePointPress(mr.knowledgePoint.id)}
+                testID="knowledge-point-tag"
               />
             </View>
 
@@ -173,6 +174,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({
                         onPress={(mr) =>
                           onKnowledgePointPress(mr.knowledgePoint.id)
                         }
+                        testID={`knowledge-point-tag-${index}`}
                       />
                     ))}
                 </View>

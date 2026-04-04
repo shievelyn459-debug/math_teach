@@ -40,11 +40,12 @@ describe('FormatSelector - Enhanced Interaction (Story 3-5)', () => {
   /**
    * AC3: Selected format is clearly highlighted
    */
-  it('should show checkmark for selected format', () => {
-    const {getByTestId, getByText} = render(<FormatSelector {...mockProps} />);
+  it('should show selected state for selected format', () => {
+    const {getByTestId} = render(<FormatSelector {...mockProps} />);
 
     const textButton = getByTestId('format-button-text');
-    expect(getByText('✓')).toBeTruthy();
+    // 检查选中状态而不是依赖特定的视觉符号
+    expect(textButton.props.accessibilityState.selected).toBe(true);
   });
 
   /**

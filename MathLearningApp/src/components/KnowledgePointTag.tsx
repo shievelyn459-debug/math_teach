@@ -14,6 +14,7 @@ interface KnowledgePointTagProps {
   onPress: (matchResult: KnowledgePointMatchResult) => void;
   compact?: boolean; // 紧凑模式，仅显示名称
   style?: ViewStyle;
+  testID?: string; // 用于测试
 }
 
 /**
@@ -50,12 +51,14 @@ const KnowledgePointTag: React.FC<KnowledgePointTagProps> = ({
   onPress,
   compact = false,
   style,
+  testID,
 }) => {
   const {knowledgePoint, confidence} = matchResult;
   const colors = getConfidenceColor(confidence);
 
   return (
     <TouchableOpacity
+      testID={testID}
       style={[
         styles.container,
         {backgroundColor: colors.background},

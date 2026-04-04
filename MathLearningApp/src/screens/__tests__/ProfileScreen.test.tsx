@@ -74,24 +74,43 @@ describe('ProfileScreen (Story 1-4)', () => {
         data: mockUser,
       });
 
-      const {getByTestId, getByText} = render(
+      const {getByTestId, getByText, getAllByText} = render(
         <ProfileScreen navigation={mockNavigation} />
       );
 
       await waitFor(() => {
-        expect(getByText('张三')).toBeTruthy();
-        expect(getByText('zhangsan@example.com')).toBeTruthy();
+        // '张三' and email may appear multiple times
+        const nameElements = getAllByText('张三');
+        expect(nameElements.length).toBeGreaterThan(0);
+        const emailElements = getAllByText('zhangsan@example.com');
+        expect(emailElements.length).toBeGreaterThan(0);
       });
     });
 
-    it('应该显示未登录状态', () => {
+    it('应该显示未登录状态', async () => {
       (authService.getCurrentUser as jest.Mock).mockReturnValue(null);
-      (authService.onAuthStateChanged as jest.Mock).mockReturnValue(jest.fn());
+      (authService.onAuthStateChanged as jest.Mock).mockImplementation((callback) => {
+        // Immediately call callback with null user
+        callback(null);
+        return jest.fn(); // Return unsubscribe function
+      });
+      // Mock getProfile to return failure when not logged in
+      (userApi.getProfile as jest.Mock).mockResolvedValue({
+        success: false,
+        error: 'Not authenticated',
+      });
 
-      const {getByText} = render(<ProfileScreen navigation={mockNavigation} />);
+      const {getByText, queryByText} = render(<ProfileScreen navigation={mockNavigation} />);
 
-      expect(getByText('未登录')).toBeTruthy();
-      expect(getByText('请先登录')).toBeTruthy();
+      // Wait for loading to complete and unlogged state to appear
+      await waitFor(
+        () => {
+          expect(queryByText('加载中...')).toBeNull();
+          expect(getByText('未登录')).toBeTruthy();
+          expect(getByText('请先登录')).toBeTruthy();
+        },
+        {timeout: 3000}
+      );
     });
   });
 

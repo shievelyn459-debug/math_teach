@@ -28,7 +28,7 @@ describe('KnowledgePointTag', () => {
 
   it('应该正确渲染知识点名称', () => {
     const {getByText} = render(
-      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} />
+      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} testID="knowledge-point-tag" />
     );
 
     expect(getByText('10以内加法')).toBeTruthy();
@@ -36,7 +36,7 @@ describe('KnowledgePointTag', () => {
 
   it('应该显示置信度分数 (AC: 4)', () => {
     const {getByText} = render(
-      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} />
+      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} testID="knowledge-point-tag" />
     );
 
     expect(getByText('85%')).toBeTruthy();
@@ -44,7 +44,7 @@ describe('KnowledgePointTag', () => {
 
   it('高置信度(>=0.8)应该显示绿色', () => {
     const {getByTestId} = render(
-      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} />
+      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} testID="knowledge-point-tag" />
     );
 
     const tag = getByTestId('knowledge-point-tag');
@@ -57,6 +57,7 @@ describe('KnowledgePointTag', () => {
       <KnowledgePointTag
         matchResult={mediumConfidenceResult}
         onPress={mockOnPress}
+        testID="knowledge-point-tag"
       />
     );
 
@@ -69,6 +70,7 @@ describe('KnowledgePointTag', () => {
       <KnowledgePointTag
         matchResult={lowConfidenceResult}
         onPress={mockOnPress}
+        testID="knowledge-point-tag"
       />
     );
 
@@ -77,7 +79,7 @@ describe('KnowledgePointTag', () => {
 
   it('点击时应该调用onPress回调 (AC: 6)', () => {
     const {getByTestId} = render(
-      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} />
+      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} testID="knowledge-point-tag" />
     );
 
     fireEvent.press(getByTestId('knowledge-point-tag'));
@@ -90,6 +92,7 @@ describe('KnowledgePointTag', () => {
         matchResult={mockMatchResult}
         onPress={mockOnPress}
         compact={true}
+        testID="knowledge-point-tag"
       />
     );
 
@@ -120,6 +123,7 @@ describe('KnowledgePointTag', () => {
             key={index}
             matchResult={mr}
             onPress={mockOnPress}
+            testID="knowledge-point-tag"
           />
         ))}
       </>
@@ -131,7 +135,7 @@ describe('KnowledgePointTag', () => {
 
   it('应该显示家长友好的样式', () => {
     const {getByText} = render(
-      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} />
+      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} testID="knowledge-point-tag" />
     );
 
     // 检查是否有易于理解的置信度显示
@@ -155,7 +159,7 @@ describe('KnowledgePointTag', () => {
     };
 
     const {getByText, getByTestId} = render(
-      <KnowledgePointTag matchResult={fallbackResult} onPress={mockOnPress} />
+      <KnowledgePointTag matchResult={fallbackResult} onPress={mockOnPress} testID="knowledge-point-tag" />
     );
 
     expect(getByText('其他题型')).toBeTruthy();
@@ -166,7 +170,7 @@ describe('KnowledgePointTag', () => {
     const startTime = Date.now();
 
     const {getByText} = render(
-      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} />
+      <KnowledgePointTag matchResult={mockMatchResult} onPress={mockOnPress} testID="knowledge-point-tag" />
     );
 
     await getByText('10以内加法');
