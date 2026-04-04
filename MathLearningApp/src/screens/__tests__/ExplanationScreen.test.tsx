@@ -87,7 +87,7 @@ jest.mock('../../services/explanationService', () => {
         donts: ['不要用抽象数字'],
       },
     ],
-    source: ExplanationSource.TEMPLATE,
+    source: 'template', // Use string literal instead of enum
     qualityScore: 0.95,
     version: 1,
     reviewed: true,
@@ -103,7 +103,7 @@ jest.mock('../../services/explanationService', () => {
     generateExplanation: jest.fn().mockResolvedValue({
       explanation: mockExplanation,
       generationTime: 1200,
-      source: ExplanationSource.TEMPLATE,
+      source: 'template' as const,
       fallbackUsed: false,
       qualityMetrics: {
         completeness: 0.95,
@@ -179,7 +179,7 @@ describe('ExplanationScreen', () => {
         qualityScore: 0.7,
       },
       generationTime: 1000,
-      source: ExplanationSource.TEMPLATE,
+      source: 'template' as const,
       fallbackUsed: false,
       qualityMetrics: {
         completeness: 0.7,
@@ -204,7 +204,7 @@ describe('ExplanationScreen', () => {
       .mockResolvedValueOnce({
         explanation: require('../../services/explanationService').mockExplanation,
         generationTime: 1000,
-        source: ExplanationSource.TEMPLATE,
+        source: 'template' as const,
         fallbackUsed: false,
         qualityMetrics: {
           completeness: 0.95,
@@ -330,7 +330,7 @@ describe('ExplanationScreen Integration Tests', () => {
       .mockResolvedValueOnce({
         explanation: require('../../services/explanationService').mockExplanation,
         generationTime: 1000,
-        source: ExplanationSource.TEMPLATE,
+        source: 'template' as const,
         fallbackUsed: false,
         qualityMetrics: {
           completeness: 0.95,
