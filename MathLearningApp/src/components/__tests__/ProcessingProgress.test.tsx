@@ -24,8 +24,24 @@ jest.mock('../../services/performanceTracker', () => ({
   },
 }));
 
-// Import after mock
-const { performanceTracker } = require('../../services/performanceTracker');
+// Mock ProcessingStage enum
+jest.mock('../../services/performanceTracker', () => ({
+  ProcessingStage: {
+    IDLE: 'idle',
+    UPLOADING: 'uploading',
+    RECOGNIZING: 'recognizing',
+    CORRECTION: 'correction',
+    DIFFICULTY_SELECTION: 'difficulty_selection',
+    GENERATING: 'generating',
+    COMPLETED: 'completed',
+    ERROR: 'error',
+  },
+  performanceTracker: {
+    getElapsedTime: jest.fn(() => 5000),
+    getCurrentStage: jest.fn(() => 'recognizing'),
+    startTracking: jest.fn(),
+    endTracking: jest.fn(),
+    setStage: jest.fn(),
     estimateRemainingTime: jest.fn(() => 15000),
     shouldShowWarning: jest.fn(() => false),
   },
@@ -52,7 +68,7 @@ describe('ProcessingProgress', () => {
       <ProcessingProgress visible={true} metrics={mockMetrics} />
     );
 
-    expect(getByText('正在处理题目...')).toBeTruthy();
+    expect(getByText(/我们正在努力/)).toBeTruthy();
   });
 
   it('应该在 visible 为 false 时不显示', () => {
@@ -94,8 +110,10 @@ describe('ProcessingProgress', () => {
   });
 
   it('应该显示警告消息当超过阈值', async () => {
+    // 重新配置 mock 让 shouldShowWarning 返回 true
     const {performanceTracker} = require('../../services/performanceTracker');
     performanceTracker.shouldShowWarning.mockReturnValue(true);
+    performanceTracker.getElapsedTime.mockReturnValue(30000); // 超过阈值
 
     const {getByText} = render(
       <ProcessingProgress
@@ -135,7 +153,7 @@ describe('ProcessingProgress', () => {
       <ProcessingProgress visible={true} metrics={mockMetrics} />
     );
 
-    expect(getByText(/系统正在处理/)).toBeTruthy();
+    expect(getByText(/我们正在仔细分析/)).toBeTruthy();
   });
 
   it('应该显示进度百分比', () => {

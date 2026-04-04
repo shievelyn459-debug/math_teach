@@ -133,3 +133,43 @@ jest.mock('react-native/Libraries/Settings/NativeSettingsManager', () => ({
 
 // Mock react-native-pdf
 jest.mock('react-native-pdf', () => 'PDF');
+
+/**
+ * Story 8.1: 批量测试修复 - 全局 Mocks
+ * Date: 2026-04-04
+ */
+
+// react-native-pdf-lib mock
+jest.mock('react-native-pdf-lib', () => ({
+  PDFDocument: {
+    create: jest.fn(() => ({
+      addPage: jest.fn(() => ({
+        addText: jest.fn(),
+      })),
+      write: jest.fn(() => Promise.resolve('mock-pdf-path')),
+    })),
+  },
+  PDFPage: {
+    create: jest.fn(() => ({
+      setMediaBox: jest.fn(),
+      addText: jest.fn(),
+    })),
+  },
+}));
+
+// Platform mock
+jest.mock('react-native/Libraries/Utilities/Platform', () => ({
+  OS: 'ios',
+  Version: '14.0',
+  select: (obj) => obj.ios || obj.default,
+}));
+
+// AccessibilityInfo mock
+jest.mock('react-native', () => {
+  const RN = jest.requireActual('react-native');
+  RN.AccessibilityInfo = {
+    announceForAccessibility: jest.fn(),
+    isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
+  };
+  return RN;
+});

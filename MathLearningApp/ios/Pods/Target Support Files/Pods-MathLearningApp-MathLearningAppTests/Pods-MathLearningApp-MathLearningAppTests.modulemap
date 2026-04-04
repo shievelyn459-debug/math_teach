@@ -1,0 +1,6 @@
+module Pods_MathLearningApp_MathLearningAppTests {
+  umbrella header "Pods-MathLearningApp-MathLearningAppTests-umbrella.h"
+
+  export *
+  module * { export * }
+}

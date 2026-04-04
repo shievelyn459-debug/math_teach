@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// MathLearningApp MySQL Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  Int      @id @default(autoincrement())
+  userId              String   @unique @map("user_id")
+  email               String   @unique
+  passwordHash        String   @map("password_hash")
+  name                String?
+  phone               String?
+  language            String   @default("zh-CN")
+  difficulty          String   @default("medium")
+  notificationEnabled Boolean  @default(true) @map("notification_enabled")
+  failedLoginAttempts Int      @default(0) @map("failed_login_attempts")
+  accountLocked        Boolean  @default(false) @map("account_locked")
+  lastLoginAt          DateTime? @map("last_login_at")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  children            Child[]
+  studyRecords        StudyRecord[] @relation("UserStudyRecords")
+  generationHistories GenerationHistory[]
+
+  @@index([userId], map: "idx_user_id")
+  @@index([email], map: "idx_email")
+  @@map("users")
+}
+
+model Child {
+  id        Int      @id @default(autoincrement())
+  childId   String   @unique @map("child_id")
+  parentId  String   @map("parent_id")
+  name      String
+  grade     Grade
+  birthday  DateTime? @map("birthday")
+  avatar    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User                @relation(fields: [parentId], references: [userId], onDelete: Cascade)
+  studyRecords StudyRecord[]       @relation("ChildStudyRecords")
+
+  @@index([childId], map: "idx_child_id")
+  @@index([parentId], map: "idx_parent_id")
+  @@index([parentId, grade], map: "idx_parent_grade")
+  @@map("children")
+}
+
+// 学习记录模型
+// 应用层验证约束:
+// - duration: 必须 >= 0
+// - difficulty: 应为 "easy", "medium", "hard" 之一
+// - questionId: 可选，用于关联具体题目
+model StudyRecord {
+  id           Int      @id @default(autoincrement())
+  recordId     String   @unique @map("record_id")
+  childId      String   @map("child_id")
+  parentId     String   @map("parent_id")
+  questionId   String?  @map("question_id")
+  action       Action
+  duration     Int      @default(0)  // 应用层验证: >= 0
+  correct      Boolean?
+  questionType String?  @map("question_type")
+  difficulty   String?  // 应用层验证: easy/medium/hard
+  timestamp    DateTime @default(now())
+
+  child  Child   @relation("ChildStudyRecords", fields: [childId], references: [childId], onDelete: Cascade)
+  parent User    @relation("UserStudyRecords", fields: [parentId], references: [userId], onDelete: Cascade)
+
+  @@index([recordId], map: "idx_record_id")
+  @@index([childId], map: "idx_child_id")
+  @@index([parentId], map: "idx_parent_id")
+  @@index([parentId, childId], map: "idx_parent_child")
+  @@index([timestamp], map: "idx_timestamp")
+  @@index([action], map: "idx_action")
+  @@map("study_records")
+}
+
+// 题目生成历史模型
+// 应用层验证约束:
+// - generatedQuestions: JSON大小应 < 1MB，需在应用层验证
+model GenerationHistory {
+  id                   Int      @id @default(autoincrement())
+  generationId         String   @unique @map("generation_id")
+  userId               String   @map("user_id")
+  childId              String?  @map("child_id")
+  originalQuestion     String?  @map("original_question")
+  questionType         String?  @map("question_type")
+  difficulty           String?
+  generatedQuestions   Json     @map("generated_questions")  // 应用层验证大小 < 1MB
+  generatedAt          DateTime @default(now()) @map("generated_at")
+
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([generationId], map: "idx_generation_id")
+  @@index([userId], map: "idx_user_id")
+  @@index([userId, childId], map: "idx_user_child")
+  @@index([generatedAt], map: "idx_generated_at")
+  @@map("generation_history")
+}
+
+// Grade枚举使用中文值（针对中国K12教育市场）
+// 注意: 确保数据库字符集为utf8mb4以支持中文存储和排序
+enum Grade {
+  一年级
+  二年级
+  三年级
+  四年级
+  五年级
+  六年级
+}
+
+enum Action {
+  upload
+  practice
+  review
+}
