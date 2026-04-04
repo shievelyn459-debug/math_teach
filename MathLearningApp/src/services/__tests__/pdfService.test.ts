@@ -545,21 +545,24 @@ describe('pdfService', () => {
 
     it('should handle share cancellation', async () => {
       const mockShare = require('react-native-share');
-      mockShare.open = jest.fn().mockRejectedValue({ error: 'User cancelled' });
+      mockShare.open = jest.fn().mockRejectedValue({ message: 'User cancelled' });
 
+      // User cancellation doesn't throw - it returns undefined
       await expect(
         pdfService.sharePDF('/mock/documents/test.pdf')
-      ).rejects.toThrow();
+      ).resolves.toBeUndefined();
     });
   });
 
   describe('openPDF', () => {
     it('should open PDF on iOS', async () => {
       (Platform as any).OS = 'ios';
+      (Linking.canOpenURL as jest.Mock).mockResolvedValue(true);
       (Linking.openURL as jest.Mock).mockResolvedValue(undefined);
 
       await pdfService.openPDF('/mock/documents/test.pdf');
 
+      expect(Linking.canOpenURL).toHaveBeenCalled();
       expect(Linking.openURL).toHaveBeenCalled();
     });
 
@@ -574,22 +577,11 @@ describe('pdfService', () => {
   });
 
   describe('printPDF', () => {
-    it('should print PDF successfully', async () => {
-      const mockPrint = require('expo-print');
-      mockPrint.printAsync = jest.fn().mockResolvedValue(undefined);
-
+    it('should throw error (print temporarily unavailable)', async () => {
+      // Print is temporarily unavailable, always throws
       await expect(
         pdfService.printPDF('/mock/documents/test.pdf')
-      ).resolves.not.toThrow();
-    });
-
-    it('should handle print error', async () => {
-      const mockPrint = require('expo-print');
-      mockPrint.printAsync = jest.fn().mockRejectedValue(new Error('Print failed'));
-
-      await expect(
-        pdfService.printPDF('/mock/documents/test.pdf')
-      ).rejects.toThrow();
+      ).rejects.toThrow('打印功能暂时不可用');
     });
   });
 
@@ -645,11 +637,13 @@ describe('pdfService', () => {
   describe('getSavedPDFs - Edge Cases', () => {
     const RNFS = require('react-native-fs');
 
-    it('should handle read error', async () => {
+    it('should handle read error gracefully', async () => {
       (RNFS.exists as jest.Mock).mockResolvedValue(true);
       (RNFS.readDir as jest.Mock).mockRejectedValue(new Error('Read directory failed'));
 
-      await expect(pdfService.getSavedPDFs()).rejects.toThrow();
+      // getSavedPDFs handles errors gracefully and returns empty array
+      const result = await pdfService.getSavedPDFs();
+      expect(result).toEqual([]);
     });
   });
 

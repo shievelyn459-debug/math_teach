@@ -3,7 +3,7 @@
  * 用于验证百度OCR和DeepSeek配置是否正确
  */
 
-import {validateAIConfig} from '../../config/aiConfig';
+import {validateAIConfig} from '../../../config/aiConfig';
 import {baiduOcrService} from '../baiduOcrService';
 import {deepseekService} from '../deepseekService';
 import {localQuestionGenerator} from '../localQuestionGenerator';

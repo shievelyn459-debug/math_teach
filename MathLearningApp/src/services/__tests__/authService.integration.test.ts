@@ -67,22 +67,28 @@ import * as Crypto from 'expo-crypto';
 const mockCrypto = Crypto as jest.Mocked<typeof Crypto>;
 
 /**
- * Helper function to generate password hash using SHA-256 (P0-1 fix)
+ * Helper function to generate password hash (same algorithm as cryptoUtils.hashPasswordSHA256)
  */
 async function generatePasswordHash(password: string): Promise<string> {
-  const str = password + 'math_learning_salt_v1';
+  const salt = 'math_learning_salt_v1';
+  const data = password + salt;
 
-  // Simple hash for testing (模拟SHA-256输出)
+  // Same algorithm as hashPasswordSHA256
   let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
+  for (let i = 0; i < data.length; i++) {
+    const char = data.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+    hash = hash & hash; // Convert to 32bit integer
   }
 
-  // Convert to 64-char hex string (SHA-256 length)
-  const hashHex = Math.abs(hash).toString(16);
-  return hashHex.padStart(64, '0').repeat(64).substring(0, 64);
+  // Convert to 64-char hex string (same as hashPasswordSHA256)
+  const hashHex = Math.abs(hash).toString(16).padStart(8, '0');
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += hashHex;
+  }
+
+  return result.substring(0, 64);
 }
 
 describe('AuthService MySQL Integration', () => {
@@ -100,16 +106,8 @@ describe('AuthService MySQL Integration', () => {
 
     // Mock digestStringAsync to simulate SHA-256 hashing (P0-1 fix)
     mockCrypto.digestStringAsync.mockImplementation(async (algorithm, data) => {
-      // Simple hash for testing
-      let hash = 0;
-      for (let i = 0; i < data.length; i++) {
-        const char = data.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      const hashHex = Math.abs(hash).toString(16);
-      // Return 64-char hex string (SHA-256 length)
-      return hashHex.padStart(64, '0').repeat(64).substring(0, 64);
+      // Use the same hash algorithm as generatePasswordHash
+      return generatePasswordHash(data.replace('math_learning_salt_v1', ''));
     });
 
     // Mock getRandomValues for UUID generation (P0-2 fix)
@@ -122,6 +120,14 @@ describe('AuthService MySQL Integration', () => {
 
     // Logout to ensure clean state
     await authService.logout();
+
+    // Clear MySQL availability cache
+    mockAsyncStorage.getItem.mockImplementation((key) => {
+      if (key && key.includes('mysql_available')) {
+        return Promise.resolve(null); // No cached MySQL status
+      }
+      return Promise.resolve(null);
+    });
   });
 
   afterEach(async () => {
@@ -155,13 +161,7 @@ describe('AuthService MySQL Integration', () => {
       expect(mockUserDataRepository.create).toHaveBeenCalled();
       expect(mockAsyncStorage.setItem).toHaveBeenCalled();
 
-      // Reset mocks for login
-      jest.clearAllMocks();
-      mockAsyncStorage.getItem.mockReset().mockResolvedValue(null);
-      mockAsyncStorage.setItem.mockReset().mockResolvedValue(undefined);
-      mockCheckDatabaseConnection.mockReset().mockResolvedValue(true);
-
-      // Setup login mock
+      // Login (mocks are already set up in beforeEach)
       mockUserDataRepository.findByEmailWithPassword.mockResolvedValue({
         user: mockUser,
         passwordHash,
@@ -171,6 +171,11 @@ describe('AuthService MySQL Integration', () => {
 
       // Login
       const loginResponse = await authService.login('test@example.com', 'SecurePass123!');
+
+      // Debug: log the response if it fails
+      if (!loginResponse.success) {
+        console.log('Login failed:', loginResponse.error);
+      }
 
       expect(loginResponse.success).toBe(true);
       expect(loginResponse.data?.user.email).toBe('test@example.com');
@@ -236,13 +241,19 @@ describe('AuthService MySQL Integration', () => {
         passwordHash,
       };
 
-      mockCheckDatabaseConnection.mockResolvedValue(false);
+      // Clear MySQL availability cache
       mockAsyncStorage.getItem.mockImplementation((key) => {
+        if (key && key.includes('mysql_available')) {
+          return Promise.resolve(null); // No cached MySQL status
+        }
         if (key && key.includes('offline@example.com')) {
           return Promise.resolve(JSON.stringify(cachedUser));
         }
         return Promise.resolve(null);
       });
+
+      // MySQL is not available
+      mockCheckDatabaseConnection.mockResolvedValue(false);
 
       const response = await authService.login('offline@example.com', 'SecurePass123!');
 
