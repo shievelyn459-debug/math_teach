@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-03-19
-last_updated: 2026-03-31T16:30:00
+last_updated: 2026-04-04T18:10:00
 project: MathLearningApp
 project_key: NOKEY
 tracking_system: file-system
@@ -88,11 +88,20 @@ development_status:
   6-5-offline-sync-conflict-resolution: done
   epic-6-retrospective: done
 
-  epic-7: in-progress
+  epic-7: done
   7-1-design-system-core: done
   7-2-ui-component-library: done
   7-3-home-camera-redesign: done
   7-4-explain-pdf-redesign: done
   7-5-auth-profile-redesign: done
-  7-6-update-existing-components: in-progress
+  7-6-update-existing-components: done
   epic-7-retrospective: optional
+
+  epic-8: in-progress
+  8-1-fix-failed-tests: review
+  8-2-test-coverage-analysis: review
+  8-3-unit-test-enhancement: in-progress
+  8-4-integration-test-completion: backlog
+  8-5-e2e-test-creation: backlog
+  8-6-performance-testing: backlog
+  epic-8-retrospective: optional

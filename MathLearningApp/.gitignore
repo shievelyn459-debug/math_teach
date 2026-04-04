@@ -3,3 +3,9 @@ node_modules
 .env
 
 /src/generated/prisma
+
+# 测试覆盖率报告 (Story 8.2)
+coverage/
+*.lcov
+.nyc_output/
+coverage-temp/

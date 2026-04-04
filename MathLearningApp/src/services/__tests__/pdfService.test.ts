@@ -32,16 +32,30 @@ jest.mock('react-native-fs', () => ({
   stat: jest.fn(),
 }));
 
+// Mock react-native-share
+jest.mock('react-native-share', () => ({
+  open: jest.fn(() => Promise.resolve({ success: true })),
+  default: {
+    open: jest.fn(() => Promise.resolve({ success: true })),
+  },
+}));
+
+// Mock expo-print
+jest.mock('expo-print', () => ({
+  printAsync: jest.fn(() => Promise.resolve()),
+}));
+
 // Mock Platform and Permissions
 jest.mock('react-native', () => ({
   Platform: {
     OS: 'ios',
-    select: jest.fn(),
+    select: jest.fn((obj: any) => obj.ios || obj.default),
+    Version: '14.0',
   },
   PermissionsAndroid: {
     PERMISSIONS: {
-      READ_EXTERNAL_STORAGE: 'READ_EXTERNAL_STORAGE',
-      WRITE_EXTERNAL_STORAGE: 'WRITE_EXTERNAL_STORAGE',
+      READ_EXTERNAL_STORAGE: 'android.permission.READ_EXTERNAL_STORAGE',
+      WRITE_EXTERNAL_STORAGE: 'android.permission.WRITE_EXTERNAL_STORAGE',
     },
     RESULTS: {
       GRANTED: 'granted',
@@ -51,10 +65,20 @@ jest.mock('react-native', () => ({
     request: jest.fn(),
     requestMultiple: jest.fn(),
   },
+  NativeModules: {
+    PlatformConstants: {
+      Version: 33,
+    },
+  },
+  Linking: {
+    openURL: jest.fn(),
+    canOpenURL: jest.fn(),
+  },
 }));
 
 // Import service after mocks are set up
 import { pdfService } from '../pdfService';
+import { Platform, PermissionsAndroid, NativeModules, Linking } from 'react-native';
 
 describe('pdfService', () => {
   const mockQuestions: Question[] = [
@@ -388,6 +412,257 @@ describe('pdfService', () => {
       RNFS.exists = jest.fn().mockResolvedValue(false);
 
       await expect(pdfService.deletePDF('/mock/nonexistent.pdf')).rejects.toThrow('文件不存在');
+    });
+  });
+
+  // ==================== 新增测试：Android 平台权限 ====================
+
+  describe('checkStoragePermissions - Android', () => {
+    const originalPlatform = Platform.OS;
+
+    afterEach(() => {
+      (Platform as any).OS = originalPlatform;
+    });
+
+    it('should return true on Android 13+ (API 33+)', async () => {
+      (Platform as any).OS = 'android';
+      (NativeModules.PlatformConstants as any).Version = 33;
+
+      const result = await pdfService.checkStoragePermissions();
+
+      expect(result).toBe(true);
+    });
+
+    it('should check permissions on Android 12 (API 30)', async () => {
+      (Platform as any).OS = 'android';
+      (NativeModules.PlatformConstants as any).Version = 30;
+      (PermissionsAndroid.check as jest.Mock)
+        .mockResolvedValueOnce(true) // READ_EXTERNAL_STORAGE
+        .mockResolvedValueOnce(true); // WRITE_EXTERNAL_STORAGE
+
+      const result = await pdfService.checkStoragePermissions();
+
+      expect(result).toBe(true);
+      expect(PermissionsAndroid.check).toHaveBeenCalledWith(
+        'android.permission.READ_EXTERNAL_STORAGE'
+      );
+      expect(PermissionsAndroid.check).toHaveBeenCalledWith(
+        'android.permission.WRITE_EXTERNAL_STORAGE'
+      );
+    });
+
+    it('should return false when read permission not granted on Android 12', async () => {
+      (Platform as any).OS = 'android';
+      (NativeModules.PlatformConstants as any).Version = 30;
+      (PermissionsAndroid.check as jest.Mock)
+        .mockResolvedValueOnce(false) // READ_EXTERNAL_STORAGE
+        .mockResolvedValueOnce(true); // WRITE_EXTERNAL_STORAGE
+
+      const result = await pdfService.checkStoragePermissions();
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle permission check error gracefully', async () => {
+      (Platform as any).OS = 'android';
+      (NativeModules.PlatformConstants as any).Version = 30;
+      (PermissionsAndroid.check as jest.Mock).mockRejectedValue(new Error('Permission check failed'));
+
+      const result = await pdfService.checkStoragePermissions();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('requestStoragePermissions - Android', () => {
+    const originalPlatform = Platform.OS;
+
+    afterEach(() => {
+      (Platform as any).OS = originalPlatform;
+    });
+
+    it('should return true on Android 13+ without requesting', async () => {
+      (Platform as any).OS = 'android';
+      (NativeModules.PlatformConstants as any).Version = 33;
+
+      const result = await pdfService.requestStoragePermissions();
+
+      expect(result).toBe(true);
+      expect(PermissionsAndroid.requestMultiple).not.toHaveBeenCalled();
+    });
+
+    it('should request and grant permissions on Android 12', async () => {
+      (Platform as any).OS = 'android';
+      (NativeModules.PlatformConstants as any).Version = 30;
+      (PermissionsAndroid.requestMultiple as jest.Mock).mockResolvedValue({
+        'android.permission.READ_EXTERNAL_STORAGE': 'granted',
+        'android.permission.WRITE_EXTERNAL_STORAGE': 'granted',
+      });
+
+      const result = await pdfService.requestStoragePermissions();
+
+      expect(result).toBe(true);
+      expect(PermissionsAndroid.requestMultiple).toHaveBeenCalled();
+    });
+
+    it('should return false when permissions denied on Android 12', async () => {
+      (Platform as any).OS = 'android';
+      (NativeModules.PlatformConstants as any).Version = 30;
+      (PermissionsAndroid.requestMultiple as jest.Mock).mockResolvedValue({
+        'android.permission.READ_EXTERNAL_STORAGE': 'denied',
+        'android.permission.WRITE_EXTERNAL_STORAGE': 'denied',
+      });
+
+      const result = await pdfService.requestStoragePermissions();
+
+      expect(result).toBe(false);
+    });
+
+    it('should handle permission request error gracefully', async () => {
+      (Platform as any).OS = 'android';
+      (NativeModules.PlatformConstants as any).Version = 30;
+      (PermissionsAndroid.requestMultiple as jest.Mock).mockRejectedValue(
+        new Error('Permission request failed')
+      );
+
+      const result = await pdfService.requestStoragePermissions();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  // ==================== 新增测试：分享和打开功能 ====================
+
+  describe('sharePDF', () => {
+    it('should share PDF successfully', async () => {
+      const mockShare = require('react-native-share');
+      mockShare.open = jest.fn().mockResolvedValue({ success: true });
+
+      await expect(
+        pdfService.sharePDF('/mock/documents/test.pdf')
+      ).resolves.not.toThrow();
+    });
+
+    it('should handle share cancellation', async () => {
+      const mockShare = require('react-native-share');
+      mockShare.open = jest.fn().mockRejectedValue({ error: 'User cancelled' });
+
+      await expect(
+        pdfService.sharePDF('/mock/documents/test.pdf')
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('openPDF', () => {
+    it('should open PDF on iOS', async () => {
+      (Platform as any).OS = 'ios';
+      (Linking.openURL as jest.Mock).mockResolvedValue(undefined);
+
+      await pdfService.openPDF('/mock/documents/test.pdf');
+
+      expect(Linking.openURL).toHaveBeenCalled();
+    });
+
+    it('should handle open error', async () => {
+      (Platform as any).OS = 'ios';
+      (Linking.openURL as jest.Mock).mockRejectedValue(new Error('Cannot open file'));
+
+      await expect(
+        pdfService.openPDF('/mock/documents/test.pdf')
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('printPDF', () => {
+    it('should print PDF successfully', async () => {
+      const mockPrint = require('expo-print');
+      mockPrint.printAsync = jest.fn().mockResolvedValue(undefined);
+
+      await expect(
+        pdfService.printPDF('/mock/documents/test.pdf')
+      ).resolves.not.toThrow();
+    });
+
+    it('should handle print error', async () => {
+      const mockPrint = require('expo-print');
+      mockPrint.printAsync = jest.fn().mockRejectedValue(new Error('Print failed'));
+
+      await expect(
+        pdfService.printPDF('/mock/documents/test.pdf')
+      ).rejects.toThrow();
+    });
+  });
+
+  // ==================== 新增测试：错误场景 ====================
+
+  describe('generateQuestionsPDF - Error Scenarios', () => {
+    it('should throw error when question content is whitespace', async () => {
+      const invalidQuestions = [
+        {
+          ...mockQuestions[0],
+          content: '   ',
+        },
+      ];
+
+      await expect(
+        pdfService.generateQuestionsPDF(invalidQuestions, mockMetadata)
+      ).rejects.toThrow();
+    });
+
+    it('should handle PDF generation error', async () => {
+      const mockPDFDocument = require('react-native-pdf-lib').PDFDocument;
+      mockPDFDocument.create = jest.fn().mockRejectedValue(new Error('PDF creation failed'));
+
+      await expect(
+        pdfService.generateQuestionsPDF(mockQuestions, mockMetadata)
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('savePDF - Error Scenarios', () => {
+    const RNFS = require('react-native-fs');
+
+    it('should handle copy error', async () => {
+      (RNFS.copyFile as jest.Mock).mockRejectedValue(new Error('Copy failed'));
+
+      await expect(
+        pdfService.savePDF('/tmp/test.pdf', 'test.pdf')
+      ).rejects.toThrow('保存 PDF 失败');
+    });
+
+    it('should handle cleanup error gracefully', async () => {
+      (RNFS.unlink as jest.Mock).mockRejectedValue(new Error('Cleanup failed'));
+      (RNFS.exists as jest.Mock).mockResolvedValue(true);
+      (RNFS.copyFile as jest.Mock).mockResolvedValue(undefined);
+
+      // Should not throw error even if cleanup fails
+      const result = await pdfService.savePDF('/tmp/test.pdf', 'test.pdf');
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('getSavedPDFs - Edge Cases', () => {
+    const RNFS = require('react-native-fs');
+
+    it('should handle read error', async () => {
+      (RNFS.exists as jest.Mock).mockResolvedValue(true);
+      (RNFS.readDir as jest.Mock).mockRejectedValue(new Error('Read directory failed'));
+
+      await expect(pdfService.getSavedPDFs()).rejects.toThrow();
+    });
+  });
+
+  describe('getPDFSavePath - Platform Specific', () => {
+    it('should return Android path on Android platform', () => {
+      const originalOS = Platform.OS;
+      (Platform as any).OS = 'android';
+
+      const path = pdfService.getPDFSavePath();
+
+      expect(path).toContain('Documents');
+
+      (Platform as any).OS = originalOS;
     });
   });
 });
