@@ -3,11 +3,29 @@ import {render, waitFor} from '@testing-library/react-native';
 import ProcessingProgress from '../ProcessingProgress';
 import {ProcessingStage, PerformanceMetrics} from '../../types';
 
-// Mock performance tracker
+// Mock ProcessingStage enum
 jest.mock('../../services/performanceTracker', () => ({
+  ProcessingStage: {
+    IDLE: 'idle',
+    UPLOADING: 'uploading',
+    RECOGNIZING: 'recognizing',
+    CORRECTION: 'correction',
+    DIFFICULTY_SELECTION: 'difficulty_selection',
+    GENERATING: 'generating',
+    COMPLETED: 'completed',
+    ERROR: 'error',
+  },
   performanceTracker: {
     getElapsedTime: jest.fn(() => 5000),
-    getCurrentStage: jest.fn(() => 'RECOGNIZING'), // 使用字符串字面值代替 ProcessingStage.RECOGNIZING
+    getCurrentStage: jest.fn(() => 'recognizing'),
+    startTracking: jest.fn(),
+    endTracking: jest.fn(),
+    setStage: jest.fn(),
+  },
+}));
+
+// Import after mock
+const { performanceTracker } = require('../../services/performanceTracker');
     estimateRemainingTime: jest.fn(() => 15000),
     shouldShowWarning: jest.fn(() => false),
   },

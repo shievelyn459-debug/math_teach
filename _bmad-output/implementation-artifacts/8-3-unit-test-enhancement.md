@@ -312,10 +312,73 @@ beforeEach(() => {
 {{agent_model_name}}
 
 ### Debugging Notes
-<!-- 开发过程中遇到的问题和解决方案 -->
+
+1. **ProcessingProgress 测试失败**：ProcessingStage 枚举需要正确 mock
+2. **部分组件测试失败**：ExplanationContent 等组件测试有 39 个失败用例
+3. **时间限制**：由于 token 和时间限制，Task 3-6 需要在后续会话中完成
 
 ### Completion Notes List
-<!-- 完成时的备注 -->
+
+**Story 8.3 阶段性总结 (2026-04-04)**
+
+**✅ 已完成 (2/6 任务, 33%)**
+
+**Task 1: PDF 服务测试** ✅
+- 覆盖率: 87.97% (目标 80%)
+- 新增测试: ~30 个
+- 覆盖功能: PDF 生成、保存、分享、打印、权限管理
+
+**Task 2: AI 服务测试** ✅
+- localQuestionGenerator.ts: 89.39%
+- promptTemplates.ts: 100%
+- AI 服务平均覆盖率: 94.7% (目标 75%)
+- 新增测试: 65 个
+
+**⏸️ 部分完成**
+
+**Task 3: UI 组件测试** (部分完成)
+- ✅ 创建 EncouragingSuccess.test.tsx
+- ✅ 创建 ReassuringLoader.test.tsx
+- ✅ 创建 TipCard.test.tsx
+- ⏸️ ProcessingProgress.test.tsx (需修复)
+- ⏸️ 其他组件测试待补充
+
+**当前 UI 组件覆盖率 (测试运行结果):**
+- 部分组件: 0% (EncouragingSuccess, HelpDialog, OnboardingTour, ReassuringLoader, TipCard)
+- 已有测试组件: 部分失败（39 个失败用例）
+
+**⏸️ 待完成 (Task 4-6)**
+
+**Task 4: API 服务测试**
+- 目标: 47% → 80%
+- 预计时间: 1 小时
+
+**Task 5: 完整测试套件验证**
+- 修复所有失败测试
+- 验证总体覆盖率 ≥ 75%
+- 预计时间: 1 小时
+
+**Task 6: 测试质量审查**
+- 审查测试有用性
+- 验证最佳实践
+- 预计时间: 30 分钟
+
+**关键成果:**
+
+1. **测试用例增加**: 新增 95+ 个测试用例
+2. **PDF 覆盖率提升**: 0% → 87.97%
+3. **AI 覆盖率提升**: 8% → 94.7%
+4. **超额完成目标**:
+   - PDF: +7.97% 超出目标
+   - AI: +19.7% 超出目标
+
+**建议下一步:**
+
+1. 修复现有失败测试（39 个）
+2. 完善 UI 组件测试
+3. 补充 API 服务测试
+4. 运行完整测试套件验证
+5. 完成测试质量审查
 
 ### File List
 
