@@ -104,7 +104,7 @@ development_status:
   8-4-integration-test-supplement: ready-for-dev
   8-5-e2e-test-creation: ready-for-dev
   8-6-ui-component-test-supplement: review
-  8-7-api-service-test-supplement: ready-for-dev
+  8-7-api-service-test-supplement: review
   epic-8-retrospective: optional
 
 # Story 8.6 Progress (2026-04-04):
@@ -114,3 +114,11 @@ development_status:
 # - 修复 120+ 个测试用例
 # - 覆盖率: 54.59% (目标 70%+) - 待补充
 # - 详见: story-8-6-progress-report-final.md
+
+# Story 8.7 Progress (2026-04-05):
+# - 最低要求达成: 测试通过率 99.37% (目标 95%+) ✅
+# - 修复所有 API 服务测试失败 (pdfService, authService, aiService)
+# - 减少失败测试 8 个 (16 -> 8)
+# - 减少失败套件 4 个 (9 -> 5)
+# - AC1 未达标: API 覆盖率 39.84% (目标 60%+)
+# - 详见: story-8-7-progress-report.md
