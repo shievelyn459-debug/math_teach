@@ -35,3 +35,6 @@ coverage/
 # Package manager lock files (optional - uncomment if needed)
 # package-lock.json
 # yarn.lock
+
+# APK files
+*.apk
