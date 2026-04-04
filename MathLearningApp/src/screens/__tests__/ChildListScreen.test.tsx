@@ -5,11 +5,16 @@
 import React from 'react';
 import {render, fireEvent, waitFor} from '@testing-library/react-native';
 import {PaperProvider} from 'react-native-paper';
+import {Alert} from 'react-native';
 import ChildListScreen from '../ChildListScreen';
 import {Child, Grade} from '../../types';
 import {childApi} from '../../services/api';
 import {activeChildService} from '../../services/activeChildService';
 import {ActiveChildProvider} from '../../contexts/ActiveChildContext';
+
+// Mock FlatList and VirtualizedList to avoid state errors
+jest.mock('react-native/Libraries/Lists/FlatList', () => 'FlatList');
+jest.mock('react-native/Libraries/Lists/VirtualizedList', () => 'VirtualizedList');
 
 // Mock dependencies
 jest.mock('../../services/api', () => ({
@@ -51,6 +56,11 @@ jest.mock('@react-navigation/native', () => ({
   useFocusEffect: jest.fn((callback) => callback()),
 }));
 
+// Mock Alert
+jest.mock('react-native/Libraries/Alert/Alert', () => ({
+  alert: jest.fn(),
+}));
+
 describe('ChildListScreen', () => {
   const mockChildren: Child[] = [
     {
@@ -86,25 +96,29 @@ describe('ChildListScreen', () => {
   };
 
   describe('Component Rendering', () => {
-    it('should render the component without crashing', () => {
+    it('should render the component without crashing', async () => {
       (childApi.getChildren as jest.Mock).mockResolvedValue({
         success: true,
         data: [],
       });
 
       const {getByText} = renderWithProviders(<ChildListScreen route={{params: {}}} />);
-      expect(getByText('我的孩子')).toBeTruthy();
+      await waitFor(() => {
+        expect(getByText('我的孩子')).toBeTruthy();
+      });
     });
 
-    it('should render header correctly', () => {
+    it('should render header correctly', async () => {
       (childApi.getChildren as jest.Mock).mockResolvedValue({
         success: true,
         data: [],
       });
 
       const {getByText} = renderWithProviders(<ChildListScreen route={{params: {}}} />);
-      expect(getByText('我的孩子')).toBeTruthy();
-      expect(getByText('管理孩子的信息')).toBeTruthy();
+      await waitFor(() => {
+        expect(getByText('我的孩子')).toBeTruthy();
+        expect(getByText('管理孩子的信息')).toBeTruthy();
+      });
     });
   });
 
