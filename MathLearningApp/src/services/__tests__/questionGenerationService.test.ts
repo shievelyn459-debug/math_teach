@@ -144,6 +144,119 @@ describe('questionGenerationService', () => {
       });
     });
 
+    it('should generate word problem questions correctly', async () => {
+      const wordProblemQuestion: Question = {
+        ...baseQuestion,
+        type: QuestionType.WORD_PROBLEM,
+        content: '小明有5个苹果，妈妈又给了他3个，小明现在有几个苹果？',
+      };
+
+      const result = await questionGenerationService.generateSimilarQuestions(
+        wordProblemQuestion,
+        5,
+        Difficulty.MEDIUM
+      );
+
+      result.forEach(q => {
+        expect(q.type).toBe(QuestionType.WORD_PROBLEM);
+        expect(q.content).toBeDefined();
+        expect(q.answer).toBeDefined();
+      });
+    });
+
+    it('should generate subtraction questions with easy difficulty', async () => {
+      const subtractionQuestion: Question = {
+        ...baseQuestion,
+        type: QuestionType.SUBTRACTION,
+        content: '15 - 5 = ?',
+      };
+
+      const result = await questionGenerationService.generateSimilarQuestions(
+        subtractionQuestion,
+        5,
+        Difficulty.EASY
+      );
+
+      result.forEach(q => {
+        expect(q.type).toBe(QuestionType.SUBTRACTION);
+        expect(q.content).toMatch(/\d+ - \d+ = \?/);
+        const match = q.content.match(/(\d+) - (\d+)/);
+        if (match) {
+          const a = parseInt(match[1]);
+          const b = parseInt(match[2]);
+          expect(a).toBeGreaterThanOrEqual(1);
+          expect(a).toBeLessThanOrEqual(20);
+          expect(a).toBeGreaterThan(b); // 结果不为0
+        }
+      });
+    });
+
+    it('should generate subtraction questions with hard difficulty', async () => {
+      const subtractionQuestion: Question = {
+        ...baseQuestion,
+        type: QuestionType.SUBTRACTION,
+        content: '100 - 50 = ?',
+      };
+
+      const result = await questionGenerationService.generateSimilarQuestions(
+        subtractionQuestion,
+        5,
+        Difficulty.HARD
+      );
+
+      result.forEach(q => {
+        expect(q.type).toBe(QuestionType.SUBTRACTION);
+        const match = q.content.match(/(\d+) - (\d+)/);
+        if (match) {
+          const a = parseInt(match[1]);
+          const b = parseInt(match[2]);
+          expect(a).toBeGreaterThanOrEqual(1);
+          expect(a).toBeLessThanOrEqual(100);
+          expect(a).toBeGreaterThan(b);
+        }
+      });
+    });
+
+    it('should generate word problems with easy difficulty', async () => {
+      const wordProblemQuestion: Question = {
+        ...baseQuestion,
+        type: QuestionType.WORD_PROBLEM,
+        content: '小明有5个苹果，妈妈又给了他3个，小明现在有几个苹果？',
+      };
+
+      const result = await questionGenerationService.generateSimilarQuestions(
+        wordProblemQuestion,
+        5,
+        Difficulty.EASY
+      );
+
+      result.forEach(q => {
+        expect(q.type).toBe(QuestionType.WORD_PROBLEM);
+        expect(q.content).toBeDefined();
+        expect(q.answer).toBeDefined();
+      });
+    });
+
+    it('should generate word problems with hard difficulty', async () => {
+      const wordProblemQuestion: Question = {
+        ...baseQuestion,
+        type: QuestionType.WORD_PROBLEM,
+        content: '停车场有50辆车，开走了20辆，还剩几辆？',
+      };
+
+      const result = await questionGenerationService.generateSimilarQuestions(
+        wordProblemQuestion,
+        5,
+        Difficulty.HARD
+      );
+
+      result.forEach(q => {
+        expect(q.type).toBe(QuestionType.WORD_PROBLEM);
+        expect(q.content).toBeDefined();
+        expect(q.answer).toBeDefined();
+      });
+    });
+
     it('should validate answers for generated questions', async () => {
       const result = await questionGenerationService.generateSimilarQuestions(
         baseQuestion,

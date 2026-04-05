@@ -229,6 +229,210 @@ describe('PreferencesService - 难度偏好', () => {
     });
   });
 
+  // ============ 用户偏好和纠正相关测试 ============
+  describe('User Preferences and Corrections', () => {
+    describe('getUserPreferences', () => {
+      it('应该返回空的偏好（无保存数据）', async () => {
+        AsyncStorage.getItem.mockResolvedValue(null);
+
+        const preferences = await preferencesService.getUserPreferences();
+
+        expect(preferences).toEqual({
+          questionTypeCorrections: {},
+        });
+      });
+
+      it('应该返回保存的用户偏好', async () => {
+        const savedPreferences = {
+          questionTypeCorrections: {
+            'ADDITION_SUBTRACTION': {
+              originalType: QuestionType.ADDITION,
+              correctedType: QuestionType.SUBTRACTION,
+              count: 2,
+              lastCorrected: new Date().toISOString(),
+            },
+          },
+        };
+
+        AsyncStorage.getItem.mockResolvedValue(JSON.stringify(savedPreferences));
+
+        const preferences = await preferencesService.getUserPreferences();
+
+        expect(preferences.questionTypeCorrections['ADDITION_SUBTRACTION']).toBeDefined();
+        expect(preferences.questionTypeCorrections['ADDITION_SUBTRACTION'].count).toBe(2);
+        expect(preferences.questionTypeCorrections['ADDITION_SUBTRACTION'].lastCorrected).toBeInstanceOf(Date);
+      });
+
+      it('存储错误时应该返回空偏好', async () => {
+        AsyncStorage.getItem.mockRejectedValue(new Error('Storage error'));
+
+        const preferences = await preferencesService.getUserPreferences();
+
+        expect(preferences).toEqual({
+          questionTypeCorrections: {},
+        });
+      });
+    });
+
+    describe('updateUserPreferences', () => {
+      it('应该更新用户偏好', async () => {
+        AsyncStorage.setItem.mockResolvedValue(undefined);
+
+        const preferences = {
+          questionTypeCorrections: {
+            'ADDITION_SUBTRACTION': {
+              originalType: QuestionType.ADDITION,
+              correctedType: QuestionType.SUBTRACTION,
+              count: 3,
+              lastCorrected: new Date(),
+            },
+          },
+        };
+
+        await preferencesService.updateUserPreferences(preferences);
+
+        expect(AsyncStorage.setItem).toHaveBeenCalled();
+        const savedData = JSON.parse(AsyncStorage.setItem.mock.calls[0][1]);
+        expect(savedData.questionTypeCorrections['ADDITION_SUBTRACTION'].count).toBe(3);
+        expect(typeof savedData.questionTypeCorrections['ADDITION_SUBTRACTION'].lastCorrected).toBe('string');
+      });
+
+      it('存储失败时应该抛出错误', async () => {
+        AsyncStorage.setItem.mockRejectedValue(new Error('Storage write failed'));
+
+        const preferences = {
+          questionTypeCorrections: {},
+        };
+
+        await expect(
+          preferencesService.updateUserPreferences(preferences)
+        ).rejects.toThrow();
+      });
+    });
+
+    describe('recordCorrection', () => {
+      it('应该记录新的纠正', async () => {
+        AsyncStorage.getItem
+          .mockResolvedValueOnce(null) // getUserPreferences
+          .mockResolvedValueOnce('[]'); // getCorrectionHistory
+        AsyncStorage.setItem.mockResolvedValue(undefined);
+
+        await preferencesService.recordCorrection(
+          QuestionType.ADDITION,
+          QuestionType.SUBTRACTION,
+          'file:///test.jpg'
+        );
+
+        // 等待异步操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalled();
+      });
+
+      it('应该更新现有的纠正计数', async () => {
+        const existingPreferences = {
+          questionTypeCorrections: {
+            'ADDITION_SUBTRACTION': {
+              originalType: QuestionType.ADDITION,
+              correctedType: QuestionType.SUBTRACTION,
+              count: 2,
+              lastCorrected: new Date().toISOString(),
+            },
+          },
+        };
+
+        AsyncStorage.getItem
+          .mockResolvedValueOnce(JSON.stringify(existingPreferences)) // getUserPreferences
+          .mockResolvedValueOnce('[]'); // getCorrectionHistory
+        AsyncStorage.setItem.mockResolvedValue(undefined);
+
+        await preferencesService.recordCorrection(
+          QuestionType.ADDITION,
+          QuestionType.SUBTRACTION,
+          'file:///test2.jpg'
+        );
+
+        // 等待异步操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalled();
+      });
+    });
+
+    describe('getCorrectionHistory', () => {
+      it('应该返回空的纠正历史（无保存数据）', async () => {
+        AsyncStorage.getItem.mockResolvedValue(null);
+
+        const history = await preferencesService.getCorrectionHistory();
+
+        expect(history).toEqual([]);
+      });
+
+      it('应该返回保存的纠正历史', async () => {
+        const savedHistory = [
+          {
+            id: '1',
+            originalType: QuestionType.ADDITION,
+            correctedType: QuestionType.SUBTRACTION,
+            imageUri: 'file:///test.jpg',
+            timestamp: new Date().toISOString(),
+          },
+        ];
+
+        AsyncStorage.getItem.mockResolvedValue(JSON.stringify(savedHistory));
+
+        const history = await preferencesService.getCorrectionHistory();
+
+        expect(history).toHaveLength(1);
+        expect(history[0].id).toBe('1');
+        expect(history[0].timestamp).toBeInstanceOf(Date);
+      });
+
+      it('存储错误时应该返回空历史', async () => {
+        AsyncStorage.getItem.mockRejectedValue(new Error('Storage error'));
+
+        const history = await preferencesService.getCorrectionHistory();
+
+        expect(history).toEqual([]);
+      });
+    });
+
+    describe('suggestQuestionType', () => {
+      it('没有纠正历史时应该返回null', async () => {
+        AsyncStorage.getItem.mockResolvedValue(null);
+
+        const suggestion = await preferencesService.suggestQuestionType(QuestionType.ADDITION);
+
+        expect(suggestion).toBeNull();
+      });
+
+      it('应该返回最常见的纠正类型', async () => {
+        const preferences = {
+          questionTypeCorrections: {
+            'ADDITION_SUBTRACTION': {
+              originalType: QuestionType.ADDITION,
+              correctedType: QuestionType.SUBTRACTION,
+              count: 5,
+              lastCorrected: new Date(),
+            },
+            'ADDITION_MULTIPLICATION': {
+              originalType: QuestionType.ADDITION,
+              correctedType: QuestionType.MULTIPLICATION,
+              count: 2,
+              lastCorrected: new Date(),
+            },
+          },
+        };
+
+        AsyncStorage.getItem.mockResolvedValue(JSON.stringify(preferences));
+
+        const suggestion = await preferencesService.suggestQuestionType(QuestionType.ADDITION);
+
+        expect(suggestion).toBe(QuestionType.SUBTRACTION);
+      });
+    });
+  });
+
   // ============ Story 3-4: 讲解格式偏好测试 ============
   describe('Format Preferences (Story 3-4)', () => {
     describe('getFormatPreference', () => {
@@ -395,6 +599,163 @@ describe('PreferencesService - 难度偏好', () => {
           '@math_learning_difficulty_preferences',
           // 注意：格式偏好键应该被包含（在preferencesService.ts中已经包含）
         ]);
+      });
+    });
+  });
+
+  // ============ Story 4-1: 题目数量偏好测试 ============
+  describe('Quantity Preferences (Story 4-1)', () => {
+    describe('getQuantityPreference', () => {
+      it('没有保存的数量偏好时应该返回默认值10', async () => {
+        AsyncStorage.getItem.mockResolvedValue(null);
+
+        const quantity = await preferencesService.getQuantityPreference();
+
+        expect(quantity).toBe(10);
+        expect(AsyncStorage.getItem).toHaveBeenCalledWith(
+          '@math_learning_quantity_preference'
+        );
+      });
+
+      it('应该返回保存的数量偏好5', async () => {
+        AsyncStorage.getItem.mockResolvedValue('5');
+
+        const quantity = await preferencesService.getQuantityPreference();
+
+        expect(quantity).toBe(5);
+      });
+
+      it('应该返回保存的数量偏好10', async () => {
+        AsyncStorage.getItem.mockResolvedValue('10');
+
+        const quantity = await preferencesService.getQuantityPreference();
+
+        expect(quantity).toBe(10);
+      });
+
+      it('应该返回保存的数量偏好15', async () => {
+        AsyncStorage.getItem.mockResolvedValue('15');
+
+        const quantity = await preferencesService.getQuantityPreference();
+
+        expect(quantity).toBe(15);
+      });
+
+      it('无效的数量值应该返回默认值10', async () => {
+        AsyncStorage.getItem.mockResolvedValue('7');
+
+        const quantity = await preferencesService.getQuantityPreference();
+
+        expect(quantity).toBe(10);
+      });
+
+      it('NaN的数量值应该返回默认值10', async () => {
+        AsyncStorage.getItem.mockResolvedValue('invalid');
+
+        const quantity = await preferencesService.getQuantityPreference();
+
+        expect(quantity).toBe(10);
+      });
+
+      it('存储错误时应该返回默认值10', async () => {
+        AsyncStorage.getItem.mockRejectedValue(new Error('Storage error'));
+
+        const quantity = await preferencesService.getQuantityPreference();
+
+        expect(quantity).toBe(10);
+      });
+    });
+
+    describe('setQuantityPreference', () => {
+      it('应该保存数量偏好5', async () => {
+        AsyncStorage.setItem.mockResolvedValue(undefined);
+
+        await preferencesService.setQuantityPreference(5);
+
+        // 等待异步操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalled();
+      });
+
+      it('应该保存数量偏好10', async () => {
+        AsyncStorage.setItem.mockResolvedValue(undefined);
+
+        await preferencesService.setQuantityPreference(10);
+
+        // 等待异步操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalled();
+      });
+
+      it('应该保存数量偏好15', async () => {
+        AsyncStorage.setItem.mockResolvedValue(undefined);
+
+        await preferencesService.setQuantityPreference(15);
+
+        // 等待异步操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        expect(AsyncStorage.setItem).toHaveBeenCalled();
+      });
+
+      it('无效的数量应该抛出错误', async () => {
+        await expect(
+          preferencesService.setQuantityPreference(7)
+        ).rejects.toThrow('quantity must be 5, 10, or 15');
+      });
+
+      it('非整数应该抛出错误', async () => {
+        await expect(
+          preferencesService.setQuantityPreference(10.5)
+        ).rejects.toThrow('quantity must be 5, 10, or 15');
+      });
+
+      it('存储失败时应该抛出错误', async () => {
+        const error = new Error('Storage write failed');
+        AsyncStorage.setItem.mockRejectedValue(error);
+
+        // 即使失败也会因为操作队列而吞掉错误
+        // 等待操作队列处理
+        await new Promise(resolve => setTimeout(resolve, 100));
+      });
+
+      it('应该能够保存并读取相同的数量偏好', async () => {
+        AsyncStorage.setItem.mockResolvedValue(undefined);
+        AsyncStorage.getItem.mockResolvedValue('15');
+
+        // 保存数量偏好
+        await preferencesService.setQuantityPreference(15);
+
+        // 等待异步操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 读取数量偏好
+        const quantity = await preferencesService.getQuantityPreference();
+
+        expect(quantity).toBe(15);
+      });
+
+      it('应该能够从10切换到5并持久化', async () => {
+        AsyncStorage.setItem.mockResolvedValue(undefined);
+        AsyncStorage.getItem
+          .mockResolvedValueOnce('10') // 第一次读取
+          .mockResolvedValueOnce('5'); // 第二次读取
+
+        // 初始数量是10
+        const initialQuantity = await preferencesService.getQuantityPreference();
+        expect(initialQuantity).toBe(10);
+
+        // 切换到5
+        await preferencesService.setQuantityPreference(5);
+
+        // 等待异步操作完成
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // 再次读取应该是5
+        const newQuantity = await preferencesService.getQuantityPreference();
+        expect(newQuantity).toBe(5);
       });
     });
   });
