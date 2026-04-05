@@ -97,8 +97,9 @@ describe('EditProfileScreen (Story 1-4)', () => {
       const {getByTestId} = render(<EditProfileScreen />);
       const saveButton = getByTestId('save-button');
 
-      // Check if button is disabled (undefined or true both mean disabled)
-      expect(saveButton.props.disabled === true || saveButton.props.disabled === undefined).toBe(true);
+      // Button should be strictly disabled when there are no changes
+      // Check both disabled prop and accessibility state
+      expect(saveButton.props.disabled || saveButton.props.accessibilityState?.disabled).toBe(true);
     });
 
     it('更改后保存按钮应启用', () => {

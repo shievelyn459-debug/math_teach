@@ -21,32 +21,9 @@ jest.mock('../../services/performanceTracker', () => ({
     startTracking: jest.fn(),
     endTracking: jest.fn(),
     setStage: jest.fn(),
-  },
-}));
-
-// Mock ProcessingStage enum
-jest.mock('../../services/performanceTracker', () => ({
-  ProcessingStage: {
-    IDLE: 'idle',
-    UPLOADING: 'uploading',
-    RECOGNIZING: 'recognizing',
-    CORRECTION: 'correction',
-    DIFFICULTY_SELECTION: 'difficulty_selection',
-    GENERATING: 'generating',
-    COMPLETED: 'completed',
-    ERROR: 'error',
-  },
-  performanceTracker: {
-    getElapsedTime: jest.fn(() => 5000),
-    getCurrentStage: jest.fn(() => 'recognizing'),
-    startTracking: jest.fn(),
-    endTracking: jest.fn(),
-    setStage: jest.fn(),
-    estimateRemainingTime: jest.fn(() => 15000),
+    estimateRemainingTime: jest.fn(() => 3000),
     shouldShowWarning: jest.fn(() => false),
   },
-  WARNING_THRESHOLD: 25000,
-  TOTAL_TIMEOUT: 30000,
 }));
 
 describe('ProcessingProgress', () => {

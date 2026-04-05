@@ -30,6 +30,22 @@ jest.mock('react-native/Libraries/Utilities/Platform', () => ({
   select: jest.fn(),
 }));
 
+// Mock FlatList to avoid VirtualizedList state issues and render items
+jest.mock('react-native/Libraries/Lists/FlatList', () => {
+  const React = require('react');
+  return function MockFlatList(props: any) {
+    const { data, renderItem, ListEmptyComponent } = props;
+    if (!data || data.length === 0) {
+      return ListEmptyComponent ? React.createElement(ListEmptyComponent) : null;
+    }
+    return React.createElement(
+      'View',
+      { testID: 'flat-list' },
+      data.map((item: any, index: number) => renderItem({ item, index }))
+    );
+  };
+});
+
 import { pdfService } from '../../services/pdfService';
 
 const mockPDFs = [

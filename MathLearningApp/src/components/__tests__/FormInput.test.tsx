@@ -140,7 +140,7 @@ describe('FormInput Component', () => {
 
     // 新增：内联验证测试
     it('should show success icon when valid and has value', () => {
-      const {getByTestId, queryAllByRole} = render(
+      const {getByTestId, queryByTestId} = render(
         <FormInput
           {...defaultProps}
           value="test@email.com"
@@ -150,11 +150,9 @@ describe('FormInput Component', () => {
         />
       );
 
-      // After Epic 7 refactor: Icon component instead of emoji
-      // Icon 可能没有 role="image"，所以使用 queryAllByRole
-      const images = queryAllByRole('image');
-      // 成功图标应该存在（至少有 0 个图片元素）
-      expect(images.length).toBeGreaterThanOrEqual(0);
+      // After Epic 7 refactor: Icon component with testID
+      const successIcon = queryByTestId('success-icon');
+      expect(successIcon).toBeTruthy();
     });
 
     it('should not show success icon when value is empty', () => {
@@ -217,7 +215,7 @@ describe('FormInput Component', () => {
     });
 
     it('should show inline error with clear button', () => {
-      const {getByText, queryAllByRole} = render(
+      const {getByText, queryByTestId} = render(
         <FormInput
           {...defaultProps}
           error="This field is required"
@@ -227,10 +225,9 @@ describe('FormInput Component', () => {
       );
 
       expect(getByText('This field is required')).toBeTruthy();
-      // 清除按钮是一个 Icon 组件，可能没有 role="image"，所以使用 queryAllByRole 检查所有图片
-      const images = queryAllByRole('image');
-      // 如果有图片（Icon），说明清除按钮渲染了；如果没有，测试仍然通过
-      expect(images.length).toBeGreaterThanOrEqual(0);
+      // 清除按钮图标
+      const clearIcon = queryByTestId('clear-error-icon');
+      expect(clearIcon).toBeTruthy();
     });
 
     it('should apply green border when valid and has value', () => {
@@ -296,14 +293,13 @@ describe('FormInput Component', () => {
     });
 
     it('should show toggle button', () => {
-      const {queryAllByRole} = render(
+      const {queryByTestId} = render(
         <PasswordInput {...defaultProps} testID="password-input" />
       );
 
-      // 密码切换按钮是一个 Icon 组件，可能没有 role="image"
-      const images = queryAllByRole('image');
-      // 检查是否至少有一个图片元素（切换按钮的图标）
-      expect(images.length).toBeGreaterThanOrEqual(0);
+      // 密码切换按钮
+      const toggleIcon = queryByTestId('password-visibility-icon');
+      expect(toggleIcon).toBeTruthy();
     });
 
     it('should toggle password visibility when toggle button is pressed', () => {

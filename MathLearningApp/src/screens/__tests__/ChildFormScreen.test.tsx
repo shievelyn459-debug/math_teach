@@ -2,24 +2,36 @@
  * Story 1-5: ChildFormScreen Tests
  */
 
-import React from 'react';
-import {render, fireEvent, waitFor} from '@testing-library/react-native';
-import {PaperProvider} from 'react-native-paper';
-import ChildFormScreen from '../ChildFormScreen';
-import {Child, Grade} from '../../types';
-import {childApi} from '../../services/api';
+// Mock Platform and Alert FIRST before any imports
+jest.mock('react-native', () => {
+  const RN = jest.requireActual('react-native');
+  return {
+    ...RN,
+    Platform: {
+      OS: 'ios',
+      Version: '14.0',
+      select: jest.fn((obj: any) => obj.ios || obj.default || obj.android),
+    },
+    Alert: {
+      alert: jest.fn(),
+    },
+  };
+});
 
 // Mock react-native-paper before importing
 jest.mock('react-native-paper', () => ({
   PaperProvider: ({children}) => children,
+  useTheme: () => ({
+    colors: {
+      primary: '#007bff',
+      background: '#ffffff',
+      surface: '#ffffff',
+      error: '#f44336',
+      text: '#000000',
+      placeholder: '#999999',
+    },
+  }),
 }));
-
-// Mock Platform for shadows
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  RN.Platform.select = jest.fn((obj) => obj.android || obj.default || obj.ios);
-  return RN;
-});
 
 // Mock dependencies
 jest.mock('../../services/api', () => ({
@@ -54,6 +66,17 @@ jest.mock('../../services/activeChildService', () => {
         Grade.GRADE_5,
         Grade.GRADE_6,
       ]),
+      getGradeDisplayName: jest.fn((grade: any) => {
+        const names = {
+          [Grade.GRADE_1]: '一年级',
+          [Grade.GRADE_2]: '二年级',
+          [Grade.GRADE_3]: '三年级',
+          [Grade.GRADE_4]: '四年级',
+          [Grade.GRADE_5]: '五年级',
+          [Grade.GRADE_6]: '六年级',
+        };
+        return names[grade] || grade;
+      }),
     },
   };
 });
@@ -65,11 +88,14 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
-jest.mock('react-native', () => ({
-  Alert: {
-    alert: jest.fn(),
-  },
-}));
+// Now import everything AFTER mocks are set up
+import React from 'react';
+import {render, fireEvent, waitFor} from '@testing-library/react-native';
+import {Alert} from 'react-native';
+import {PaperProvider} from 'react-native-paper';
+import ChildFormScreen from '../ChildFormScreen';
+import {Child, Grade} from '../../types';
+import {childApi} from '../../services/api';
 
 describe('ChildFormScreen', () => {
   const mockChild: Child = {

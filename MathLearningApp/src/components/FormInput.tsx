@@ -95,7 +95,13 @@ export const FormInput: React.FC<FormInputProps> = ({
                 验证中...
               </Typography>
             ) : valid ? (
-              <Icon name="check" size="sm" color={designSystem.colors.success.default} />
+              <Icon
+                name="check"
+                size="sm"
+                color={designSystem.colors.success.default}
+                testID="success-icon"
+                accessibilityLabel="输入验证成功"
+              />
             ) : null}
           </View>
         )}
@@ -107,7 +113,13 @@ export const FormInput: React.FC<FormInputProps> = ({
             {error}
           </Typography>
           <TouchableOpacity onPress={onClearError} style={styles.clearErrorButton}>
-            <Icon name="close" size="sm" color={theme.colors.primary} />
+            <Icon
+              name="close"
+              size="sm"
+              color={theme.colors.primary}
+              testID="clear-error-icon"
+              accessibilityLabel="清除错误"
+            />
           </TouchableOpacity>
         </View>
       )}
@@ -168,11 +180,14 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
         <TouchableOpacity
           onPress={togglePasswordVisibility}
           style={styles.toggleButton}
+          testID="password-visibility-toggle"
           hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
           <Icon
             name={secureTextEntry ? 'visibility' : 'visibility-off'}
             size="sm"
             color={theme.colors.primary}
+            testID="password-visibility-icon"
+            accessibilityLabel={secureTextEntry ? '显示密码' : '隐藏密码'}
           />
         </TouchableOpacity>
       </View>

@@ -45,6 +45,16 @@ jest.mock('../../services/preferencesService', () => ({
 }));
 
 jest.mock('../../services/performanceTracker', () => ({
+  ProcessingStage: {
+    IDLE: 'idle',
+    UPLOADING: 'uploading',
+    RECOGNIZING: 'recognizing',
+    CORRECTION: 'correction',
+    DIFFICULTY_SELECTION: 'difficulty_selection',
+    GENERATING: 'generating',
+    COMPLETED: 'completed',
+    ERROR: 'error',
+  },
   performanceTracker: {
     startSession: jest.fn(),
     recordStage: jest.fn(),
