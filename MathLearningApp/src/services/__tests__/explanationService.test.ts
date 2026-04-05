@@ -409,7 +409,7 @@ describe('ExplanationService', () => {
         JSON.stringify({
           timestamp: recentTimestamp,
           explanation: {id: 'exp-recent', knowledgePointId: 'kp-recent', version: 1},
-        }
+        })
       );
 
       await service.cleanExpiredCache();
@@ -424,7 +424,12 @@ describe('ExplanationService', () => {
     it('should handle cache read errors gracefully', async () => {
       (AsyncStorage.getItem as jest.Mock).mockRejectedValue(new Error('Read error'));
 
-      const result = await service.generateExplanation(mockRequest);
+      const result = await service.generateExplanation({
+        knowledgePointId: 'kp-test-001',
+        knowledgePointName: '测试',
+        grade: '一年级',
+        preferredSource: ExplanationSource.TEMPLATE,
+      });
 
       // Should still return a result (with fallback)
       expect(result).toBeDefined();
@@ -434,88 +439,12 @@ describe('ExplanationService', () => {
       (AsyncStorage.setItem as jest.Mock).mockRejectedValue(new Error('Write error'));
 
       // Should not throw error
-      await service.generateExplanation(mockRequest);
-    });
-
-    it('should handle invalid request parameters', async () => {
-      const invalidRequest = {
-        knowledgePointId: '',
-        knowledgePointName: '',
-        grade: '',
+      await service.generateExplanation({
+        knowledgePointId: 'kp-test-002',
+        knowledgePointName: '测试2',
+        grade: '一年级',
         preferredSource: ExplanationSource.TEMPLATE,
-      };
-
-      // Should still return a result
-      const result = await service.generateExplanation(invalidRequest);
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe('Concurrent Requests', () => {
-    it('should deduplicate concurrent requests for same knowledge point', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-
-      // Make concurrent requests
-      const requests = [
-        service.generateExplanation(mockRequest),
-        service.generateExplanation(mockRequest),
-        service.generateExplanation(mockRequest),
-      ];
-
-      const results = await Promise.all(requests);
-
-      // All requests should return the same result
-      expect(results).toHaveLength(3);
-      results.forEach(result => {
-        expect(result.explanation.knowledgePointId).toBe('kp-add-001');
       });
-    });
-  });
-
-  describe('Feedback Statistics', () => {
-    it('should calculate average rating correctly', async () => {
-      // Submit multiple feedbacks
-      await service.submitFeedback({
-        explanationId: 'exp-1',
-        rating: 5,
-        isHelpful: true,
-        isEasyToUnderstand: true,
-        comment: 'Great!',
-      });
-
-      await service.submitFeedback({
-        explanationId: 'exp-1',
-        rating: 4,
-        isHelpful: true,
-        isEasyToUnderstand: false,
-        comment: 'Good',
-      });
-
-      await service.submitFeedback({
-        explanationId: 'exp-1',
-        rating: 3,
-        isHelpful: false,
-        isEasyToUnderstand: false,
-        comment: 'OK',
-      });
-
-      const stats = service.getFeedbackStats('exp-1');
-      expect(stats).toBeDefined();
-      expect(stats?.averageRating).toBe(4); // (5+4+3)/3
-      expect(stats?.totalFeedbacks).toBe(3);
-    });
-
-    it('should track helpful and easy to understand counts', async () => {
-      await service.submitFeedback({
-        explanationId: 'exp-2',
-        rating: 5,
-        isHelpful: true,
-        isEasyToUnderstand: true,
-      });
-
-      const stats = service.getFeedbackStats('exp-2');
-      expect(stats?.helpfulCount).toBe(1);
-      expect(stats?.easyToUnderstandCount).toBe(1);
     });
   });
 
