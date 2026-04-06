@@ -78,7 +78,7 @@ const CameraScreen = () => {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const tourTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
-  const hasProcessedImageRef = useRef(false);
+  const lastProcessedUriRef = useRef<string | null>(null);
 
   // 默认一年级（可以根据用户设置调整）
   const gradeLevel = 1;
@@ -174,10 +174,10 @@ const CameraScreen = () => {
 
     if (
       params?.selectedImageUri &&
-      !hasProcessedImageRef.current &&
+      params.selectedImageUri !== lastProcessedUriRef.current &&
       !isRecognizing
     ) {
-      hasProcessedImageRef.current = true;
+      lastProcessedUriRef.current = params.selectedImageUri;
       setPreselectedImage({
         uri: params.selectedImageUri,
         base64: params.selectedImageBase64,
@@ -215,6 +215,9 @@ const CameraScreen = () => {
       performanceTracker.markError('处理图片失败');
       setError('处理图片失败，请重试');
       setIsTakingPicture(false);
+    } finally {
+      // 处理完成后重置，允许下一张图片被处理
+      lastProcessedUriRef.current = null;
     }
   };
 
@@ -948,7 +951,7 @@ const CameraScreen = () => {
                   setCurrentImageUri('');
                   setRecognitionResult(null);
                   setError(null);
-                  hasProcessedImageRef.current = false;
+                  lastProcessedUriRef.current = null;
                 }}>
                 <Icon name="close" size="md" color={designSystem.colors.text.inverse} />
                 <Spacer size="sm" direction="horizontal" />
