@@ -56,31 +56,55 @@ class BaiduOcrService {
     try {
       const url = `${BAIDU_OCR_CONFIG.tokenURL}?grant_type=client_credentials&client_id=${BAIDU_OCR_CONFIG.apiKey}&client_secret=${BAIDU_OCR_CONFIG.secretKey}`;
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const tokenController = new AbortController();
+      const tokenTimeoutId = setTimeout(() => {
+        tokenController.abort();
+        console.error('[BaiduOcrService] Token request aborted due to timeout');
+      }, AI_TIMEOUTS.baiduOcrToken);
 
-      if (!response.ok) {
-        throw new Error(`Token request failed: ${response.status}`);
+      try {
+        console.log('[BaiduOcrService] Fetching token from:', url.substring(0, 80) + '...');
+        const fetchPromise = fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: tokenController.signal,
+        });
+
+        const response = await fetchPromise;
+        clearTimeout(tokenTimeoutId);
+        console.log('[BaiduOcrService] Token response received, status:', response.status);
+
+        if (!response.ok) {
+          const responseText = await response.text();
+          console.error('[BaiduOcrService] Token response body:', responseText);
+          throw new Error(`Token request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('[BaiduOcrService] Token response parsed, has error:', !!data.error);
+
+        if (data.error) {
+          throw new Error(`Token error: ${data.error_description}`);
+        }
+
+        // 保存token（有效期减去5分钟缓冲）
+        this.tokenInfo = {
+          access_token: data.access_token,
+          expires_at: Date.now() + (data.expires_in - 300) * 1000,
+        };
+
+        console.log('[BaiduOcrService] New access token obtained, expires in:', data.expires_in, 'seconds');
+        return this.tokenInfo.access_token;
+      } catch (tokenError: any) {
+        clearTimeout(tokenTimeoutId);
+        console.error('[BaiduOcrService] Token fetch error:', tokenError.name, tokenError.message);
+        if (tokenError.name === 'AbortError') {
+          throw new Error('获取百度OCR Token超时，请检查网络连接');
+        }
+        throw tokenError;
       }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(`Token error: ${data.error_description}`);
-      }
-
-      // 保存token（有效期减去5分钟缓冲）
-      this.tokenInfo = {
-        access_token: data.access_token,
-        expires_at: Date.now() + (data.expires_in - 300) * 1000,
-      };
-
-      console.log('[BaiduOcrService] New access token obtained');
-      return this.tokenInfo.access_token;
     } catch (error) {
       console.error('[BaiduOcrService] Failed to get access token:', error);
       throw error;

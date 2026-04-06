@@ -93,7 +93,8 @@ export const RATE_LIMITS = {
  * Timeout configuration (milliseconds)
  */
 export const AI_TIMEOUTS = {
-  baiduOcr: 10000,       // 10 seconds for Baidu OCR
+  baiduOcr: 30000,       // 30 seconds for Baidu OCR (token fetch + recognition)
+  baiduOcrToken: 15000,  // 15 seconds for Baidu OCR token fetch
   deepseek: 25000,       // 25 seconds for DeepSeek
   openai: {
     vision: 15000,
