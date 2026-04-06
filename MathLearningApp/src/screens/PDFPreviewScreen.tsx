@@ -9,9 +9,12 @@ import {
   useWindowDimensions,
   Dimensions,
 } from 'react-native';
-import {Pdf} from 'react-native-pdf';
+import Pdf from 'react-native-pdf';
 import {StackNavigationProp} from '@react-navigation/native-stack';
 import {RouteProp} from '@react-navigation/native';
+
+// Safe Pdf wrapper - react-native-pdf native component may not be available
+const SafePdf = Pdf || (() => null);
 
 import FilenameDialog from '../components/FilenameDialog';
 import PDFActionButtons from '../components/PDFActionButtons';
@@ -100,7 +103,7 @@ const PDFPreviewScreen: React.FC<Props> = ({route, navigation}) => {
       // 获取文件大小
       const RNFS = require('react-native-fs');
       const fileInfo = await RNFS.stat(savedPath);
-      setFileSize(fileInfo.size || 0);
+      setFileSize(fileInfo?.size || 0);
 
       setSavedFilePath(savedPath);
       setShowSuccess(true);
@@ -212,7 +215,7 @@ const PDFPreviewScreen: React.FC<Props> = ({route, navigation}) => {
       <Icon
         name="check-circle"
         size="xxl"
-        color={designSystem.colors.success.main}
+        color={designSystem.colors.success.default}
       />
       <Spacer size="lg" />
       <Typography variant="displaySmall" align="center">
@@ -309,7 +312,7 @@ const PDFPreviewScreen: React.FC<Props> = ({route, navigation}) => {
       <Icon
         name="error"
         size="xxl"
-        color={designSystem.colors.error.main}
+        color={designSystem.colors.error.default}
       />
       <Spacer size="lg" />
       <Typography variant="displaySmall" align="center">
@@ -350,7 +353,7 @@ const PDFPreviewScreen: React.FC<Props> = ({route, navigation}) => {
       return (
         <View style={styles.landscapeContainer}>
           <View style={styles.landscapePdfContainer}>
-            <Pdf
+            <SafePdf
               source={{uri: `file://${pdfPath}`}}
               style={styles.landscapePdf}
               onLoadComplete={handleLoadComplete}
@@ -400,7 +403,7 @@ const PDFPreviewScreen: React.FC<Props> = ({route, navigation}) => {
     // 竖屏布局：PDF在上，按钮在下
     return (
       <>
-        <Pdf
+        <SafePdf
           source={{uri: `file://${pdfPath}`}}
           style={styles.pdf}
           onLoadComplete={handleLoadComplete}
@@ -485,7 +488,7 @@ const styles = StyleSheet.create({
   },
   landscapePdfContainer: {
     flex: 0.6,
-    backgroundColor: designSystem.colors.surface.inverse,
+    backgroundColor: designSystem.colors.surface.overlay,
   },
   landscapePdf: {
     flex: 1,
@@ -539,13 +542,13 @@ const styles = StyleSheet.create({
     padding: designSystem.spacing.md,
     marginTop: designSystem.spacing.md,
     borderWidth: 1,
-    borderColor: designSystem.colors.warning.border,
+    borderColor: designSystem.colors.warning.dark,
   },
   dismissErrorButton: {
     alignSelf: 'flex-start',
     paddingVertical: designSystem.spacing.xs,
     paddingHorizontal: designSystem.spacing.md,
-    backgroundColor: designSystem.colors.warning.main,
+    backgroundColor: designSystem.colors.warning.default,
     borderRadius: designSystem.borderRadius.sm,
   },
 });

@@ -209,6 +209,12 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
       return;
     }
 
+    // 如果没有 baseQuestion 且没有预加载题目，无法生成
+    if (!baseQuestion && !hasPreloadedQuestions) {
+      setError('无法生成题目：缺少基础题目信息');
+      return;
+    }
+
     const count = quantity || selectedQuantity;
     setIsGenerating(true);
     setError(null);
@@ -238,17 +244,17 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
           id: 'base',
           title: '基础题目',
           content: '',
-          type: baseQuestion.type as any,
-          difficulty: baseQuestion.difficulty,
+          type: (baseQuestion?.type || questionType || QuestionType.ADDITION) as any,
+          difficulty: baseQuestion?.difficulty || initialDifficulty || Difficulty.MEDIUM,
           grade: 1,
           knowledgePoint: '',
           explanation: '',
           answer: '',
           createdAt: new Date(),
-          userId: baseQuestion.userId,
+          userId: baseQuestion?.userId || '',
         },
         count,
-        baseQuestion.difficulty
+        baseQuestion?.difficulty || initialDifficulty || Difficulty.MEDIUM
       );
 
       // 清理 interval
@@ -353,7 +359,7 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
       const metadata: PDFMetadata = {
         title: '一年级数学练习题',
         date: new Date().toISOString().split('T')[0],
-        difficulty: baseQuestion.difficulty,
+        difficulty: baseQuestion?.difficulty || initialDifficulty || questions[0]?.difficulty || Difficulty.MEDIUM,
       };
 
       const pdfPath = await pdfService.generateQuestionsPDF(questions, metadata);
@@ -362,7 +368,7 @@ const GeneratedQuestionsList: React.FC<Props> = ({route, navigation}) => {
       navigation.navigate('PDFPreview', {
         pdfPath,
         questionCount: questions.length,
-        difficulty: baseQuestion.difficulty,
+        difficulty: metadata.difficulty,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '生成 PDF 失败';
