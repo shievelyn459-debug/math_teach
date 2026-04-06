@@ -77,10 +77,11 @@ class AIService {
         // 使用百度OCR的解析功能
         return baiduOcrService.parseMathQuestion(result.text);
       } catch (error) {
-        console.error('[AIService] Baidu OCR failed:', error);
+        console.error('[AIService] Baidu accurate OCR failed:', error);
 
-        // 如果是超时或网络错误，直接抛给用户，不降级
+        // 超时或网络错误：网络不通，跳过再次尝试百度，直接抛出快速响应
         if (error.message && (error.message.includes('超时') || error.message.includes('网络'))) {
+          console.log('[AIService] Network issue detected, skipping fallback to avoid double timeout');
           throw error;
         }
 

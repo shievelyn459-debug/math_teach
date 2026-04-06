@@ -1,0 +1,45 @@
+69793c3dbc91cb6322fca436449c72c0
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.KnowledgePointCategory = void 0;
+function cov_26vea0wg1u() {
+  var path = "/Users/evelynshi/math_teach/MathLearningApp/src/types/knowledgePoint.ts";
+  var hash = "822a5d93d2bd16b06a17c1bfcd49e12eab1d0ef4";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/evelynshi/math_teach/MathLearningApp/src/types/knowledgePoint.ts",
+    statementMap: {},
+    fnMap: {},
+    branchMap: {},
+    s: {},
+    f: {},
+    b: {},
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "822a5d93d2bd16b06a17c1bfcd49e12eab1d0ef4"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    cov_26vea0wg1u = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_26vea0wg1u();
+var KnowledgePointCategory = exports.KnowledgePointCategory = function (KnowledgePointCategory) {
+  KnowledgePointCategory["NUMBER_RECOGNITION"] = "number_recognition";
+  KnowledgePointCategory["ADDITION"] = "addition";
+  KnowledgePointCategory["SUBTRACTION"] = "subtraction";
+  KnowledgePointCategory["WORD_PROBLEM"] = "word_problem";
+  KnowledgePointCategory["GEOMETRY"] = "geometry";
+  KnowledgePointCategory["MEASUREMENT"] = "measurement";
+  KnowledgePointCategory["OTHER"] = "other";
+  return KnowledgePointCategory;
+}({});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJLbm93bGVkZ2VQb2ludENhdGVnb3J5IiwiZXhwb3J0cyJdLCJzb3VyY2VzIjpbImtub3dsZWRnZVBvaW50LnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICog55+l6K+G54K55YiG57G75p6a5Li+XG4gKiDln7rkuo7kuK3lm73kuIDlubTnuqfmlbDlrabor77nqIvmoIflh4ZcbiAqL1xuZXhwb3J0IGVudW0gS25vd2xlZGdlUG9pbnRDYXRlZ29yeSB7XG4gIE5VTUJFUl9SRUNPR05JVElPTiA9ICdudW1iZXJfcmVjb2duaXRpb24nLCAvLyDmlbDnmoTorqTor4ZcbiAgQURESVRJT04gPSAnYWRkaXRpb24nLCAvLyDliqDms5Xov5DnrpdcbiAgU1VCVFJBQ1RJT04gPSAnc3VidHJhY3Rpb24nLCAvLyDlh4/ms5Xov5DnrpdcbiAgV09SRF9QUk9CTEVNID0gJ3dvcmRfcHJvYmxlbScsIC8vIOW6lOeUqOmimFxuICBHRU9NRVRSWSA9ICdnZW9tZXRyeScsIC8vIOWbvuW9ouiupOivhlxuICBNRUFTVVJFTUVOVCA9ICdtZWFzdXJlbWVudCcsIC8vIOa1i+mHj++8iOiupOivhumSn+ihqOOAgeS6uuawkeW4ge+8iVxuICBPVEhFUiA9ICdvdGhlcicsIC8vIOWFtuS7luexu+Wei1xufVxuXG4vKipcbiAqIOefpeivhueCueaOpeWPo1xuICovXG5leHBvcnQgaW50ZXJmYWNlIEtub3dsZWRnZVBvaW50IHtcbiAgaWQ6IHN0cmluZzsgLy8g55+l6K+G54K55ZSv5LiA5qCH6K+GXG4gIG5hbWU6IHN0cmluZzsgLy8g55+l6K+G54K55ZCN56ew77yM5aaCIFwiMTDku6XlhoXliqDms5VcIlxuICBjYXRlZ29yeTogS25vd2xlZGdlUG9pbnRDYXRlZ29yeTsgLy8g5omA5bGe5YiG57G7XG4gIGdyYWRlOiBzdHJpbmc7IC8vIOmAgueUqOW5tOe6p++8jOWmgiBcIuS4gOW5tOe6p1wiXG4gIGtleXdvcmRzOiBzdHJpbmdbXTsgLy8g5Yy56YWN5YWz6ZSu6K+N5YiX6KGoXG4gIGRlc2NyaXB0aW9uOiBzdHJpbmc7IC8vIOWutumVv+WPi+WlveeahOaPj+i/sOivtOaYjlxuICBleGFtcGxlczogc3RyaW5nW107IC8vIOekuuS+i+mimOebrlxuICBjb25maWRlbmNlVGhyZXNob2xkOiBudW1iZXI7IC8vIOacgOS9jue9ruS/oeW6pumYiOWAvCAoMC0xKVxufVxuXG4vKipcbiAqIOefpeivhueCueWMuemFjee7k+aenFxuICovXG5leHBvcnQgaW50ZXJmYWNlIEtub3dsZWRnZVBvaW50TWF0Y2hSZXN1bHQge1xuICBrbm93bGVkZ2VQb2ludDogS25vd2xlZGdlUG9pbnQ7IC8vIOWMuemFjeWIsOeahOefpeivhueCuVxuICBjb25maWRlbmNlOiBudW1iZXI7IC8vIOe9ruS/oeW6piAoMC0xKVxuICBtYXRjaGVkS2V5d29yZHM6IHN0cmluZ1tdOyAvLyDljLnphY3liLDnmoTlhbPplK7or43liJfooahcbn1cblxuLyoqXG4gKiDnn6Xor4bngrnor4bliKvnu5PmnpxcbiAqL1xuZXhwb3J0IGludGVyZmFjZSBLbm93bGVkZ2VQb2ludFJlY29nbml0aW9uUmVzdWx0IHtcbiAga25vd2xlZGdlUG9pbnRzOiBLbm93bGVkZ2VQb2ludE1hdGNoUmVzdWx0W107IC8vIOivhuWIq+WHuueahOefpeivhueCueWIl+ihqO+8iOWPr+iDveacieWkmuS4qu+8iVxuICBwcmltYXJ5S25vd2xlZGdlUG9pbnQ6IEtub3dsZWRnZVBvaW50TWF0Y2hSZXN1bHQ7IC8vIOS4u+imgeefpeivhueCue+8iOe9ruS/oeW6puacgOmrmOeahO+8iVxuICBmYWxsYmFja1VzZWQ6IGJvb2xlYW47IC8vIOaYr+WQpuS9v+eUqOS6humZjee6p+WkhOeQhlxufVxuIl0sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7SUFJWUEsc0JBQXNCLEdBQUFDLE9BQUEsQ0FBQUQsc0JBQUEsYUFBdEJBLHNCQUFzQjtFQUF0QkEsc0JBQXNCO0VBQXRCQSxzQkFBc0I7RUFBdEJBLHNCQUFzQjtFQUF0QkEsc0JBQXNCO0VBQXRCQSxzQkFBc0I7RUFBdEJBLHNCQUFzQjtFQUF0QkEsc0JBQXNCO0VBQUEsT0FBdEJBLHNCQUFzQjtBQUFBIiwiaWdub3JlTGlzdCI6W119

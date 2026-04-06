@@ -6,6 +6,8 @@
  */
 
 import {DEEPSEEK_CONFIG, RATE_LIMITS, AI_TIMEOUTS, estimateCost} from '../../config/aiConfig';
+import {NativeModules} from 'react-native';
+const {NativeHttp} = NativeModules;
 
 // Types for API responses
 export interface GeneratedQuestion {
@@ -208,21 +210,18 @@ class DeepSeekService {
         requestBody.response_format = responseFormat;
       }
 
-      const response = await fetch(`${DEEPSEEK_CONFIG.baseURL}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEEPSEEK_CONFIG.apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
+      const response = await NativeHttp.postWithAuth(
+        `${DEEPSEEK_CONFIG.baseURL}/chat/completions`,
+        JSON.stringify(requestBody),
+        'application/json',
+        `Bearer ${DEEPSEEK_CONFIG.apiKey}`,
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`DeepSeek API error ${response.status}: ${errorText}`);
+      if (response.status !== 200) {
+        throw new Error(`DeepSeek API error ${response.status}: ${response.body}`);
       }
 
-      const data = await response.json();
+      const data = JSON.parse(response.body);
       this.tracker.recordRequest(data.usage?.total_tokens || 0);
 
       // 记录成本估算

@@ -1,0 +1,147 @@
+8bf498886d2d9830b6036856853c0ab4
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.SUPPORTED_LANGUAGES = exports.DIFFICULTY_LEVELS = void 0;
+exports.isValidDifficulty = isValidDifficulty;
+exports.isValidLanguage = isValidLanguage;
+function cov_wce3bf0ko() {
+  var path = "/Users/evelynshi/math_teach/MathLearningApp/src/utils/constants.ts";
+  var hash = "9ccda51a444c5cb5010b190f42a1b9353ea257f9";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/evelynshi/math_teach/MathLearningApp/src/utils/constants.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 10,
+          column: 35
+        },
+        end: {
+          line: 10,
+          column: 71
+        }
+      },
+      "1": {
+        start: {
+          line: 16,
+          column: 33
+        },
+        end: {
+          line: 16,
+          column: 68
+        }
+      },
+      "2": {
+        start: {
+          line: 25,
+          column: 2
+        },
+        end: {
+          line: 25,
+          column: 69
+        }
+      },
+      "3": {
+        start: {
+          line: 34,
+          column: 2
+        },
+        end: {
+          line: 34,
+          column: 67
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "isValidLanguage",
+        decl: {
+          start: {
+            line: 24,
+            column: 16
+          },
+          end: {
+            line: 24,
+            column: 31
+          }
+        },
+        loc: {
+          start: {
+            line: 24,
+            column: 81
+          },
+          end: {
+            line: 26,
+            column: 1
+          }
+        },
+        line: 24
+      },
+      "1": {
+        name: "isValidDifficulty",
+        decl: {
+          start: {
+            line: 33,
+            column: 16
+          },
+          end: {
+            line: 33,
+            column: 33
+          }
+        },
+        loc: {
+          start: {
+            line: 33,
+            column: 85
+          },
+          end: {
+            line: 35,
+            column: 1
+          }
+        },
+        line: 33
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {},
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "9ccda51a444c5cb5010b190f42a1b9353ea257f9"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    cov_wce3bf0ko = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_wce3bf0ko();
+var SUPPORTED_LANGUAGES = exports.SUPPORTED_LANGUAGES = (cov_wce3bf0ko().s[0]++, ['zh-CN', 'en-US', 'es-ES']);
+var DIFFICULTY_LEVELS = exports.DIFFICULTY_LEVELS = (cov_wce3bf0ko().s[1]++, ['easy', 'medium', 'hard']);
+function isValidLanguage(language) {
+  cov_wce3bf0ko().f[0]++;
+  cov_wce3bf0ko().s[2]++;
+  return SUPPORTED_LANGUAGES.includes(language);
+}
+function isValidDifficulty(difficulty) {
+  cov_wce3bf0ko().f[1]++;
+  cov_wce3bf0ko().s[3]++;
+  return DIFFICULTY_LEVELS.includes(difficulty);
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJTVVBQT1JURURfTEFOR1VBR0VTIiwiZXhwb3J0cyIsImNvdl93Y2UzYmYwa28iLCJzIiwiRElGRklDVUxUWV9MRVZFTFMiLCJpc1ZhbGlkTGFuZ3VhZ2UiLCJsYW5ndWFnZSIsImYiLCJpbmNsdWRlcyIsImlzVmFsaWREaWZmaWN1bHR5IiwiZGlmZmljdWx0eSJdLCJzb3VyY2VzIjpbImNvbnN0YW50cy50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKipcbiAqIOW6lOeUqOW4uOmHj+WumuS5iVxuICpcbiAqIFN0b3J5IDYtMiBQMeS/ruWkjSAtIOaVsOaNrumqjOivgeW4uOmHj1xuICovXG5cbi8qKlxuICog5pSv5oyB55qE6K+t6KiA5YiX6KGoXG4gKi9cbmV4cG9ydCBjb25zdCBTVVBQT1JURURfTEFOR1VBR0VTID0gWyd6aC1DTicsICdlbi1VUycsICdlcy1FUyddIGFzIGNvbnN0O1xuZXhwb3J0IHR5cGUgU3VwcG9ydGVkTGFuZ3VhZ2UgPSB0eXBlb2YgU1VQUE9SVEVEX0xBTkdVQUdFU1tudW1iZXJdO1xuXG4vKipcbiAqIOmavuW6pue6p+WIq+WIl+ihqFxuICovXG5leHBvcnQgY29uc3QgRElGRklDVUxUWV9MRVZFTFMgPSBbJ2Vhc3knLCAnbWVkaXVtJywgJ2hhcmQnXSBhcyBjb25zdDtcbmV4cG9ydCB0eXBlIERpZmZpY3VsdHlMZXZlbCA9IHR5cGVvZiBESUZGSUNVTFRZX0xFVkVMU1tudW1iZXJdO1xuXG4vKipcbiAqIOmqjOivgeivreiogOS7o+eggVxuICogQHBhcmFtIGxhbmd1YWdlIOivreiogOS7o+eggVxuICogQHJldHVybnMg5piv5ZCm5pyJ5pWIXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBpc1ZhbGlkTGFuZ3VhZ2UobGFuZ3VhZ2U6IHN0cmluZyk6IGxhbmd1YWdlIGlzIFN1cHBvcnRlZExhbmd1YWdlIHtcbiAgcmV0dXJuIFNVUFBPUlRFRF9MQU5HVUFHRVMuaW5jbHVkZXMobGFuZ3VhZ2UgYXMgU3VwcG9ydGVkTGFuZ3VhZ2UpO1xufVxuXG4vKipcbiAqIOmqjOivgemavuW6pue6p+WIq1xuICogQHBhcmFtIGRpZmZpY3VsdHkg6Zq+5bqm57qn5YirXG4gKiBAcmV0dXJucyDmmK/lkKbmnInmlYhcbiAqL1xuZXhwb3J0IGZ1bmN0aW9uIGlzVmFsaWREaWZmaWN1bHR5KGRpZmZpY3VsdHk6IHN0cmluZyk6IGRpZmZpY3VsdHkgaXMgRGlmZmljdWx0eUxldmVsIHtcbiAgcmV0dXJuIERJRkZJQ1VMVFlfTEVWRUxTLmluY2x1ZGVzKGRpZmZpY3VsdHkgYXMgRGlmZmljdWx0eUxldmVsKTtcbn1cbiJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQVNPLElBQU1BLG1CQUFtQixHQUFBQyxPQUFBLENBQUFELG1CQUFBLElBQUFFLGFBQUEsR0FBQUMsQ0FBQSxPQUFHLENBQUMsT0FBTyxFQUFFLE9BQU8sRUFBRSxPQUFPLENBQUMsQ0FBUztBQU1oRSxJQUFNQyxpQkFBaUIsR0FBQUgsT0FBQSxDQUFBRyxpQkFBQSxJQUFBRixhQUFBLEdBQUFDLENBQUEsT0FBRyxDQUFDLE1BQU0sRUFBRSxRQUFRLEVBQUUsTUFBTSxDQUFDLENBQVM7QUFRN0QsU0FBU0UsZUFBZUEsQ0FBQ0MsUUFBZ0IsRUFBaUM7RUFBQUosYUFBQSxHQUFBSyxDQUFBO0VBQUFMLGFBQUEsR0FBQUMsQ0FBQTtFQUMvRSxPQUFPSCxtQkFBbUIsQ0FBQ1EsUUFBUSxDQUFDRixRQUE2QixDQUFDO0FBQ3BFO0FBT08sU0FBU0csaUJBQWlCQSxDQUFDQyxVQUFrQixFQUFpQztFQUFBUixhQUFBLEdBQUFLLENBQUE7RUFBQUwsYUFBQSxHQUFBQyxDQUFBO0VBQ25GLE9BQU9DLGlCQUFpQixDQUFDSSxRQUFRLENBQUNFLFVBQTZCLENBQUM7QUFDbEUiLCJpZ25vcmVMaXN0IjpbXX0=

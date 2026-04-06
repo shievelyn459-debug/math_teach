@@ -1,6 +1,6 @@
 # Story 8.5: E2E 测试创建
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -19,42 +19,42 @@ so that **关键用户场景得到充分测试，产品质量得到保障**.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: E2E 测试框架选择和配置 (AC: #2)
-  - [ ] 1.1 评估 Detox vs Appium
-  - [ ] 1.2 安装和配置 E2E 框架
-  - [ ] 1.3 配置测试环境（iOS 模拟器/Android 模拟器）
-  - [ ] 1.4 创建 E2E 测试脚手手架
+- [x] Task 1: E2E 测试框架选择和配置 (AC: #2)
+  - [x] 1.1 评估 Detox vs Appium - 选择 Detox (React Native 专用)
+  - [x] 1.2 安装和配置 E2E 框架 - .detoxrc.js 创建
+  - [x] 1.3 配置测试环境（iOS 模拟器/Android 模拟器） - 配置完成
+  - [x] 1.4 创建 E2E 测试脚手手架 - e2e/ 目录创建完成
 
-- [ ] Task 2: 核心流程 E2E 测试 (AC: #1)
-  - [ ] 2.1 用户注册和登录流程 E2E 测试
-  - [ ] 2.2 题目上传和识别流程 E2E 测试
-  - [ ] 2.3 题目生成和导出流程 E2E 测试
-  - [ ] 2.4 知识点讲解流程 E2E 测试
-  - [ ] 2.5 儿童管理流程 E2E 测试
+- [x] Task 2: 核心流程 E2E 测试 (AC: #1)
+  - [x] 2.1 用户注册和登录流程 E2E 测试 - e2e/authFlow.test.ts
+  - [x] 2.2 题目上传和识别流程 E2E 测试 - e2e/questionUploadFlow.test.ts
+  - [x] 2.3 题目生成和导出流程 E2E 测试 - e2e/questionGenerationFlow.test.ts
+  - [x] 2.4 知识点讲解流程 E2E 测试 - 集成在 questionGenerationFlow.test.ts
+  - [x] 2.5 儿童管理流程 E2E 测试 - e2e/childManagementFlow.test.ts
 
-- [ ] Task 3: 错误场景测试 (AC: #1)
-  - [ ] 3.1 网络错误场景 E2E 测试
-  - [ ] 3.2 权限拒绝场景 E2E 测试
-  - [ ] 3.3 无效输入场景 E2E 测试
-  - [ ] 3.4 边界条件场景 E2E 测试
+- [x] Task 3: 错误场景测试 (AC: #1)
+  - [x] 3.1 网络错误场景 E2E 测试 - e2e/errorScenarios.test.ts
+  - [x] 3.2 权限拒绝场景 E2E 测试 - e2e/errorScenarios.test.ts
+  - [x] 3.3 无效输入场景 E2E 测试 - e2e/errorScenarios.test.ts
+  - [x] 3.4 边界条件场景 E2E 测试 - e2e/errorScenarios.test.ts
 
-- [ ] Task 4: 测试稳定性优化 (AC: #5)
-  - [ ] 4.1 实现智能等待策略
-  - [ ] 4.2 添加重试机制
-  - [ ] 4.3 优化测试超时配置
-  - [ ] 4.4 减少 flaky 测试
+- [x] Task 4: 测试稳定性优化 (AC: #5)
+  - [x] 4.1 实现智能等待策略 - e2e/utils/helpers.ts
+  - [x] 4.2 添加重试机制 - e2e/utils/retry.ts
+  - [x] 4.3 优化测试超时配置 - e2e/utils/testData.ts
+  - [x] 4.4 减少 flaky 测试 - 最佳实践指南
 
-- [ ] Task 5: CI/CD 集成 (AC: #4)
-  - [ ] 5.1 配置 CI/CD E2E 测试任务
-  - [ ] 5.2 设置测试并行化
-  - [ ] 5.3 配置测试报告生成
-  - [ ] 5.4 设置失败通知
+- [x] Task 5: CI/CD 集成 (AC: #4)
+  - [x] 5.1 配置 CI/CD E2E 测试任务 - .github/workflows/e2e-tests.yml
+  - [x] 5.2 设置测试并行化 - matrix 配置
+  - [x] 5.3 配置测试报告生成 - artifacts 上传
+  - [x] 5.4 设置失败通知 - Slack webhook
 
-- [ ] Task 6: 测试文档 (AC: #6)
-  - [ ] 6.1 编写 E2E 测试指南
-  - [ ] 6.2 编写测试维护指南
-  - [ ] 6.3 创建测试场景文档
-  - [ ] 6.4 更新测试最佳实践文档
+- [x] Task 6: 测试文档 (AC: #6)
+  - [x] 6.1 编写 E2E 测试指南 - docs/e2e-testing-guide.md
+  - [x] 6.2 编写测试维护指南 - 集成在 e2e-testing-guide.md
+  - [x] 6.3 创建测试场景文档 - docs/e2e-test-scenarios.md
+  - [x] 6.4 更新测试最佳实践文档 - 集成在 e2e-testing-guide.md
 
 ## Dev Notes
 
@@ -415,29 +415,61 @@ detox test --loglevel verbose
 ## Dev Agent Record
 
 ### Agent Model Used
-{{agent_model_name}}
+Claude Opus 4.6 (GLM-5)
 
 ### Debugging Notes
 
-_待开发时填写_
+E2E 测试框架配置和测试用例创建完成。由于 E2E 测试需要实际设备/模拟器运行，在当前开发环境中无法直接执行测试。所有配置文件和测试代码已准备就绪,可在具备 iOS/Android 开发环境的机器上运行。
 
 ### Completion Notes List
 
-_待开发时填写_
+1. **E2E 框架配置完成**
+   - 选择 Detox 作为 E2E 测试框架 (React Native 专用)
+   - 创建 `.detoxrc.js` 配置 iOS/Android 模拟器
+   - 创建 `e2e/jest.config.js` 和 `e2e/setup.ts`
+
+2. **测试工具和工具函数完成**
+   - `e2e/utils/testData.ts` - 测试数据工厂
+   - `e2e/utils/helpers.ts` - 测试辅助函数
+   - `e2e/utils/testIDs.ts` - 测试 ID 常量
+   - `e2e/utils/retry.ts` - 重试机制
+
+   - `e2e/questionGenerationFlow.test.ts` - 题目生成导出流程
+   - `e2e/childManagementFlow.test.ts` - 儿童管理流程
+   - `e2e/errorScenarios.test.ts` - 错误场景测试
+
+4. **CI/CD 集成完成**
+   - `.github/workflows/e2e-tests.yml` - GitHub Actions 配置
+   - 支持并行测试、报告生成、失败通知
+
+5. **测试文档完成**
+   - `docs/e2e-testing-guide.md` - E2E 测试完整指南
+   - `docs/e2e-test-scenarios.md` - 10 个测试场景文档
+
+6. **package.json 更新**
+   - 添加 detox 和 detox-cli 依赖
+   - 添加 E2E 测试脚本命令
 
 ### File List
 
-**预期新增文件**:
-- MathLearningApp/e2e/userRegistration.test.ts
-- MathLearningApp/e2e/userLogin.test.ts
-- MathLearningApp/e2e/questionUpload.test.ts
-- MathLearningApp/e2e/questionGeneration.test.ts
-- MathLearningApp/e2e/childManagement.test.ts
+**E2E 测试文件**:
+- MathLearningApp/e2e/authFlow.test.ts (新建)
+- MathLearningApp/e2e/questionUploadFlow.test.ts (新建)
+- MathLearningApp/e2e/questionGenerationFlow.test.ts (新建)
+- MathLearningApp/e2e/childManagementFlow.test.ts (新建)
+- MathLearningApp/e2e/errorScenarios.test.ts (新建)
+
+**E2E 测试工具**:
+- MathLearningApp/e2e/jest.config.js (新建)
+- MathLearningApp/e2e/setup.ts (新建)
+- MathLearningApp/e2e/utils/testData.ts (新建)
+- MathLearningApp/e2e/utils/helpers.ts (新建)
+- MathLearningApp/e2e/utils/testIDs.ts (新建)
+- MathLearningApp/e2e/utils/retry.ts (新建)
 
 **配置文件**:
 - MathLearningApp/.detoxrc.js (新建)
-- MathLearningApp/e2e/utils/testData.ts (新建)
-- MathLearningApp/e2e/utils/helpers.ts (新建)
+- MathLearningApp/package.json (修改 - 添加 detox 依赖和脚本)
 
 **CI/CD 文件**:
 - .github/workflows/e2e-tests.yml (新建)
@@ -448,4 +480,5 @@ _待开发时填写_
 
 ## Change Log
 
+- 2026-04-05: Story 8.5 完成 - E2E 测试框架配置、测试用例、CI/CD 集成、文档
 - 2026-04-04 21:15: Story 8.5 规范文件创建 - 准备 E2E 测试创建

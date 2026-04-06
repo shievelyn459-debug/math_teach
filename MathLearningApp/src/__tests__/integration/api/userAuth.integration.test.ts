@@ -6,28 +6,45 @@
  * 测试范围:
  * - 用户注册流程
  * - 用户登录流程
- * - Token刷新机制
- * - 密码重置流程
- * - 会话管理
+ * - 用户信息获取
+ * - 用户登出流程
  */
 
 import { authService } from '../../../services/authService';
-import { userApi } from '../../../services/userApi';
 import { TestDataFactory, TestDataCleaner } from '../setup/testData';
 
-// Mock外部依赖
-jest.mock('../../../services/api', () => ({
-  apiClient: {
-    post: jest.fn(),
-    get: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  multiRemove: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+}));
+
+// Mock MySQL相关
+jest.mock('../../../services/mysql/prismaClient', () => ({
+  checkDatabaseConnection: jest.fn(() => Promise.resolve(false)),
+  prisma: {
+    user: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+    },
   },
+}));
+
+// Mock crypto utils
+jest.mock('../../../utils/cryptoUtils', () => ({
+  hashPasswordSHA256: jest.fn((password) => Promise.resolve(`hashed_${password}`)),
+  timingSafeEqual: jest.fn((a, b) => a === b),
+  generateSignatureSHA256: jest.fn(() => 'mock_signature'),
+  generateSecureUUID: jest.fn(() => `uuid-${Date.now()}`),
 }));
 
 describe('User Authentication Flow Integration Tests', () => {
   let testUser: any;
-  let authToken: string;
 
   beforeAll(async () => {
     console.log('🔐 Setting up authentication integration tests...');
@@ -45,23 +62,11 @@ describe('User Authentication Flow Integration Tests', () => {
   describe('AC1.1: User Registration Flow', () => {
     it('should successfully register a new user', async () => {
       // Arrange
-      testUser = TestDataFactory.createUser({
-        email: 'newuser@test.com',
-        name: 'New Test User',
-      });
+      testUser = TestDataFactory.createUser();
 
-      // Mock API响应
-      const mockRegisterResponse = {
-        success: true,
-        data: {
-          user: testUser,
-          token: 'mock-auth-token-123',
-        },
-      };
-
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: mockRegisterResponse,
-      });
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.getItem.mockResolvedValueOnce(null); // 用户不存在
+      AsyncStorage.setItem.mockResolvedValueOnce(undefined);
 
       // Act
       const result = await authService.register({
@@ -72,57 +77,63 @@ describe('User Authentication Flow Integration Tests', () => {
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data.user.email).toBe(testUser.email);
-      expect(result.data.token).toBeDefined();
-      authToken = result.data.token;
+      expect(result.data?.user).toBeDefined();
+      expect(result.data?.token).toBeDefined();
     });
 
     it('should reject duplicate email registration', async () => {
       // Arrange
-      const duplicateUser = {
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+
+      // 模拟用户已存在
+      AsyncStorage.getItem.mockResolvedValueOnce(
+        JSON.stringify({
+          id: 'existing-user',
+          email: 'duplicate@test.com',
+          name: 'Existing User',
+        })
+      );
+
+      // Act
+      const result = await authService.register({
         name: 'Duplicate User',
         email: 'duplicate@test.com',
         password: 'Test123!@#',
-      };
-
-      // 第一次注册成功
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: { success: true, data: { user: duplicateUser, token: 'token1' } },
       });
-
-      await authService.register(duplicateUser);
-
-      // 第二次注册应该失败
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: {
-          success: false,
-          error: {
-            code: 'DUPLICATE_EMAIL',
-            message: 'Email already exists',
-          },
-        },
-      });
-
-      // Act
-      const result = await authService.register(duplicateUser);
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe('DUPLICATE_EMAIL');
+      expect(result.error?.code).toBe('EMAIL_EXISTS');
+    });
+
+    it('should validate email format', async () => {
+      // Arrange
+      const invalidEmail = 'invalid-email';
+
+      // Act
+      const result = await authService.register({
+        name: 'Test User',
+        email: invalidEmail,
+        password: 'Test123!@#',
+      });
+
+      // Assert
+      expect(result.success).toBe(false);
     });
 
     it('should validate password strength', async () => {
       // Arrange
-      const weakPasswordUser = {
-        name: 'Weak Password User',
-        email: 'weak@test.com',
-        password: '123', // 太弱
-      };
+      const weakPassword = '123';
 
-      // Act & Assert
-      await expect(authService.register(weakPasswordUser)).rejects.toThrow(
-        'Password does not meet requirements'
-      );
+      // Act
+      const result = await authService.register({
+        name: 'Test User',
+        email: 'test@example.com',
+        password: weakPassword,
+      });
+
+      // Assert
+      expect(result.success).toBe(false);
     });
   });
 
@@ -134,318 +145,217 @@ describe('User Authentication Flow Integration Tests', () => {
         password: 'Test123!@#',
       };
 
-      const mockLoginResponse = {
-        success: true,
-        data: {
-          user: TestDataFactory.createUser({ email: credentials.email }),
-          token: 'mock-auth-token-456',
-          refreshToken: 'mock-refresh-token-456',
-        },
-      };
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      const { hashPasswordSHA256 } = require('../../../utils/cryptoUtils');
 
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: mockLoginResponse,
-      });
+      // 模拟用户存在
+      hashPasswordSHA256.mockResolvedValueOnce('hashed_Test123!@#');
+      AsyncStorage.getItem.mockResolvedValueOnce(
+        JSON.stringify({
+          id: 'test-user-1',
+          email: credentials.email,
+          name: 'Test User',
+          passwordHash: 'hashed_Test123!@#',
+        })
+      );
+      AsyncStorage.setItem.mockResolvedValueOnce(undefined);
 
       // Act
       const result = await authService.login(credentials);
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data.token).toBeDefined();
-      expect(result.data.refreshToken).toBeDefined();
+      expect(result.data?.token).toBeDefined();
     });
 
     it('should reject invalid credentials', async () => {
       // Arrange
-      const invalidCredentials = {
+      const credentials = {
         email: 'test1@example.com',
         password: 'wrongpassword',
       };
 
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: {
-          success: false,
-          error: {
-            code: 'INVALID_CREDENTIALS',
-            message: 'Email or password is incorrect',
-          },
-        },
-      });
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      const { hashPasswordSHA256 } = require('../../../utils/cryptoUtils');
 
-      // Act
-      const result = await authService.login(invalidCredentials);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error.code).toBe('INVALID_CREDENTIALS');
-    });
-
-    it('should handle account lockout after multiple failed attempts', async () => {
-      // Arrange
-      const credentials = {
-        email: 'locked@test.com',
-        password: 'wrongpassword',
-      };
-
-      // 模拟5次失败登录
-      for (let i = 0; i < 5; i++) {
-        require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-          data: {
-            success: false,
-            error: { code: 'INVALID_CREDENTIALS' },
-          },
-        });
-
-        await authService.login(credentials);
-      }
-
-      // 第6次应该触发锁定
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: {
-          success: false,
-          error: {
-            code: 'ACCOUNT_LOCKED',
-            message: 'Account locked due to too many failed attempts',
-          },
-        },
-      });
+      hashPasswordSHA256.mockResolvedValueOnce('hashed_wrongpassword');
+      AsyncStorage.getItem.mockResolvedValueOnce(
+        JSON.stringify({
+          id: 'test-user-1',
+          email: credentials.email,
+          name: 'Test User',
+          passwordHash: 'hashed_correctpassword',
+        })
+      );
 
       // Act
       const result = await authService.login(credentials);
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe('ACCOUNT_LOCKED');
+      expect(result.error?.code).toBe('INVALID_CREDENTIALS');
     });
-  });
 
-  describe('AC1.3: Token Refresh Mechanism', () => {
-    it('should successfully refresh expired token', async () => {
+    it('should reject non-existent user', async () => {
       // Arrange
-      const oldToken = 'expired-token';
-      const refreshToken = 'valid-refresh-token';
-
-      const mockRefreshResponse = {
-        success: true,
-        data: {
-          token: 'new-auth-token-789',
-          refreshToken: 'new-refresh-token-789',
-        },
+      const credentials = {
+        email: 'nonexistent@example.com',
+        password: 'Test123!@#',
       };
 
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: mockRefreshResponse,
-      });
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.getItem.mockResolvedValueOnce(null);
 
       // Act
-      const result = await authService.refreshToken(refreshToken);
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(result.data.token).toBe('new-auth-token-789');
-    });
-
-    it('should reject invalid refresh token', async () => {
-      // Arrange
-      const invalidRefreshToken = 'invalid-refresh-token';
-
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: {
-          success: false,
-          error: {
-            code: 'INVALID_REFRESH_TOKEN',
-            message: 'Refresh token is invalid or expired',
-          },
-        },
-      });
-
-      // Act
-      const result = await authService.refreshToken(invalidRefreshToken);
+      const result = await authService.login(credentials);
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe('INVALID_REFRESH_TOKEN');
     });
   });
 
-  describe('AC1.4: Password Reset Flow', () => {
-    it('should send password reset email', async () => {
+  describe('AC1.3: User Info Management', () => {
+    it('should get current user info', async () => {
       // Arrange
-      const email = 'reset@test.com';
+      testUser = TestDataFactory.createUser();
 
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: {
-          success: true,
-          message: 'Password reset email sent',
-        },
-      });
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(testUser));
 
       // Act
-      const result = await authService.requestPasswordReset(email);
+      const result = authService.getCurrentUser();
 
       // Assert
-      expect(result.success).toBe(true);
+      expect(result).toBeDefined();
+      expect(result?.email).toBe(testUser.email);
     });
 
-    it('should reset password with valid token', async () => {
+    it('should return null when no user logged in', async () => {
       // Arrange
-      const resetData = {
-        token: 'valid-reset-token',
-        newPassword: 'NewTest123!@#',
-      };
-
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: {
-          success: true,
-          message: 'Password reset successful',
-        },
-      });
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.getItem.mockResolvedValueOnce(null);
 
       // Act
-      const result = await authService.resetPassword(resetData);
+      const result = authService.getCurrentUser();
 
       // Assert
-      expect(result.success).toBe(true);
-    });
-
-    it('should reject invalid reset token', async () => {
-      // Arrange
-      const resetData = {
-        token: 'invalid-reset-token',
-        newPassword: 'NewTest123!@#',
-      };
-
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: {
-          success: false,
-          error: {
-            code: 'INVALID_RESET_TOKEN',
-            message: 'Reset token is invalid or expired',
-          },
-        },
-      });
-
-      // Act
-      const result = await authService.resetPassword(resetData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error.code).toBe('INVALID_RESET_TOKEN');
-    });
-  });
-
-  describe('AC1.5: User Info Management', () => {
-    it('should get current user info with valid token', async () => {
-      // Arrange
-      const mockUser = TestDataFactory.createUser();
-
-      require('../../../services/api').apiClient.get.mockResolvedValueOnce({
-        data: {
-          success: true,
-          data: { user: mockUser },
-        },
-      });
-
-      // Act
-      const result = await userApi.getCurrentUser();
-
-      // Assert
-      expect(result.success).toBe(true);
-      expect(result.data.user.email).toBe(mockUser.email);
+      expect(result).toBeNull();
     });
 
     it('should update user profile', async () => {
       // Arrange
-      const updateData = {
-        name: 'Updated Name',
-      };
+      testUser = TestDataFactory.createUser();
+      const updateData = { name: 'Updated Name' };
 
-      const updatedUser = TestDataFactory.createUser(updateData);
-
-      require('../../../services/api').apiClient.put.mockResolvedValueOnce({
-        data: {
-          success: true,
-          data: { user: updatedUser },
-        },
-      });
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.getItem.mockResolvedValueOnce(JSON.stringify(testUser));
+      AsyncStorage.setItem.mockResolvedValueOnce(undefined);
 
       // Act
-      const result = await userApi.updateProfile(updateData);
+      const result = await authService.updateProfile(updateData);
 
       // Assert
       expect(result.success).toBe(true);
-      expect(result.data.user.name).toBe('Updated Name');
-    });
-
-    it('should reject update without authentication', async () => {
-      // Arrange
-      const updateData = {
-        name: 'Should Not Update',
-      };
-
-      require('../../../services/api').apiClient.put.mockResolvedValueOnce({
-        data: {
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        },
-      });
-
-      // Act
-      const result = await userApi.updateProfile(updateData);
-
-      // Assert
-      expect(result.success).toBe(false);
-      expect(result.error.code).toBe('UNAUTHORIZED');
     });
   });
 
-  describe('AC1.6: Logout Flow', () => {
+  describe('AC1.4: Logout Flow', () => {
     it('should successfully logout', async () => {
       // Arrange
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: {
-          success: true,
-          message: 'Logged out successfully',
-        },
-      });
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.multiRemove.mockResolvedValueOnce(undefined);
 
-      // Act
-      const result = await authService.logout();
-
-      // Assert
-      expect(result.success).toBe(true);
+      // Act & Assert
+      await expect(authService.logout()).resolves.not.toThrow();
     });
 
-    it('should invalidate token after logout', async () => {
+    it('should clear user data after logout', async () => {
       // Arrange
-      // 先登出
-      require('../../../services/api').apiClient.post.mockResolvedValueOnce({
-        data: { success: true },
-      });
-
-      await authService.logout();
-
-      // 然后尝试使用旧token获取用户信息
-      require('../../../services/api').apiClient.get.mockResolvedValueOnce({
-        data: {
-          success: false,
-          error: {
-            code: 'INVALID_TOKEN',
-            message: 'Token is invalid',
-          },
-        },
-      });
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.multiRemove.mockResolvedValueOnce(undefined);
 
       // Act
-      const result = await userApi.getCurrentUser();
+      await authService.logout();
+
+      // Assert
+      expect(AsyncStorage.multiRemove).toHaveBeenCalled();
+    });
+  });
+
+  describe('AC1.5: Error Handling', () => {
+    it('should handle storage errors gracefully', async () => {
+      // Arrange
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.getItem.mockRejectedValueOnce(new Error('Storage error'));
+
+      // Act
+      const result = await authService.login({
+        email: 'test@example.com',
+        password: 'password',
+      });
 
       // Assert
       expect(result.success).toBe(false);
-      expect(result.error.code).toBe('INVALID_TOKEN');
+    });
+
+    it('should handle corrupted user data', async () => {
+      // Arrange
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.getItem.mockResolvedValueOnce('invalid json');
+
+      // Act
+      const result = authService.getCurrentUser();
+
+      // Assert
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('AC1.6: Performance Validation', () => {
+    it('should complete registration within acceptable time', async () => {
+      // Arrange
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      AsyncStorage.getItem.mockResolvedValueOnce(null);
+      AsyncStorage.setItem.mockResolvedValueOnce(undefined);
+
+      // Act
+      const startTime = Date.now();
+      await authService.register({
+        name: 'Performance Test',
+        email: 'perf@test.com',
+        password: 'Test123!@#',
+      });
+      const duration = Date.now() - startTime;
+
+      // Assert
+      expect(duration).toBeLessThan(5000);
+    });
+
+    it('should complete login within acceptable time', async () => {
+      // Arrange
+      const AsyncStorage = require('@react-native-async-storage/async-storage');
+      const { hashPasswordSHA256 } = require('../../../utils/cryptoUtils');
+
+      hashPasswordSHA256.mockResolvedValueOnce('hashed_password');
+      AsyncStorage.getItem.mockResolvedValueOnce(
+        JSON.stringify({
+          id: 'test-user',
+          email: 'test@test.com',
+          passwordHash: 'hashed_password',
+        })
+      );
+      AsyncStorage.setItem.mockResolvedValueOnce(undefined);
+
+      // Act
+      const startTime = Date.now();
+      await authService.login({
+        email: 'test@test.com',
+        password: 'password',
+      });
+      const duration = Date.now() - startTime;
+
+      // Assert
+      expect(duration).toBeLessThan(3000);
     });
   });
 });

@@ -8,7 +8,7 @@ apply plugin: "com.facebook.react"
  */
 project.ext.react = [
     enableHermes: true,  // Use Hermes engine
-    bundleInDebug: false, // Use Metro server for debug builds
+    bundleInDebug: true, // Bundle JS for standalone APK
     bundleInRelease: true, // Bundle JS in release builds
 ]
 
@@ -88,6 +88,10 @@ android {
         // Resolve react-native-camera flavor ambiguity
         missingDimensionStrategy 'react-native-camera', 'general'
 
+        // Detox test instrumentation runner
+        testBuildType System.getProperty('testBuildType', 'debug')
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
         // 从.env文件读取API密钥并添加到BuildConfig
         def configVars = [
             'BAIDU_OCR_API_KEY',
@@ -134,6 +138,11 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // Detox E2E testing dependencies
+    androidTestImplementation('com.wix:detox:+')
+    androidTestImplementation 'androidx.test:runner:1.4.0'
+    androidTestImplementation 'androidx.test:rules:1.4.0'
 }
 
 apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)

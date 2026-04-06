@@ -1,0 +1,58 @@
+f4fafccf67d0e46422a4d583f44bca69
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+function cov_zew9458ir() {
+  var path = "/Users/evelynshi/math_teach/MathLearningApp/src/config/runtimeConfig.ts";
+  var hash = "362ddc6daf265d334e6fe16426aefaeff10d5bac";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/Users/evelynshi/math_teach/MathLearningApp/src/config/runtimeConfig.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 7,
+          column: 15
+        },
+        end: {
+          line: 15,
+          column: 1
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0
+    },
+    f: {},
+    b: {},
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "362ddc6daf265d334e6fe16426aefaeff10d5bac"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    cov_zew9458ir = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_zew9458ir();
+var config = (cov_zew9458ir().s[0]++, {
+  BAIDU_OCR_API_KEY: 'qgHDk2wOdQDXrK9irn8R0oPI',
+  BAIDU_OCR_SECRET_KEY: 'XqEOZZpKmPIMcNWoWBDOwfDyixtf6q25',
+  DEEPSEEK_API_KEY: 'sk-c3d1ff257a304d638ab9bf7f2ab9f2c2',
+  OCR_PROVIDER: 'baidu',
+  GENERATION_PROVIDER: 'deepseek',
+  ENABLE_AI_GENERATION: 'true',
+  USE_LOCAL_FALLBACK: 'true'
+});
+var _default = exports.default = config;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb25maWciLCJjb3ZfemV3OTQ1OGlyIiwicyIsIkJBSURVX09DUl9BUElfS0VZIiwiQkFJRFVfT0NSX1NFQ1JFVF9LRVkiLCJERUVQU0VFS19BUElfS0VZIiwiT0NSX1BST1ZJREVSIiwiR0VORVJBVElPTl9QUk9WSURFUiIsIkVOQUJMRV9BSV9HRU5FUkFUSU9OIiwiVVNFX0xPQ0FMX0ZBTExCQUNLIiwiX2RlZmF1bHQiLCJleHBvcnRzIiwiZGVmYXVsdCJdLCJzb3VyY2VzIjpbInJ1bnRpbWVDb25maWcudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiDov5DooYzml7bphY3nva7vvIjnlKjkuo7miZPljIXniYjmnKzvvIlcbiAqIOatpOaWh+S7tuWcqOaJk+WMheaXtuS8muagueaNri5lbnboh6rliqjnlJ/miJBcbiAqL1xuXG4vLyDpu5jorqTphY3nva5cbmNvbnN0IGNvbmZpZyA9IHtcbiAgQkFJRFVfT0NSX0FQSV9LRVk6ICdxZ0hEazJ3T2RRRFhySzlpcm44UjBvUEknLFxuICBCQUlEVV9PQ1JfU0VDUkVUX0tFWTogJ1hxRU9aWnBLbVBJTWNOV29XQkRPd2ZEeWl4dGY2cTI1JyxcbiAgREVFUFNFRUtfQVBJX0tFWTogJ3NrLWMzZDFmZjI1N2EzMDRkNjM4YWI5YmY3ZjJhYjlmMmMyJyxcbiAgT0NSX1BST1ZJREVSOiAnYmFpZHUnLFxuICBHRU5FUkFUSU9OX1BST1ZJREVSOiAnZGVlcHNlZWsnLFxuICBFTkFCTEVfQUlfR0VORVJBVElPTjogJ3RydWUnLFxuICBVU0VfTE9DQUxfRkFMTEJBQ0s6ICd0cnVlJyxcbn07XG5cbmV4cG9ydCBkZWZhdWx0IGNvbmZpZztcbiJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQU1BLElBQU1BLE1BQU0sSUFBQUMsYUFBQSxHQUFBQyxDQUFBLE9BQUc7RUFDYkMsaUJBQWlCLEVBQUUsMEJBQTBCO0VBQzdDQyxvQkFBb0IsRUFBRSxrQ0FBa0M7RUFDeERDLGdCQUFnQixFQUFFLHFDQUFxQztFQUN2REMsWUFBWSxFQUFFLE9BQU87RUFDckJDLG1CQUFtQixFQUFFLFVBQVU7RUFDL0JDLG9CQUFvQixFQUFFLE1BQU07RUFDNUJDLGtCQUFrQixFQUFFO0FBQ3RCLENBQUM7QUFBQyxJQUFBQyxRQUFBLEdBQUFDLE9BQUEsQ0FBQUMsT0FBQSxHQUVhWixNQUFNIiwiaWdub3JlTGlzdCI6W119

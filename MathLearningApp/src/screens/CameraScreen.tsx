@@ -222,7 +222,11 @@ const CameraScreen = () => {
   };
 
   const takePicture = async () => {
-    if (!cameraRef.current) return;
+    console.log('[CameraScreen] takePicture called, cameraRef:', !!cameraRef.current);
+    if (!cameraRef.current) {
+      console.warn('[CameraScreen] cameraRef is null, cannot take picture');
+      return;
+    }
 
     setIsTakingPicture(true);
     setRecognitionResult(null);
@@ -977,7 +981,7 @@ const CameraScreen = () => {
             }}
           />
 
-          <View style={styles.cameraOverlay}>
+          <View style={styles.cameraOverlay} pointerEvents="none">
             <View style={styles.focusFrame}>
               <Icon name="crop-free" size="xl" color={designSystem.colors.text.inverse} />
               <Spacer size="xs" />
